@@ -9,8 +9,8 @@ Rencana lengkap: /Users/vihermawan/Documents/Obsidian Vault/agent-memory/plans/e
 ## Perintah
 - Dev: `npm run dev`
 - Lint: `npm run lint`
-- Typecheck: `npx tsc --noEmit`
-- Test: `npm test` <!-- sesuaikan setelah test runner dipasang -->
+- Typecheck: `npm run typecheck` (menjalankan `tsc --noEmit`)
+- Test: `npm test` (Vitest)
 
 ## Aturan khusus project
 - Ikuti skill nextjs-conventions.
