@@ -24,8 +24,10 @@ function RegistrationPreviewCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Pratinjau formulir pendaftaran</CardTitle>
-        <CardDescription>
+        <CardTitle className="text-balance">
+          Pratinjau formulir pendaftaran
+        </CardTitle>
+        <CardDescription className="text-pretty">
           Contoh field formulir. Belum terhubung ke sistem pendaftaran.
         </CardDescription>
       </CardHeader>
@@ -45,7 +47,7 @@ function RegistrationPreviewCard() {
                 type="email"
                 placeholder="nama@email.com"
               />
-              <FieldDescription>
+              <FieldDescription className="text-pretty">
                 Dipakai untuk mengirim e-tiket setelah pendaftaran aktif.
               </FieldDescription>
             </FieldContent>

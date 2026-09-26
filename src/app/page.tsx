@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader } from "@/components/ui/card";
 import { Container } from "@/components/layout/container";
 import {
   Table,
@@ -18,18 +18,21 @@ export default function Home() {
       <section aria-labelledby="intro-heading" className="max-w-2xl">
         <h1
           id="intro-heading"
-          className="text-3xl font-semibold tracking-tight text-foreground"
+          className="text-balance text-3xl font-semibold tracking-tight text-foreground"
         >
           event-in
         </h1>
-        <p className="mt-3 text-base text-muted-foreground">
+        <p className="mt-3 text-pretty text-base text-muted-foreground">
           Membantu panitia mengelola pendaftaran, e-tiket QR, check-in, dan
           sertifikat bertanda tangan untuk seminar, workshop, dan meetup.
         </p>
       </section>
 
       <section aria-labelledby="status-heading" className="flex flex-col gap-3">
-        <h2 id="status-heading" className="text-lg font-medium text-foreground">
+        <h2
+          id="status-heading"
+          className="text-balance text-lg font-medium text-foreground"
+        >
           Kosakata status pendaftaran
         </h2>
         <div className="flex flex-wrap gap-2">
@@ -53,7 +56,12 @@ export default function Home() {
       <section aria-labelledby="peserta-heading">
         <Card>
           <CardHeader>
-            <CardTitle id="peserta-heading">Daftar peserta</CardTitle>
+            <h2
+              id="peserta-heading"
+              className="font-heading text-base leading-snug font-medium"
+            >
+              Daftar peserta
+            </h2>
           </CardHeader>
           <Table>
             <TableHeader>
@@ -67,7 +75,7 @@ export default function Home() {
               <TableRow>
                 <TableCell
                   colSpan={3}
-                  className="py-8 text-center whitespace-normal text-muted-foreground"
+                  className="py-8 text-center whitespace-normal text-pretty text-muted-foreground"
                 >
                   Belum ada peserta terdaftar. Data akan muncul setelah
                   pendaftaran event dibuka.

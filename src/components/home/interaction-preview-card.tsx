@@ -36,8 +36,8 @@ function InteractionPreviewCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Pratinjau interaksi</CardTitle>
-        <CardDescription>
+        <CardTitle className="text-balance">Pratinjau interaksi</CardTitle>
+        <CardDescription className="text-pretty">
           Contoh dialog konfirmasi dan menu tindakan yang akan dipakai di
           layar panitia.
         </CardDescription>
@@ -49,8 +49,10 @@ function InteractionPreviewCard() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Contoh dialog konfirmasi</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-balance">
+                Contoh dialog konfirmasi
+              </DialogTitle>
+              <DialogDescription className="text-pretty">
                 Dialog seperti ini nantinya dipakai untuk konfirmasi tindakan
                 penting, misalnya membatalkan pendaftaran peserta.
               </DialogDescription>
