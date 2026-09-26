@@ -17,13 +17,7 @@ function SiteHeader() {
           event-in
         </Link>
 
-        <Button
-          variant="outline"
-          size="sm"
-          disabled
-          aria-disabled="true"
-          title="Masuk akan aktif setelah fitur login siap"
-        >
+        <Button variant="outline" size="sm" disabled>
           Masuk (segera hadir)
         </Button>
       </Container>
