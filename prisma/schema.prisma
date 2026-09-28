@@ -1,0 +1,311 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  DISABLED
+}
+
+enum FormFieldType {
+  TEXT
+  SINGLE_CHOICE
+  DROPDOWN
+}
+
+enum RegistrationStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+enum CertificateTemplateSource {
+  BUILTIN
+  UPLOAD
+}
+
+enum SignerStatus {
+  PENDING
+  SIGNED
+  DECLINED
+}
+
+model OrganizerProfile {
+  userId       String   @id @map("user_id")
+  orgName      String   @map("org_name")
+  contactPhone String   @map("contact_phone")
+  contactEmail String?  @map("contact_email")
+  activatedAt  DateTime @default(now()) @map("activated_at") @db.Timestamptz(3)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events Event[]
+
+  @@map("organizer_profiles")
+}
+
+model Event {
+  id             String      @id @default(cuid())
+  organizerId    String      @map("organizer_id")
+  slug           String      @unique
+  title          String
+  description    String
+  startAt        DateTime    @map("start_at") @db.Timestamptz(3)
+  endAt          DateTime    @map("end_at") @db.Timestamptz(3)
+  venue          String
+  posterPath     String?     @map("poster_path")
+  status         EventStatus @default(DRAFT)
+  publishedAt    DateTime?   @map("published_at") @db.Timestamptz(3)
+  cancelledAt    DateTime?   @map("cancelled_at") @db.Timestamptz(3)
+  cancelReason   String?     @map("cancel_reason")
+  disabledReason String?     @map("disabled_reason")
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organizer         OrganizerProfile   @relation(fields: [organizerId], references: [userId])
+  ticketTypes       TicketType[]
+  formFields        FormField[]
+  registrations     Registration[]
+  signers           Signer[]
+  certificates      Certificate[]
+  certificateConfig CertificateConfig?
+
+  @@index([organizerId])
+  @@map("events")
+}
+
+model TicketType {
+  id            String   @id @default(cuid())
+  eventId       String   @map("event_id")
+  name          String
+  price         Int      @default(0)
+  quota         Int
+  reservedCount Int      @default(0) @map("reserved_count")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registrations Registration[]
+
+  @@index([eventId])
+  @@map("ticket_types")
+}
+
+model FormField {
+  id        String        @id @default(cuid())
+  eventId   String        @map("event_id")
+  label     String
+  type      FormFieldType
+  options   Json          @default("[]")
+  required  Boolean       @default(false)
+  order     Int
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@map("form_fields")
+}
+
+model Registration {
+  id            String             @id @default(cuid())
+  eventId       String             @map("event_id")
+  ticketTypeId  String             @map("ticket_type_id")
+  userId        String             @map("user_id")
+  name          String
+  email         String
+  phone         String
+  answers       Json               @default("{}")
+  consentAt     DateTime           @map("consent_at") @db.Timestamptz(3)
+  status        RegistrationStatus @default(CONFIRMED)
+  ticketCode    String?            @unique @map("ticket_code")
+  confirmedAt   DateTime?          @map("confirmed_at") @db.Timestamptz(3)
+  cancelledAt   DateTime?          @map("cancelled_at") @db.Timestamptz(3)
+  cancelReason  String?            @map("cancel_reason")
+  cancelledById String?            @map("cancelled_by_id")
+  checkedInAt   DateTime?          @map("checked_in_at") @db.Timestamptz(3)
+  checkedInById String?            @map("checked_in_by_id")
+  createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  event       Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ticketType  TicketType   @relation(fields: [ticketTypeId], references: [id])
+  user        User         @relation(fields: [userId], references: [id])
+  certificate Certificate?
+
+  @@index([eventId])
+  @@index([ticketTypeId])
+  @@index([userId])
+  @@index([eventId, status])
+  @@index([eventId, checkedInAt])
+  @@map("registrations")
+}
+
+model CertificateConfig {
+  id             String                    @id @default(cuid())
+  eventId        String                    @unique @map("event_id")
+  templateSource CertificateTemplateSource @default(BUILTIN) @map("template_source")
+  builtinKey     String                    @map("builtin_key")
+  pageWidth      Float                     @map("page_width")
+  pageHeight     Float                     @map("page_height")
+  layout         Json
+  lockedAt       DateTime?                 @map("locked_at") @db.Timestamptz(3)
+  firstIssuedAt  DateTime?                 @map("first_issued_at") @db.Timestamptz(3)
+  createdAt      DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("certificate_configs")
+}
+
+model Signer {
+  id               String       @id @default(cuid())
+  eventId          String       @map("event_id")
+  order            Int
+  name             String
+  title            String
+  email            String
+  status           SignerStatus @default(PENDING)
+  tokenHash        String       @unique @map("token_hash")
+  tokenExpiresAt   DateTime     @map("token_expires_at") @db.Timestamptz(3)
+  signaturePath    String?      @map("signature_path")
+  consentAt        DateTime?    @map("consent_at") @db.Timestamptz(3)
+  consentIp        String?      @map("consent_ip")
+  consentUserAgent String?      @map("consent_user_agent")
+  signedByEmail    String?      @map("signed_by_email")
+  declineReason    String?      @map("decline_reason")
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@map("signers")
+}
+
+model Certificate {
+  id             String    @id @default(cuid())
+  eventId        String    @map("event_id")
+  registrationId String    @unique @map("registration_id")
+  seq            Int
+  number         String    @unique
+  recipientName  String    @map("recipient_name")
+  issuedAt       DateTime  @default(now()) @map("issued_at") @db.Timestamptz(3)
+  revokedAt      DateTime? @map("revoked_at") @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registration Registration @relation(fields: [registrationId], references: [id])
+
+  @@unique([eventId, seq])
+  @@index([eventId])
+  @@map("certificates")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?  @map("actor_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  meta       Json?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+model ErrorLog {
+  id          String   @id @default(cuid())
+  fingerprint String   @unique
+  source      String
+  level       String
+  message     String
+  stack       String?
+  context     Json?
+  count       Int      @default(1)
+  firstSeenAt DateTime @default(now()) @map("first_seen_at") @db.Timestamptz(3)
+  lastSeenAt  DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+
+  @@map("error_logs")
+}
+
+model User {
+  id               String            @id
+  name             String
+  email            String
+  emailVerified    Boolean           @default(false)
+  image            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  phone            String?
+  isAdmin          Boolean?          @default(false)
+  disabledAt       DateTime?
+  termsVersion     String?
+  termsAcceptedAt  DateTime?
+  sessions         Session[]
+  accounts         Account[]
+  organizerProfile OrganizerProfile?
+  registrations    Registration[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
