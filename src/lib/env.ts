@@ -86,3 +86,13 @@ function loadEnv() {
 }
 
 export const env = loadEnv();
+
+export function getDatabaseUrl(): string {
+  if (!env.DATABASE_URL) {
+    throw new Error(
+      "DATABASE_URL belum diisi. Prisma butuh connection string transaction pooler Supabase. Lihat .env.example.",
+    );
+  }
+
+  return env.DATABASE_URL;
+}

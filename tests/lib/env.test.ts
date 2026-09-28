@@ -109,3 +109,19 @@ describe("env", () => {
     expect(env.APP_BASE_URL).toBe("https://event-in.example.com");
   });
 });
+
+describe("getDatabaseUrl", () => {
+  it("melempar error saat DATABASE_URL kosong", async () => {
+    const { getDatabaseUrl } = await import("@/lib/env");
+
+    expect(() => getDatabaseUrl()).toThrow(/DATABASE_URL/);
+  });
+
+  it("mengembalikan DATABASE_URL saat terisi", async () => {
+    process.env.DATABASE_URL = "postgresql://user:pass@localhost:5432/db";
+
+    const { getDatabaseUrl } = await import("@/lib/env");
+
+    expect(getDatabaseUrl()).toBe("postgresql://user:pass@localhost:5432/db");
+  });
+});
