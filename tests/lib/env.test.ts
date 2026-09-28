@@ -4,10 +4,14 @@ const ENV_KEYS = [
   "NODE_ENV",
   "APP_BASE_URL",
   "DATABASE_URL",
+  "DIRECT_URL",
   "CRON_SECRET",
-  "NEXT_PUBLIC_SUPABASE_URL",
-  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "SUPABASE_URL",
   "SUPABASE_SERVICE_ROLE_KEY",
+  "BETTER_AUTH_SECRET",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "ADMIN_EMAIL",
   "VERCEL_ENV",
   "VERCEL_URL",
 ] as const;
@@ -37,7 +41,24 @@ describe("env", () => {
     expect(env.APP_BASE_URL).toBe("http://localhost:3000");
     expect(env.NODE_ENV).toBe("development");
     expect(env.DATABASE_URL).toBeUndefined();
+    expect(env.DIRECT_URL).toBeUndefined();
     expect(env.CRON_SECRET).toBeUndefined();
+    expect(env.BETTER_AUTH_SECRET).toBeUndefined();
+    expect(env.GOOGLE_CLIENT_ID).toBeUndefined();
+    expect(env.GOOGLE_CLIENT_SECRET).toBeUndefined();
+    expect(env.ADMIN_EMAIL).toBeUndefined();
+  });
+
+  it("menolak SUPABASE_URL yang bukan URL", async () => {
+    process.env.SUPABASE_URL = "bukan-url";
+
+    await expect(import("@/lib/env")).rejects.toThrow(/SUPABASE_URL/);
+  });
+
+  it("menolak ADMIN_EMAIL yang bukan alamat email", async () => {
+    process.env.ADMIN_EMAIL = "bukan-email";
+
+    await expect(import("@/lib/env")).rejects.toThrow(/ADMIN_EMAIL/);
   });
 
   it("menerima APP_BASE_URL yang valid dari process.env", async () => {
