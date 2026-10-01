@@ -11,6 +11,8 @@ Rencana lengkap: /Users/vihermawan/Documents/Obsidian Vault/agent-memory/plans/e
 - Lint: `pnpm lint`
 - Typecheck: `pnpm typecheck` (menjalankan `next typegen && tsc --noEmit`)
 - Test: `pnpm test` (Vitest)
+- Test integrasi (DB dev dari `.env.local`): `pnpm test:integration`
+- Siapkan bucket Storage: `pnpm storage:setup`
 - Migrasi DB: `pnpm db:migrate`
 - Generate Prisma client: `pnpm db:generate`
 - Seed DB: `pnpm db:seed`

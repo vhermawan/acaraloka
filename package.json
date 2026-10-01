@@ -14,7 +14,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "storage:setup": "tsx scripts/setup-storage.mts"
+    "storage:setup": "tsx scripts/setup-storage.mts",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
