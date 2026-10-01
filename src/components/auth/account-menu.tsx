@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -17,9 +18,11 @@ import { authClient } from "@/lib/auth-client";
 type AccountMenuProps = {
   name: string;
   email: string;
+  isOrganizer: boolean;
+  isAdmin: boolean;
 };
 
-function AccountMenu({ name, email }: AccountMenuProps) {
+function AccountMenu({ name, email, isOrganizer, isAdmin }: AccountMenuProps) {
   const router = useRouter();
 
   async function handleSignOut() {
@@ -40,6 +43,16 @@ function AccountMenu({ name, email }: AccountMenuProps) {
             <span className="text-foreground">{name}</span>
             <span className="font-normal">{email}</span>
           </DropdownMenuLabel>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuItem render={<Link href="/me/tickets" />}>Tiket saya</DropdownMenuItem>
+          <DropdownMenuItem render={<Link href={isOrganizer ? "/organizer" : "/organizer/join"} />}>
+            {isOrganizer ? "Dashboard panitia" : "Jadi panitia"}
+          </DropdownMenuItem>
+          {isAdmin ? (
+            <DropdownMenuItem render={<Link href="/admin" />}>Admin</DropdownMenuItem>
+          ) : null}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>Keluar</DropdownMenuItem>

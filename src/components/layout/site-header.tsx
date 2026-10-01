@@ -4,9 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Container } from "@/components/layout/container";
 import { AccountMenu } from "@/components/auth/account-menu";
 import { getSession } from "@/lib/session";
+import { prisma } from "@/server/db";
 
 async function SiteHeader() {
   const session = await getSession();
+  const isOrganizer = session
+    ? !!(await prisma.organizerProfile.findUnique({
+        where: { userId: session.user.id },
+        select: { userId: true },
+      }))
+    : false;
 
   return (
     <header
@@ -22,7 +29,12 @@ async function SiteHeader() {
         </Link>
 
         {session ? (
-          <AccountMenu name={session.user.name} email={session.user.email} />
+          <AccountMenu
+            name={session.user.name}
+            email={session.user.email}
+            isOrganizer={isOrganizer}
+            isAdmin={session.user.isAdmin === true}
+          />
         ) : (
           <Button
             variant="outline"
