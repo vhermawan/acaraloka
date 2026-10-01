@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Container } from "@/components/layout/container";
+import { CancelRegistrationButton } from "@/components/tickets/cancel-registration-button";
 import { TicketQr } from "@/components/tickets/ticket-qr";
 import { TicketStateBadge } from "@/components/tickets/ticket-state-badge";
 import { ticketState } from "@/lib/ticket-state";
@@ -76,6 +77,8 @@ export default async function TicketDetailPage({ params }: PageProps<"/me/ticket
           <dd className="break-words">{event.venue}</dd>
         </dl>
       </article>
+
+      {state === "ACTIVE" ? <CancelRegistrationButton registrationId={ticket.id} /> : null}
 
       <Link href={`/e/${event.slug}`} className="w-fit text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">
         Halaman acara
