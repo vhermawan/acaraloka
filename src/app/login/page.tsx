@@ -19,6 +19,7 @@ import {
   isAndroid,
   type InAppBrowser,
 } from "@/lib/in-app-browser";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 import { getSession } from "@/lib/session";
 
 export const metadata: Metadata = {
@@ -32,13 +33,18 @@ const APP_NAMES: Record<InAppBrowser, string> = {
   line: "LINE",
 };
 
-export default async function LoginPage() {
+export default async function LoginPage({ searchParams }: PageProps<"/login">) {
+  const { next, error } = await searchParams;
+  const nextPath = safeRedirectPath(next);
+
   const session = await getSession();
-  if (session) redirect("/");
+  if (session && !session.user.disabledAt) redirect(nextPath);
 
   const userAgent = (await headers()).get("user-agent");
   const inApp = detectInAppBrowser(userAgent);
-  const loginUrl = new URL("/login", env.APP_BASE_URL).toString();
+  const loginUrl = new URL("/login", env.APP_BASE_URL);
+  if (nextPath !== "/") loginUrl.searchParams.set("next", nextPath);
+  const callbackURL = `/legal/accept?next=${encodeURIComponent(nextPath)}`;
 
   return (
     <Container className="flex justify-center py-12">
@@ -56,12 +62,20 @@ export default async function LoginPage() {
         <CardContent>
           {inApp ? (
             <InAppBrowserNotice
-              url={loginUrl}
-              intentUrl={isAndroid(userAgent) ? buildChromeIntentUrl(loginUrl) : null}
+              url={loginUrl.toString()}
+              intentUrl={isAndroid(userAgent) ? buildChromeIntentUrl(loginUrl.toString()) : null}
               appName={APP_NAMES[inApp]}
             />
           ) : (
-            <GoogleSignInButton />
+            <div className="flex flex-col gap-3">
+              {error === "disabled" ? (
+                <p role="alert" className="text-sm text-destructive">
+                  Akun ini dinonaktifkan. Hubungi admin event-in jika menurutmu
+                  ini keliru.
+                </p>
+              ) : null}
+              <GoogleSignInButton callbackURL={callbackURL} />
+            </div>
           )}
         </CardContent>
       </Card>
