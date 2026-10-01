@@ -7,10 +7,13 @@
 Rencana lengkap: /Users/vihermawan/Documents/Obsidian Vault/agent-memory/plans/event-in-v1.md
 
 ## Perintah
-- Dev: `npm run dev`
-- Lint: `npm run lint`
-- Typecheck: `npm run typecheck` (menjalankan `tsc --noEmit`)
-- Test: `npm test` (Vitest)
+- Dev: `pnpm dev`
+- Lint: `pnpm lint`
+- Typecheck: `pnpm typecheck` (menjalankan `next typegen && tsc --noEmit`)
+- Test: `pnpm test` (Vitest)
+- Migrasi DB: `pnpm db:migrate`
+- Generate Prisma client: `pnpm db:generate`
+- Seed DB: `pnpm db:seed`
 
 ## Aturan khusus project
 - Ikuti skill nextjs-conventions.
