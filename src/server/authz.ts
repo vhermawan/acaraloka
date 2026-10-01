@@ -15,13 +15,17 @@ export function canRegisterFreeTicket(user: Pick<SessionUser, "emailVerified">) 
   return user.emailVerified === true;
 }
 
-export async function requireUser() {
+function withNext(path: string, next?: string) {
+  return next ? `${path}?next=${encodeURIComponent(next)}` : path;
+}
+
+export async function requireUser(options: { next?: string } = {}) {
   const session = await getSession();
-  if (!session) redirect("/login");
+  if (!session) redirect(withNext("/login", options.next));
 
   const { user } = session;
   if (user.disabledAt) redirect("/login?error=disabled");
-  if (!hasAcceptedCurrentTerms(user)) redirect("/legal/accept");
+  if (!hasAcceptedCurrentTerms(user)) redirect(withNext("/legal/accept", options.next));
 
   return user;
 }
