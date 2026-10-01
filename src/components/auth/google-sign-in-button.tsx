@@ -6,14 +6,18 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 
-function GoogleSignInButton() {
+type GoogleSignInButtonProps = {
+  callbackURL: string;
+};
+
+function GoogleSignInButton({ callbackURL }: GoogleSignInButtonProps) {
   const [pending, setPending] = useState(false);
 
   async function handleClick() {
     setPending(true);
     const { error } = await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/",
+      callbackURL,
     });
     if (error) {
       setPending(false);
