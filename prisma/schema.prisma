@@ -59,6 +59,7 @@ model Event {
   description    String
   startAt        DateTime    @map("start_at") @db.Timestamptz(3)
   endAt          DateTime    @map("end_at") @db.Timestamptz(3)
+  timezone       String      @default("Asia/Jakarta")
   venue          String
   posterPath     String?     @map("poster_path")
   status         EventStatus @default(DRAFT)
