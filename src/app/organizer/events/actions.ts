@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { getPublishIssues } from "@/lib/event-publish";
 import { createEventSlug } from "@/lib/slug";
 import {
   POSTER_CONTENT_TYPES,
@@ -98,5 +99,22 @@ export async function setEventPoster(eventId: string, path: string): Promise<{ e
     await removeObjects(POSTER_BUCKET, [event.posterPath]).catch(() => undefined);
   }
   revalidatePath(`/organizer/events/${event.id}`);
+  return {};
+}
+
+export async function publishEvent(eventId: string): Promise<{ error?: string }> {
+  const { event } = await requireEventOwner(eventId);
+  const ticketTypeCount = await prisma.ticketType.count({ where: { eventId: event.id } });
+  const issues = getPublishIssues({ ...event, ticketTypeCount });
+  if (issues.length > 0) return { error: issues.join(" ") };
+
+  const updated = await prisma.event.updateMany({
+    where: { id: event.id, status: "DRAFT" },
+    data: { status: "PUBLISHED", publishedAt: new Date() },
+  });
+  if (updated.count === 0) return { error: "Acara sudah tidak berstatus draf." };
+
+  revalidatePath(`/organizer/events/${event.id}`, "layout");
+  revalidatePath(`/e/${event.slug}`);
   return {};
 }
