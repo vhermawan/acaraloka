@@ -6,6 +6,9 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/server/authz", () => mocks);
+vi.mock("@/server/db", () => ({
+  prisma: { event: { findMany: async () => [] } },
+}));
 vi.mock("@/server/admin-stats", () => ({
   getAdminStats: async () => ({ publishedEvents: 0, registrations24h: 0, errors24h: 0, dbSizeBytes: 0 }),
 }));
