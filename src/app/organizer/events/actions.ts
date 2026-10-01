@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { getPublishIssues } from "@/lib/event-publish";
 import { createEventSlug } from "@/lib/slug";
+import { cancelEventSchema } from "@/lib/validation/cancellation";
 import {
   POSTER_CONTENT_TYPES,
   eventFormSchema,
@@ -13,6 +14,7 @@ import {
   type PosterContentType,
 } from "@/lib/validation/event";
 import { requireEventOwner, requireOrganizer } from "@/server/authz";
+import { cancelEvent } from "@/server/cancellation";
 import { prisma } from "@/server/db";
 import { POSTER_BUCKET, createSignedUploadUrl, removeObjects } from "@/server/storage";
 
@@ -117,4 +119,32 @@ export async function publishEvent(eventId: string): Promise<{ error?: string }>
   revalidatePath(`/organizer/events/${event.id}`, "layout");
   revalidatePath(`/e/${event.slug}`);
   return {};
+}
+
+export type CancelEventState = {
+  errors?: Partial<Record<"reason" | "confirmTitle", string[]>>;
+  message?: string;
+  values?: Record<string, string>;
+};
+
+export async function cancelEventAction(
+  eventId: string,
+  _prev: CancelEventState,
+  formData: FormData,
+): Promise<CancelEventState> {
+  const { event } = await requireEventOwner(eventId);
+  const values = {
+    reason: String(formData.get("reason") ?? ""),
+    confirmTitle: String(formData.get("confirmTitle") ?? ""),
+  };
+  const parsed = cancelEventSchema(event.title).safeParse(values);
+  if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors, values };
+
+  const cancelled = await cancelEvent({ eventId: event.id, reason: parsed.data.reason });
+  if (!cancelled) return { message: "Hanya acara terbit yang belum dimulai yang bisa dibatalkan.", values };
+
+  revalidatePath(`/organizer/events/${event.id}`, "layout");
+  revalidatePath(`/e/${event.slug}`);
+  revalidatePath("/me/tickets", "layout");
+  redirect(`/organizer/events/${event.id}`);
 }

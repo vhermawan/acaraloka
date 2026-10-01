@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 
 import Link from "next/link";
 
-import { updateEvent } from "@/app/organizer/events/actions";
+import { cancelEventAction, updateEvent } from "@/app/organizer/events/actions";
+import { CancelEventDialog } from "@/components/events/cancel-event-dialog";
 import { DeleteEventButton } from "@/components/events/delete-event-button";
 import { EventForm } from "@/components/events/event-form";
 import { PosterUploader } from "@/components/events/poster-uploader";
@@ -61,6 +62,18 @@ export default async function EditEventPage({ params }: PageProps<"/organizer/ev
           />
         </section>
       </div>
+
+      {event.status === "PUBLISHED" && event.startAt > new Date() ? (
+        <section aria-labelledby="cancel-heading" className="flex flex-col gap-3 border-t border-border pt-8">
+          <h2 id="cancel-heading" className="font-medium">Batalkan acara</h2>
+          <p className="text-sm text-muted-foreground">
+            Hanya bisa sebelum acara dimulai. Peserta tidak bisa check-in setelah acara dibatalkan.
+          </p>
+          <div>
+            <CancelEventDialog title={event.title} action={cancelEventAction.bind(null, event.id)} />
+          </div>
+        </section>
+      ) : null}
 
       {event.status === "DRAFT" ? (
         <section aria-labelledby="danger-heading" className="flex flex-col gap-3 border-t border-border pt-8">

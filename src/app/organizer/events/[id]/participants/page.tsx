@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { CancelParticipantButton } from "@/components/events/cancel-participant-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +39,7 @@ export default async function ParticipantsPage({
   const { event } = await requireEventOwner(id);
   const query = parseQuery(q);
   const page = parsePage(pageParam);
+  const canCancel = event.status === "PUBLISHED";
 
   const [fields, result] = await Promise.all([
     prisma.formField.findMany({ where: { eventId: event.id }, orderBy: { order: "asc" } }),
@@ -96,6 +98,7 @@ export default async function ParticipantsPage({
                   <TableHead key={field.id}>{field.label}</TableHead>
                 ))}
                 <TableHead>Status</TableHead>
+                {canCancel ? <TableHead className="sr-only">Aksi</TableHead> : null}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -113,6 +116,13 @@ export default async function ParticipantsPage({
                     <TableCell>
                       <Badge variant={STATUS_VARIANTS[status]}>{PARTICIPANT_STATUS_LABELS[status]}</Badge>
                     </TableCell>
+                    {canCancel ? (
+                      <TableCell className="text-right">
+                        {status === "REGISTERED" ? (
+                          <CancelParticipantButton eventId={event.id} registrationId={row.id} name={row.name} />
+                        ) : null}
+                      </TableCell>
+                    ) : null}
                   </TableRow>
                 );
               })}
