@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { updateEvent } from "@/app/organizer/events/actions";
 import { DeleteEventButton } from "@/components/events/delete-event-button";
 import { EventForm } from "@/components/events/event-form";
-import { EventStatusBadge } from "@/components/events/event-status-badge";
 import { PosterUploader } from "@/components/events/poster-uploader";
-import { Container } from "@/components/layout/container";
 import { dateToLocalInput } from "@/lib/timezone";
 import { requireEventOwner } from "@/server/authz";
 import { POSTER_BUCKET, publicObjectUrl } from "@/server/storage";
@@ -21,17 +18,7 @@ export default async function EditEventPage({ params }: PageProps<"/organizer/ev
   const editable = event.status === "DRAFT" || event.status === "PUBLISHED";
 
   return (
-    <Container className="flex flex-col gap-10 py-12">
-      <header className="flex flex-col gap-2">
-        <Link href="/organizer" className="w-fit text-sm text-muted-foreground hover:text-foreground">
-          Kembali ke daftar acara
-        </Link>
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-balance text-2xl font-semibold tracking-tight">{event.title}</h1>
-          <EventStatusBadge status={event.status} />
-        </div>
-      </header>
-
+    <div className="flex flex-col gap-10">
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_16rem]">
         <section aria-labelledby="details-heading" className="flex flex-col gap-4">
           <h2 id="details-heading" className="font-medium">Detail acara</h2>
@@ -68,6 +55,6 @@ export default async function EditEventPage({ params }: PageProps<"/organizer/ev
           </div>
         </section>
       ) : null}
-    </Container>
+    </div>
   );
 }
