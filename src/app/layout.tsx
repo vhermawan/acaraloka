@@ -6,6 +6,7 @@ import { CloudflareAnalytics } from "@/components/analytics/cloudflare-analytics
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { Toaster } from "@/components/ui/sonner";
+import { env } from "@/lib/env";
 
 const fontSans = Plus_Jakarta_Sans({
   variable: "--font-sans",
@@ -18,6 +19,7 @@ const fontMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(env.APP_BASE_URL),
   title: "event-in",
   description:
     "event-in membantu panitia mengelola pendaftaran, e-tiket QR, check-in, dan sertifikat bertanda tangan untuk seminar, workshop, dan meetup.",
