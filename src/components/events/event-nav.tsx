@@ -15,6 +15,7 @@ function EventNav({ eventId }: EventNavProps) {
     { href: base, label: "Detail" },
     { href: `${base}/tickets`, label: "Tiket" },
     { href: `${base}/form`, label: "Formulir" },
+    { href: `${base}/participants`, label: "Peserta" },
   ];
 
   return (
