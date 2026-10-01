@@ -96,3 +96,19 @@ export function getDatabaseUrl(): string {
 
   return env.DATABASE_URL;
 }
+
+export function getAuthConfig() {
+  const { BETTER_AUTH_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } = env;
+
+  if (!BETTER_AUTH_SECRET || !GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    throw new Error(
+      "BETTER_AUTH_SECRET, GOOGLE_CLIENT_ID, dan GOOGLE_CLIENT_SECRET wajib diisi untuk login. Lihat .env.example.",
+    );
+  }
+
+  return {
+    secret: BETTER_AUTH_SECRET,
+    googleClientId: GOOGLE_CLIENT_ID,
+    googleClientSecret: GOOGLE_CLIENT_SECRET,
+  };
+}

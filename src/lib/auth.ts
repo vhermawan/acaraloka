@@ -1,9 +1,21 @@
 import "server-only";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "@better-auth/prisma-adapter";
+import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/server/db";
+import { env, getAuthConfig } from "@/lib/env";
+
+const authConfig = getAuthConfig();
 
 export const auth = betterAuth({
+  baseURL: env.APP_BASE_URL,
+  secret: authConfig.secret,
+  socialProviders: {
+    google: {
+      clientId: authConfig.googleClientId,
+      clientSecret: authConfig.googleClientSecret,
+    },
+  },
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   user: {
     additionalFields: {
@@ -31,4 +43,5 @@ export const auth = betterAuth({
       },
     },
   },
+  plugins: [nextCookies()],
 });
