@@ -49,6 +49,8 @@ const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
 
   ADMIN_EMAIL: z.string().email().optional(),
+
+  CLOUDFLARE_ANALYTICS_TOKEN: z.string().min(1).optional(),
 });
 
 function loadEnv() {
@@ -66,6 +68,7 @@ function loadEnv() {
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     ADMIN_EMAIL: process.env.ADMIN_EMAIL,
+    CLOUDFLARE_ANALYTICS_TOKEN: process.env.CLOUDFLARE_ANALYTICS_TOKEN || undefined,
   });
 
   if (!parsed.success) {
