@@ -15,7 +15,7 @@ const data = {
   eventTitle: "Workshop Desain Produk",
   eventDate: "7 Oktober 2026",
   organizerName: "Himpunan Mahasiswa",
-  verifyUrl: "https://event-in.example/v/EI-2610-0001-K7Q3XM",
+  verifyUrl: "https://hadirly.example/v/EI-2610-0001-K7Q3XM",
   signers: [
     { name: "Dr. Budi Santoso", title: "Ketua Pelaksana", signaturePng: PNG_1X1 },
     { name: "Ayu Lestari", title: "Narasumber", signaturePng: null },

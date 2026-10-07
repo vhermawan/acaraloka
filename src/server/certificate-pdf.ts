@@ -136,8 +136,8 @@ export async function renderCertificatePdf(
 ): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   pdf.setTitle(`Sertifikat ${data.recipientName}`);
-  pdf.setProducer("event-in");
-  pdf.setCreator("event-in");
+  pdf.setProducer("Hadirly");
+  pdf.setCreator("Hadirly");
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   const fonts: Fonts = {
     title: await pdf.embedFont(StandardFonts.TimesRomanBold),
@@ -239,7 +239,7 @@ export async function renderCertificatePdf(
 
   drawQr(page, data.verifyUrl, layout.verifyQr, fonts);
 
-  drawAligned(page, "Diterbitkan via event-in", {
+  drawAligned(page, "Diterbitkan via Hadirly", {
     x: PAGE_WIDTH / 2,
     y: 46,
     size: 8,

@@ -20,7 +20,7 @@ export default function Home() {
           id="intro-heading"
           className="text-balance text-3xl font-semibold tracking-tight text-foreground"
         >
-          event-in
+          Hadirly
         </h1>
         <p className="mt-3 text-pretty text-base text-muted-foreground">
           Membantu panitia mengelola pendaftaran, e-tiket QR, check-in, dan

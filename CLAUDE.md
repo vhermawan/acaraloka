@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# event-in
+# hadirly (sebelumnya event-in)
 
 ## Tentang project
 <!-- Isi setelah rencana disetujui: 2-3 kalimat tujuan sistem. -->

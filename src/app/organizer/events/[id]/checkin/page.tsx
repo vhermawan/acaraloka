@@ -6,7 +6,7 @@ import { requireEventOwner } from "@/server/authz";
 import { checkInSummary } from "@/server/checkin";
 
 export const metadata: Metadata = {
-  title: "Check-in | event-in",
+  title: "Check-in | Hadirly",
 };
 
 const CLOSED_MESSAGES: Record<string, string> = {
