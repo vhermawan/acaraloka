@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Prisma, PrismaClient } from "@/generated/prisma/client";
+import { Prisma, type PrismaClient } from "@/generated/prisma/client";
 import {
   BUILTIN_TEMPLATE_KEY,
   PAGE_HEIGHT,
@@ -18,18 +18,22 @@ export async function getOrCreateCertificateConfig(eventId: string, db: PrismaCl
   if (existing) return { ...existing, layout: parseCertificateLayout(existing.layout) };
 
   const signerCount = await db.signer.count({ where: { eventId } });
-  const created = await db.certificateConfig.upsert({
-    where: { eventId },
-    create: {
-      eventId,
-      builtinKey: BUILTIN_TEMPLATE_KEY,
-      pageWidth: PAGE_WIDTH,
-      pageHeight: PAGE_HEIGHT,
-      layout: defaultCertificateLayout(signerCount) as Prisma.InputJsonValue,
-    },
-    update: {},
-  });
-  return { ...created, layout: parseCertificateLayout(created.layout) };
+  try {
+    const created = await db.certificateConfig.create({
+      data: {
+        eventId,
+        builtinKey: BUILTIN_TEMPLATE_KEY,
+        pageWidth: PAGE_WIDTH,
+        pageHeight: PAGE_HEIGHT,
+        layout: defaultCertificateLayout(signerCount) as Prisma.InputJsonValue,
+      },
+    });
+    return { ...created, layout: parseCertificateLayout(created.layout) };
+  } catch (error) {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;
+    const existingNow = await db.certificateConfig.findUniqueOrThrow({ where: { eventId } });
+    return { ...existingNow, layout: parseCertificateLayout(existingNow.layout) };
+  }
 }
 
 export async function saveCertificateLayout(

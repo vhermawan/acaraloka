@@ -46,3 +46,14 @@ describe("certificate layout", () => {
     expect(clampCoordinate(0.12345)).toBe(0.123);
   });
 });
+
+describe("default signer positions", () => {
+  it("never stacks two blocks at the same x", () => {
+    for (const count of [1, 2, 3]) {
+      const xs = defaultCertificateLayout(count).signers.slice(0, count).map((block) => block.x);
+      expect(new Set(xs).size).toBe(count);
+    }
+    const xs = defaultCertificateLayout(1).signers.map((block) => block.x);
+    expect(new Set(xs).size).toBe(3);
+  });
+});

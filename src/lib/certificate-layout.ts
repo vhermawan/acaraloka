@@ -61,7 +61,7 @@ export function defaultCertificateLayout(signerCount = 1): CertificateLayout {
     eventDate: { x: 0.5, y: 0.61, fontSize: 12, align: "center" },
     certificateNumber: { x: 0.5, y: 0.31, fontSize: 10, align: "center" },
     signers: Array.from({ length: MAX_SIGNERS }, (_, index) => ({
-      x: slots[index] ?? signerSlots(MAX_SIGNERS)[index],
+      x: slots[index] ?? signerSlots(index + 1)[index],
       y: 0.8,
       fontSize: 11,
     })),
