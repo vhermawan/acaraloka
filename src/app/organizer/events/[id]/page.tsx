@@ -15,7 +15,7 @@ import { prisma } from "@/server/db";
 import { POSTER_BUCKET, publicObjectUrl } from "@/server/storage";
 
 export const metadata: Metadata = {
-  title: "Kelola acara | event-in",
+  title: "Kelola acara | Hadirly",
 };
 
 export default async function EditEventPage({ params }: PageProps<"/organizer/events/[id]">) {

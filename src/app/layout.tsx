@@ -20,9 +20,9 @@ const fontMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(env.APP_BASE_URL),
-  title: "event-in",
+  title: "Hadirly",
   description:
-    "event-in membantu panitia mengelola pendaftaran, e-tiket QR, check-in, dan sertifikat bertanda tangan untuk seminar, workshop, dan meetup.",
+    "Hadirly membantu panitia mengelola pendaftaran, e-tiket QR, check-in, dan sertifikat bertanda tangan untuk seminar, workshop, dan meetup.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -7,7 +7,7 @@ import { getAdminStats } from "@/server/admin-stats";
 import { requireAdmin } from "@/server/authz";
 
 export const metadata: Metadata = {
-  title: "Admin | event-in",
+  title: "Admin | Hadirly",
 };
 
 const DB_LIMIT_BYTES = 500 * 1024 * 1024;

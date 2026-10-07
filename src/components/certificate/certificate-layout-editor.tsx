@@ -197,7 +197,7 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
             className="pointer-events-none absolute bottom-[6%] left-1/2 -translate-x-1/2 text-neutral-600"
             style={{ fontSize: `${8 * scale}cqw` }}
           >
-            Diterbitkan via event-in
+            Diterbitkan via Hadirly
           </p>
         </div>
         <p className="text-sm text-muted-foreground">

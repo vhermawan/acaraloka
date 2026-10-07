@@ -25,7 +25,7 @@ async function SiteHeader() {
           href="/"
           className="text-lg font-semibold tracking-tight text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          event-in
+          Hadirly
         </Link>
 
         {session ? (

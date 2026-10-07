@@ -8,7 +8,7 @@ import { getOrCreateCertificateConfig } from "@/server/certificate-config";
 import { prisma } from "@/server/db";
 
 export const metadata: Metadata = {
-  title: "Sertifikat | event-in",
+  title: "Sertifikat | Hadirly",
 };
 
 export default async function CertificatePage({ params }: PageProps<"/organizer/events/[id]/certificate">) {

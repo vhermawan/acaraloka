@@ -23,7 +23,7 @@ import { safeRedirectPath } from "@/lib/safe-redirect";
 import { getSession } from "@/lib/session";
 
 export const metadata: Metadata = {
-  title: "Masuk | event-in",
+  title: "Masuk | Hadirly",
 };
 
 const APP_NAMES: Record<InAppBrowser, string> = {
@@ -70,7 +70,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             <div className="flex flex-col gap-3">
               {error === "disabled" ? (
                 <p role="alert" className="text-sm text-destructive">
-                  Akun ini dinonaktifkan. Hubungi admin event-in jika menurutmu
+                  Akun ini dinonaktifkan. Hubungi admin Hadirly jika menurutmu
                   ini keliru.
                 </p>
               ) : null}

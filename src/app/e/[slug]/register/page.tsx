@@ -14,7 +14,7 @@ import { getRegistrationFields } from "@/server/registration-form";
 import { registerForEvent } from "./actions";
 
 export const metadata: Metadata = {
-  title: "Daftar acara | event-in",
+  title: "Daftar acara | Hadirly",
   robots: { index: false },
 };
 

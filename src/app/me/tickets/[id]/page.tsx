@@ -12,7 +12,7 @@ import { requireUser } from "@/server/authz";
 import { getUserTicket } from "@/server/tickets";
 
 export const metadata: Metadata = {
-  title: "E-tiket | event-in",
+  title: "E-tiket | Hadirly",
   robots: { index: false },
 };
 
