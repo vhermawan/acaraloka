@@ -9,16 +9,54 @@ import { Hero } from "@/components/home/hero";
 import { HowItWorks } from "@/components/home/how-it-works";
 import { Pricing } from "@/components/home/pricing";
 import { Roles } from "@/components/home/roles";
+import { env } from "@/lib/env";
+
+const TITLE = "Hadirly | Pendaftaran, check-in, dan sertifikat acara";
+const DESCRIPTION =
+  "Hadirly membantu panitia seminar, workshop, dan meetup mengurus pendaftaran, e-tiket QR, check-in, dan sertifikat bertanda tangan dalam satu tempat.";
 
 export const metadata: Metadata = {
-  title: "Hadirly | Pendaftaran, check-in, dan sertifikat acara",
-  description:
-    "Hadirly membantu panitia seminar, workshop, dan meetup mengurus pendaftaran, e-tiket QR, check-in, dan sertifikat bertanda tangan dalam satu tempat.",
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "Hadirly",
+    locale: "id_ID",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
+
+function structuredData() {
+  const url = env.APP_BASE_URL.replace(/\/$/, "");
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "WebSite", "@id": `${url}/#website`, url, name: "Hadirly", inLanguage: "id-ID" },
+      {
+        "@type": "SoftwareApplication",
+        name: "Hadirly",
+        url,
+        description: DESCRIPTION,
+        applicationCategory: "BusinessApplication",
+        operatingSystem: "Web",
+        inLanguage: "id-ID",
+        offers: { "@type": "Offer", price: "0", priceCurrency: "IDR", description: "Gratis untuk acara tanpa tiket berbayar" },
+      },
+    ],
+  };
+}
 
 export default function Home() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData()).replace(/</g, "\\u003c") }}
+      />
       <Hero />
       <HowItWorks />
       <Features />
