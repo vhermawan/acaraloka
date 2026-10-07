@@ -3,6 +3,7 @@ import "server-only";
 import { env } from "@/lib/env";
 
 export const POSTER_BUCKET = "posters";
+export const SIGNATURE_BUCKET = "signatures";
 
 function storageConfig() {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -41,4 +42,25 @@ export async function removeObjects(bucket: string, paths: string[]): Promise<vo
 export function publicObjectUrl(bucket: string, path: string): string {
   const { baseUrl } = storageConfig();
   return `${baseUrl}/object/public/${bucket}/${path}`;
+}
+
+export async function uploadObject(bucket: string, path: string, body: Uint8Array, contentType: string): Promise<void> {
+  const { baseUrl, key } = storageConfig();
+  const response = await fetch(`${baseUrl}/object/${bucket}/${path}`, {
+    method: "POST",
+    headers: { ...authHeaders(key), "Content-Type": contentType },
+    body: Buffer.from(body),
+  });
+  if (!response.ok) {
+    throw new Error(`Gagal mengunggah berkas (${response.status}): ${await response.text()}`);
+  }
+}
+
+export async function downloadObject(bucket: string, path: string): Promise<Uint8Array> {
+  const { baseUrl, key } = storageConfig();
+  const response = await fetch(`${baseUrl}/object/${bucket}/${path}`, { headers: authHeaders(key), cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Gagal mengunduh berkas (${response.status}): ${await response.text()}`);
+  }
+  return new Uint8Array(await response.arrayBuffer());
 }
