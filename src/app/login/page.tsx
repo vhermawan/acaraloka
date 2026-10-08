@@ -22,6 +22,7 @@ import {
 import { safeRedirectPath } from "@/lib/safe-redirect";
 import { getSession } from "@/lib/session";
 import { APP_NAME } from "@/lib/brand";
+import { LEGAL_OPERATOR } from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Masuk",
@@ -71,8 +72,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             <div className="flex flex-col gap-3">
               {error === "disabled" ? (
                 <p role="alert" className="text-sm text-destructive">
-                  Akun ini dinonaktifkan. Hubungi admin {APP_NAME} jika menurutmu
-                  ini keliru.
+                  Akun ini dinonaktifkan. Hubungi admin {APP_NAME} di {LEGAL_OPERATOR.email}{" "}
+                  jika menurutmu ini keliru.
                 </p>
               ) : null}
               <GoogleSignInButton callbackURL={callbackURL} />

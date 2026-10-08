@@ -15,7 +15,7 @@ export default function TermsPage() {
       <p>
         Dengan memakai {APP_NAME}, kamu menyetujui syarat berikut. {APP_NAME}
         dikelola oleh {LEGAL_OPERATOR.name}, {LEGAL_OPERATOR.address}, kontak{" "}
-        {LEGAL_OPERATOR.email}.
+        {LEGAL_OPERATOR.email} atau {LEGAL_OPERATOR.phone}.
       </p>
 
       <h2>Layanan</h2>

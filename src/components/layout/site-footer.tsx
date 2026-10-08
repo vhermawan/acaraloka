@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Container } from "@/components/layout/container";
 import { CREATE_EVENT_HREF } from "@/components/layout/create-event-href";
 import { APP_NAME } from "@/lib/brand";
+import { LEGAL_OPERATOR } from "@/lib/legal";
 
 const COLUMNS = [
   {
@@ -48,6 +49,13 @@ function SiteFooter() {
               className="-ml-2 h-12 w-auto self-start"
             />
             <p className="text-sm leading-[22px] text-muted-foreground">Pendaftaran, check-in, dan sertifikat acara dalam satu tempat.</p>
+            <address className="flex flex-col text-sm not-italic leading-[22px] text-muted-foreground">
+              <a href={`mailto:${LEGAL_OPERATOR.email}`} className="w-fit hover:text-foreground">
+                {LEGAL_OPERATOR.email}
+              </a>
+              <span>{LEGAL_OPERATOR.phone}</span>
+              <span>{LEGAL_OPERATOR.address}</span>
+            </address>
           </div>
           <nav aria-label="Tautan footer" className="grid grid-cols-2 gap-x-10 gap-y-8 sm:grid-cols-3 sm:gap-x-20">
             {COLUMNS.map((column) => (

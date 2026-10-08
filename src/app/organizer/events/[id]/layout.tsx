@@ -3,6 +3,7 @@ import Link from "next/link";
 import { EventNav } from "@/components/events/event-nav";
 import { EventStatusBadge } from "@/components/events/event-status-badge";
 import { Container } from "@/components/layout/container";
+import { LEGAL_OPERATOR } from "@/lib/legal";
 import { requireEventOwner } from "@/server/authz";
 
 export default async function EventLayout({ children, params }: LayoutProps<"/organizer/events/[id]">) {
@@ -27,7 +28,7 @@ export default async function EventLayout({ children, params }: LayoutProps<"/or
           <p className="mt-1 break-words">{event.disabledReason ?? "Tidak ada alasan yang dicatat."}</p>
           <p className="mt-2 text-muted-foreground">
             Halaman publik, pendaftaran, check-in, dan penerbitan sertifikat ditutup. Sertifikat yang sudah terbit tetap
-            berlaku. Hubungi admin untuk mengaktifkan kembali.
+            berlaku. Hubungi admin di {LEGAL_OPERATOR.email} untuk mengaktifkan kembali.
           </p>
         </div>
       ) : null}
