@@ -10,8 +10,10 @@ import {
   getUserCertificateRenderData,
   issueCertificates,
   listUserCertificates,
+  revokeCertificate,
   updateRegistrationName,
 } from "@/server/certificates";
+import { verifyCertificate } from "@/server/certificate-verification";
 import { unlockCertificate, type SignatureStore } from "@/server/signers";
 
 const runId = `itce-${Date.now()}`;
@@ -243,5 +245,91 @@ describe("participant certificate access and name correction", () => {
     await db.certificate.update({ where: { id: certificate.id }, data: { revokedAt: new Date() } });
     expect(await getUserCertificateRenderData(mine.userId!, certificate.number, db)).toBeNull();
     expect((await listUserCertificates(mine.userId!, db))[0].revokedAt).not.toBeNull();
+  });
+});
+
+describe("public verification and revocation", () => {
+  async function issueOne(eventOptions: EventOptions = {}) {
+    const eventId = await createEvent(eventOptions);
+    const registration = await addAttendee(eventId, "Penerima Verifikasi");
+    await issueCertificates(eventId, organizerId, db);
+    const certificate = await db.certificate.findUniqueOrThrow({ where: { registrationId: registration.id } });
+    return { eventId, certificate };
+  }
+
+  it("returns the valid status with public fields after normalizing the number", async () => {
+    const { eventId, certificate } = await issueOne();
+    const result = await verifyCertificate(`  ${certificate.number.toLowerCase()} `, db);
+    expect(result).toMatchObject({
+      status: "VALID",
+      recipientName: "Penerima Verifikasi",
+      number: certificate.number,
+      organizerName: "IT",
+      revokedAt: null,
+      signers: [{ name: "S0", title: "Ketua" }],
+    });
+    expect(result?.eventTitle).toBe((await db.event.findUniqueOrThrow({ where: { id: eventId } })).title);
+    expect(result).not.toHaveProperty("signaturePath");
+    expect(result).not.toHaveProperty("email");
+    expect(result).not.toHaveProperty("phone");
+    expect(result).not.toHaveProperty("registrationId");
+  });
+
+  it("returns the revoked status with the revoked date", async () => {
+    const { eventId, certificate } = await issueOne();
+    const result = await revokeCertificate(
+      { eventId, certificateId: certificate.id, actorId: organizerId, reason: "Nama salah" },
+      db,
+    );
+    expect(result).toEqual({ ok: true });
+    const verified = await verifyCertificate(certificate.number, db);
+    expect(verified?.status).toBe("REVOKED");
+    expect(verified?.revokedAt).toBeInstanceOf(Date);
+  });
+
+  it("returns null for unknown, malformed and empty numbers alike", async () => {
+    const { certificate } = await issueOne();
+    const unknown = `${certificate.number}Z`;
+    expect(await verifyCertificate(unknown, db)).toBeNull();
+    expect(await verifyCertificate("bukan-nomor", db)).toBeNull();
+    expect(await verifyCertificate("   ", db)).toBeNull();
+    expect(await verifyCertificate("%E0%A4%A", db)).toBeNull();
+    expect(await verifyCertificate("A".repeat(500), db)).toBeNull();
+  });
+
+  it("keeps verifying certificates of a disabled event by certificate status", async () => {
+    const { eventId, certificate } = await issueOne();
+    await db.event.update({ where: { id: eventId }, data: { status: "DISABLED" } });
+    expect((await verifyCertificate(certificate.number, db))?.status).toBe("VALID");
+  });
+
+  it("revokes once, writes the audit log and rejects the second revoke", async () => {
+    const { eventId, certificate } = await issueOne();
+    const input = { eventId, certificateId: certificate.id, actorId: organizerId, reason: "Salah orang" };
+    const results = await Promise.all([revokeCertificate(input, clients[0]), revokeCertificate(input, clients[1])]);
+    expect(results.filter((result) => result.ok)).toHaveLength(1);
+    expect(results.find((result) => !result.ok)).toEqual({ ok: false, reason: "ALREADY_REVOKED" });
+    expect(await revokeCertificate(input, db)).toEqual({ ok: false, reason: "ALREADY_REVOKED" });
+
+    const logs = await db.auditLog.findMany({ where: { entityId: certificate.id, action: "certificate.revoked" } });
+    expect(logs).toHaveLength(1);
+    expect(logs[0]).toMatchObject({
+      actorId: organizerId,
+      entityType: "Certificate",
+      meta: { eventId, number: certificate.number, reason: "Salah orang" },
+    });
+    const row = await db.certificate.findUniqueOrThrow({ where: { id: certificate.id } });
+    expect(row.revokedAt).not.toBeNull();
+  });
+
+  it("does not revoke a certificate through another event", async () => {
+    const { certificate } = await issueOne();
+    const otherEventId = await createEvent();
+    const result = await revokeCertificate(
+      { eventId: otherEventId, certificateId: certificate.id, actorId: organizerId, reason: "Salah event" },
+      db,
+    );
+    expect(result).toEqual({ ok: false, reason: "NOT_FOUND" });
+    expect((await db.certificate.findUniqueOrThrow({ where: { id: certificate.id } })).revokedAt).toBeNull();
   });
 });
