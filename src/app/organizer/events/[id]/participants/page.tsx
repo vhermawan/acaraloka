@@ -25,7 +25,7 @@ import { prisma } from "@/server/db";
 import { listParticipants } from "@/server/participants";
 
 export const metadata: Metadata = {
-  title: "Peserta | event-in",
+  title: "Peserta | Hadirly",
 };
 
 const STATUS_VARIANTS = { REGISTERED: "outline", ATTENDED: "default", CANCELLED: "destructive" } as const;

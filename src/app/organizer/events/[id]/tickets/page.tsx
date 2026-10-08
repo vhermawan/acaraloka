@@ -8,7 +8,7 @@ import { prisma } from "@/server/db";
 import { createTicketType, updateTicketType } from "./actions";
 
 export const metadata: Metadata = {
-  title: "Tiket acara | event-in",
+  title: "Tiket acara | Hadirly",
 };
 
 export default async function EventTicketsPage({ params }: PageProps<"/organizer/events/[id]/tickets">) {

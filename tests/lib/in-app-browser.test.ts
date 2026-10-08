@@ -69,8 +69,8 @@ describe("isAndroid", () => {
 
 describe("buildChromeIntentUrl", () => {
   it("membentuk intent Chrome dari URL https", () => {
-    expect(buildChromeIntentUrl("https://event-in.example/login?next=%2Fe%2F1")).toBe(
-      "intent://event-in.example/login?next=%2Fe%2F1#Intent;scheme=https;package=com.android.chrome;end",
+    expect(buildChromeIntentUrl("https://hadirly.example/login?next=%2Fe%2F1")).toBe(
+      "intent://hadirly.example/login?next=%2Fe%2F1#Intent;scheme=https;package=com.android.chrome;end",
     );
   });
 

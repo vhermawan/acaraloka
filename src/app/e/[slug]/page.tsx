@@ -18,12 +18,12 @@ function excerpt(text: string, length = 160) {
 export async function generateMetadata({ params }: PageProps<"/e/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const event = await getPublicEvent(slug);
-  if (!event) return { title: "Acara tidak ditemukan | event-in" };
+  if (!event) return { title: "Acara tidak ditemukan | Hadirly" };
 
   const description = excerpt(event.description);
   const images = event.posterPath ? [{ url: publicObjectUrl(POSTER_BUCKET, event.posterPath) }] : undefined;
   return {
-    title: `${event.title} | event-in`,
+    title: `${event.title} | Hadirly`,
     description,
     alternates: { canonical: `/e/${event.slug}` },
     openGraph: { type: "website", title: event.title, description, url: `/e/${event.slug}`, images },

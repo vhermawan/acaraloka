@@ -18,7 +18,7 @@ import { hasAcceptedCurrentTerms } from "@/server/authz";
 import { acceptTerms } from "./actions";
 
 export const metadata: Metadata = {
-  title: "Persetujuan | event-in",
+  title: "Persetujuan | Hadirly",
 };
 
 export default async function AcceptTermsPage({ searchParams }: PageProps<"/legal/accept">) {

@@ -4,23 +4,23 @@ import { LegalDocument } from "@/components/legal/legal-document";
 import { LEGAL_OPERATOR } from "@/lib/legal";
 
 export const metadata: Metadata = {
-  title: "Syarat Layanan | event-in",
-  description: "Aturan pemakaian event-in untuk peserta dan panitia acara.",
+  title: "Syarat Layanan | Hadirly",
+  description: "Aturan pemakaian Hadirly untuk peserta dan panitia acara.",
 };
 
 export default function TermsPage() {
   return (
     <LegalDocument title="Syarat Layanan">
       <p>
-        Dengan memakai event-in, kamu menyetujui syarat berikut. event-in
+        Dengan memakai Hadirly, kamu menyetujui syarat berikut. Hadirly
         dikelola oleh {LEGAL_OPERATOR.name}, {LEGAL_OPERATOR.address}, kontak{" "}
         {LEGAL_OPERATOR.email}.
       </p>
 
       <h2>Layanan</h2>
       <p>
-        event-in adalah alat bantu bagi panitia untuk mengelola pendaftaran,
-        e-tiket, check-in, dan sertifikat acara. event-in bukan penyelenggara
+        Hadirly adalah alat bantu bagi panitia untuk mengelola pendaftaran,
+        e-tiket, check-in, dan sertifikat acara. Hadirly bukan penyelenggara
         acara yang tampil di platform.
       </p>
 
@@ -43,15 +43,15 @@ export default function TermsPage() {
 
       <h2>Pembatalan dan refund</h2>
       <p>
-        Refund sepenuhnya menjadi tanggung jawab panitia acara. event-in tidak
+        Refund sepenuhnya menjadi tanggung jawab panitia acara. Hadirly tidak
         memegang dana peserta, tidak memproses refund, dan tidak menjamin
-        refund. Jika acara dibatalkan, event-in hanya menghentikan pendaftaran,
+        refund. Jika acara dibatalkan, Hadirly hanya menghentikan pendaftaran,
         menampilkan status pembatalan, dan meneruskan informasi dari panitia.
       </p>
 
       <h2>Sertifikat</h2>
       <p>
-        Sertifikat diterbitkan oleh panitia. event-in menyediakan halaman
+        Sertifikat diterbitkan oleh panitia. Hadirly menyediakan halaman
         verifikasi agar keaslian sertifikat bisa dicek, tetapi tidak menilai isi
         maupun kelayakan penerbitannya.
       </p>
