@@ -36,7 +36,7 @@ export default async function OpengraphImage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <div style={{ fontSize: 22, fontWeight: 600, color: "#0f766e" }}>Untuk panitia seminar, workshop, dan meetup</div>
           <div style={{ fontSize: 68, fontWeight: 700, lineHeight: 1.1, letterSpacing: -2, maxWidth: 980 }}>
-            Dari pendaftaran sampai sertifikat, semua di {APP_NAME}
+            {`Dari pendaftaran sampai sertifikat, semua di ${APP_NAME}`}
           </div>
         </div>
         <div style={{ display: "flex", gap: 16 }}>
