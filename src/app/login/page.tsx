@@ -21,9 +21,10 @@ import {
 } from "@/lib/in-app-browser";
 import { safeRedirectPath } from "@/lib/safe-redirect";
 import { getSession } from "@/lib/session";
+import { APP_NAME } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: "Masuk | Hadirly",
+  title: "Masuk",
 };
 
 const APP_NAMES: Record<InAppBrowser, string> = {
@@ -70,7 +71,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             <div className="flex flex-col gap-3">
               {error === "disabled" ? (
                 <p role="alert" className="text-sm text-destructive">
-                  Akun ini dinonaktifkan. Hubungi admin Hadirly jika menurutmu
+                  Akun ini dinonaktifkan. Hubungi admin {APP_NAME} jika menurutmu
                   ini keliru.
                 </p>
               ) : null}

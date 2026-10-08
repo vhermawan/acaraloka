@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Container } from "@/components/layout/container";
 import { CREATE_EVENT_HREF } from "@/components/layout/create-event-href";
+import { APP_NAME } from "@/lib/brand";
 
 const COLUMNS = [
   {
@@ -38,7 +39,7 @@ function SiteFooter() {
       <Container className="flex max-w-[75rem] flex-col gap-12 pt-16 pb-10">
         <div className="grid gap-10 md:grid-cols-[1fr_auto] md:gap-20">
           <div className="flex max-w-[300px] flex-col gap-2.5">
-            <p className="text-[22px] leading-[29px] font-bold tracking-[-0.5px] text-foreground">Hadirly</p>
+            <p className="text-[22px] leading-[29px] font-bold tracking-[-0.5px] text-foreground">{APP_NAME}</p>
             <p className="text-sm leading-[22px] text-muted-foreground">Pendaftaran, check-in, dan sertifikat acara dalam satu tempat.</p>
           </div>
           <nav aria-label="Tautan footer" className="grid grid-cols-2 gap-x-10 gap-y-8 sm:grid-cols-3 sm:gap-x-20">
@@ -62,7 +63,7 @@ function SiteFooter() {
           </nav>
         </div>
         <div className="flex flex-col gap-2 border-t border-border pt-8 text-[13px] text-muted-foreground sm:flex-row sm:justify-between">
-          <p>&copy; {year} Hadirly.</p>
+          <p>&copy; {year} {APP_NAME}.</p>
           <p>Dibuat untuk panitia acara di Indonesia.</p>
         </div>
       </Container>

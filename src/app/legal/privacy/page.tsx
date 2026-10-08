@@ -1,25 +1,26 @@
 import type { Metadata } from "next";
 
 import { LegalDocument } from "@/components/legal/legal-document";
+import { APP_NAME } from "@/lib/brand";
 import { LEGAL_OPERATOR } from "@/lib/legal";
 
 export const metadata: Metadata = {
-  title: "Kebijakan Privasi | Hadirly",
-  description: "Data apa yang dikumpulkan Hadirly, untuk apa, dan hakmu atas data tersebut.",
+  title: "Kebijakan Privasi",
+  description: `Data apa yang dikumpulkan ${APP_NAME}, untuk apa, dan hakmu atas data tersebut.`,
 };
 
 export default function PrivacyPage() {
   return (
     <LegalDocument title="Kebijakan Privasi">
       <p>
-        Kebijakan ini menjelaskan data pribadi yang diproses Hadirly saat kamu
+        Kebijakan ini menjelaskan data pribadi yang diproses {APP_NAME} saat kamu
         memakai layanan, sesuai Undang-Undang Nomor 27 Tahun 2022 tentang
         Pelindungan Data Pribadi.
       </p>
 
       <h2>Pengendali data</h2>
       <p>
-        Hadirly dikelola oleh {LEGAL_OPERATOR.name}, {LEGAL_OPERATOR.address}.
+        {APP_NAME} dikelola oleh {LEGAL_OPERATOR.name}, {LEGAL_OPERATOR.address}.
         Untuk pertanyaan atau permintaan terkait data pribadi, hubungi{" "}
         {LEGAL_OPERATOR.email}.
       </p>
@@ -51,7 +52,7 @@ export default function PrivacyPage() {
       <h2>Siapa yang bisa melihat datamu</h2>
       <p>
         Nomor HP dan jawaban formulir hanya terlihat oleh panitia acara yang
-        kamu daftari dan admin Hadirly. Nama dan nomor sertifikat tampil di
+        kamu daftari dan admin {APP_NAME}. Nama dan nomor sertifikat tampil di
         halaman verifikasi sertifikat publik. Kami tidak menjual data pribadi.
       </p>
       <p>

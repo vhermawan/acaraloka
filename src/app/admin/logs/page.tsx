@@ -15,7 +15,7 @@ import { requireAdmin } from "@/server/authz";
 import { prisma } from "@/server/db";
 
 export const metadata: Metadata = {
-  title: "Log error | Hadirly",
+  title: "Log error",
 };
 
 export default async function AdminLogsPage() {

@@ -2,10 +2,11 @@ import { ChevronDown } from "lucide-react";
 
 import { Container } from "@/components/layout/container";
 import { SectionHeading } from "@/components/home/section-heading";
+import { APP_NAME } from "@/lib/brand";
 
 const QUESTIONS = [
   {
-    question: "Hadirly gratis atau berbayar?",
+    question: `${APP_NAME} gratis atau berbayar?`,
     answer:
       "Gratis untuk acara tanpa tiket berbayar. Kamu bisa buat acara, sebar link pendaftaran, scan tiket, dan terbitkan sertifikat tanpa biaya.",
   },

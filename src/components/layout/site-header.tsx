@@ -6,6 +6,7 @@ import { CREATE_EVENT_HREF } from "@/components/layout/create-event-href";
 import { SiteNav } from "@/components/layout/site-nav";
 import { AccountMenu } from "@/components/auth/account-menu";
 import { getSession } from "@/lib/session";
+import { APP_NAME } from "@/lib/brand";
 import { prisma } from "@/server/db";
 
 async function SiteHeader() {
@@ -27,7 +28,7 @@ async function SiteHeader() {
           href="/"
           className="rounded-md text-[22px] leading-[29px] font-bold tracking-[-0.5px] text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          Hadirly
+          {APP_NAME}
         </Link>
 
         <SiteNav signedIn={!!session} />

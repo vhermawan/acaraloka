@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { Toaster } from "@/components/ui/sonner";
 import { env } from "@/lib/env";
+import { APP_NAME } from "@/lib/brand";
 
 const fontSans = Plus_Jakarta_Sans({
   variable: "--font-sans",
@@ -20,9 +21,9 @@ const fontMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(env.APP_BASE_URL),
-  title: "Hadirly",
+  title: { default: APP_NAME, template: `%s | ${APP_NAME}` },
   description:
-    "Hadirly membantu panitia mengelola pendaftaran, e-tiket QR, check-in, dan sertifikat bertanda tangan untuk seminar, workshop, dan meetup.",
+    `${APP_NAME} membantu panitia mengelola pendaftaran, e-tiket QR, check-in, dan sertifikat bertanda tangan untuk seminar, workshop, dan meetup.`,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

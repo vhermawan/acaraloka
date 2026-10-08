@@ -2,7 +2,9 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
 
-export const alt = "Hadirly: pendaftaran, e-tiket QR, check-in, dan sertifikat acara dalam satu tempat";
+import { APP_NAME } from "@/lib/brand";
+
+export const alt = `${APP_NAME}: pendaftaran, e-tiket QR, check-in, dan sertifikat acara dalam satu tempat`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -30,11 +32,11 @@ export default async function OpengraphImage() {
           fontWeight: 600,
         }}
       >
-        <div style={{ fontSize: 44, fontWeight: 700, letterSpacing: -1 }}>Hadirly</div>
+        <div style={{ fontSize: 44, fontWeight: 700, letterSpacing: -1 }}>{APP_NAME}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <div style={{ fontSize: 22, fontWeight: 600, color: "#0f766e" }}>Untuk panitia seminar, workshop, dan meetup</div>
           <div style={{ fontSize: 68, fontWeight: 700, lineHeight: 1.1, letterSpacing: -2, maxWidth: 980 }}>
-            Dari pendaftaran sampai sertifikat, semua di Hadirly
+            Dari pendaftaran sampai sertifikat, semua di {APP_NAME}
           </div>
         </div>
         <div style={{ display: "flex", gap: 16 }}>

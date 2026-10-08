@@ -17,7 +17,7 @@ import { requireOrganizer } from "@/server/authz";
 import { prisma } from "@/server/db";
 
 export const metadata: Metadata = {
-  title: "Dashboard panitia | Hadirly",
+  title: "Dashboard panitia",
 };
 
 export default async function OrganizerDashboardPage() {
