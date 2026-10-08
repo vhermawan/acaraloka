@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import type { EventFormState } from "@/app/organizer/events/actions";
+import { DateTimePicker } from "@/components/events/date-time-picker";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -15,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import { EVENT_TIMEZONES } from "@/lib/timezone";
+import { EVENT_TIMEZONES, timezoneLabel } from "@/lib/timezone";
 
 type EventFormValues = {
   title: string;
@@ -50,6 +51,8 @@ function EventForm({ action, defaultValues = EMPTY, submitLabel, disabled }: Eve
   const [state, formAction, pending] = useActionState(action, {});
   const values = { ...defaultValues, ...state.values };
   const errors = state.errors ?? {};
+  const [timezone, setTimezone] = useState(values.timezone);
+  const [startAt, setStartAt] = useState(values.startAt);
 
   useEffect(() => {
     if (state.savedAt) toast.success("Perubahan disimpan.");
@@ -82,35 +85,9 @@ function EventForm({ action, defaultValues = EMPTY, submitLabel, disabled }: Eve
             <FieldDescription>Jelaskan isi acara, pembicara, dan siapa yang cocok ikut.</FieldDescription>
             <FieldError errors={toErrors(errors.description)} />
           </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field data-invalid={!!errors.startAt}>
-              <FieldLabel htmlFor="startAt">Mulai</FieldLabel>
-              <Input
-                id="startAt"
-                name="startAt"
-                type="datetime-local"
-                required
-                defaultValue={values.startAt}
-                aria-invalid={!!errors.startAt}
-              />
-              <FieldError errors={toErrors(errors.startAt)} />
-            </Field>
-            <Field data-invalid={!!errors.endAt}>
-              <FieldLabel htmlFor="endAt">Selesai</FieldLabel>
-              <Input
-                id="endAt"
-                name="endAt"
-                type="datetime-local"
-                required
-                defaultValue={values.endAt}
-                aria-invalid={!!errors.endAt}
-              />
-              <FieldError errors={toErrors(errors.endAt)} />
-            </Field>
-          </div>
           <Field data-invalid={!!errors.timezone}>
             <FieldLabel htmlFor="timezone">Zona waktu</FieldLabel>
-            <NativeSelect id="timezone" name="timezone" defaultValue={values.timezone}>
+            <NativeSelect id="timezone" name="timezone" value={timezone} onChange={(event) => setTimezone(event.target.value)}>
               {EVENT_TIMEZONES.map((tz) => (
                 <option key={tz.id} value={tz.id}>
                   {tz.label} ({tz.id})
@@ -119,6 +96,34 @@ function EventForm({ action, defaultValues = EMPTY, submitLabel, disabled }: Eve
             </NativeSelect>
             <FieldError errors={toErrors(errors.timezone)} />
           </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field data-invalid={!!errors.startAt}>
+              <FieldLabel htmlFor="startAt">Mulai</FieldLabel>
+              <DateTimePicker
+                id="startAt"
+                name="startAt"
+                defaultValue={values.startAt}
+                timezone={timezone}
+                zoneLabel={timezoneLabel(timezone)}
+                invalid={!!errors.startAt}
+                onValueChange={setStartAt}
+              />
+              <FieldError errors={toErrors(errors.startAt)} />
+            </Field>
+            <Field data-invalid={!!errors.endAt}>
+              <FieldLabel htmlFor="endAt">Selesai</FieldLabel>
+              <DateTimePicker
+                id="endAt"
+                name="endAt"
+                defaultValue={values.endAt}
+                timezone={timezone}
+                zoneLabel={timezoneLabel(timezone)}
+                invalid={!!errors.endAt}
+                rangeStart={startAt}
+              />
+              <FieldError errors={toErrors(errors.endAt)} />
+            </Field>
+          </div>
           <Field data-invalid={!!errors.venue}>
             <FieldLabel htmlFor="venue">Lokasi</FieldLabel>
             <Input id="venue" name="venue" required defaultValue={values.venue} aria-invalid={!!errors.venue} />
