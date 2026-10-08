@@ -5,10 +5,11 @@ import { revalidatePath } from "next/cache";
 import { ISSUE_BLOCKER_MESSAGES } from "@/lib/certificate-issue";
 import { certificateLayoutSchema } from "@/lib/certificate-layout";
 import { env } from "@/lib/env";
+import { revokeReasonSchema } from "@/lib/validation/certificate";
 import { signerSchema } from "@/lib/validation/signer";
 import { requireEventOwner } from "@/server/authz";
 import { saveCertificateLayout } from "@/server/certificate-config";
-import { issueCertificates } from "@/server/certificates";
+import { issueCertificates, revokeCertificate } from "@/server/certificates";
 import { addSigner, regenerateSignerLink, removeSigner, unlockCertificate } from "@/server/signers";
 
 export async function saveLayout(eventId: string, layout: unknown): Promise<{ error?: string }> {
@@ -114,4 +115,27 @@ export async function issueEventCertificates(eventId: string): Promise<{ error?:
 
   revalidateCertificate(event.id);
   return { issued: result.issued };
+}
+
+export async function revokeEventCertificate(
+  eventId: string,
+  certificateId: string,
+  reason: string,
+): Promise<{ error?: string }> {
+  const { user, event } = await requireEventOwner(eventId);
+  const parsed = revokeReasonSchema.safeParse(reason);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const result = await revokeCertificate({
+    eventId: event.id,
+    certificateId,
+    actorId: user.id,
+    reason: parsed.data,
+  });
+  if (!result.ok) {
+    return { error: result.reason === "NOT_FOUND" ? "Sertifikat tidak ditemukan." : "Sertifikat ini sudah dicabut." };
+  }
+
+  revalidateCertificate(event.id);
+  return {};
 }

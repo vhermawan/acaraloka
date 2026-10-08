@@ -163,3 +163,44 @@ export async function getUserCertificateRenderData(
     },
   };
 }
+
+export type RevokeResult = { ok: true } | { ok: false; reason: "NOT_FOUND" | "ALREADY_REVOKED" };
+
+export async function revokeCertificate(
+  input: { eventId: string; certificateId: string; actorId: string; reason: string },
+  db: PrismaClient = prisma,
+  now = new Date(),
+): Promise<RevokeResult> {
+  return db.$transaction(async (tx) => {
+    const certificate = await tx.certificate.findFirst({
+      where: { id: input.certificateId, eventId: input.eventId },
+      select: { number: true },
+    });
+    if (!certificate) return { ok: false, reason: "NOT_FOUND" } as const;
+
+    const updated = await tx.certificate.updateMany({
+      where: { id: input.certificateId, eventId: input.eventId, revokedAt: null },
+      data: { revokedAt: now },
+    });
+    if (updated.count === 0) return { ok: false, reason: "ALREADY_REVOKED" } as const;
+
+    await tx.auditLog.create({
+      data: {
+        actorId: input.actorId,
+        action: "certificate.revoked",
+        entityType: "Certificate",
+        entityId: input.certificateId,
+        meta: { eventId: input.eventId, number: certificate.number, reason: input.reason },
+      },
+    });
+    return { ok: true } as const;
+  });
+}
+
+export async function listEventCertificates(eventId: string, db: PrismaClient = prisma) {
+  return db.certificate.findMany({
+    where: { eventId },
+    orderBy: { seq: "asc" },
+    select: { id: true, number: true, recipientName: true, revokedAt: true },
+  });
+}
