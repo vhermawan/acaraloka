@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getPublishIssues, isPubliclyVisible } from "@/lib/event-publish";
+import { getPublishChecklist, getPublishIssues, isPubliclyVisible } from "@/lib/event-publish";
 
 const now = new Date("2026-10-01T00:00:00Z");
 const ready = {
@@ -30,6 +30,21 @@ describe("getPublishIssues", () => {
 
   it("rejects non-draft events", () => {
     expect(getPublishIssues({ ...ready, status: "PUBLISHED" }, now)).toContain("Hanya acara draf yang bisa diterbitkan.");
+  });
+});
+
+describe("getPublishChecklist", () => {
+  it("lists every requirement with its status", () => {
+    expect(getPublishChecklist({ ...ready, ticketTypeCount: 0 }, now)).toEqual([
+      { key: "tickets", label: "Tambahkan minimal satu jenis tiket.", met: false },
+      { key: "startInFuture", label: "Waktu mulai harus di masa depan.", met: true },
+      { key: "endAfterStart", label: "Waktu selesai harus setelah waktu mulai.", met: true },
+    ]);
+  });
+
+  it("marks a start time equal to now as unmet", () => {
+    const item = getPublishChecklist({ ...ready, startAt: now }, now).find((entry) => entry.key === "startInFuture");
+    expect(item?.met).toBe(false);
   });
 });
 

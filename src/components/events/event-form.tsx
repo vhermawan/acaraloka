@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 
 import type { EventFormState } from "@/app/organizer/events/actions";
@@ -32,6 +33,7 @@ type EventFormProps = {
   defaultValues?: EventFormValues;
   submitLabel: string;
   disabled?: boolean;
+  cancelHref?: string;
 };
 
 const EMPTY: EventFormValues = {
@@ -47,7 +49,7 @@ function toErrors(messages?: string[]) {
   return messages?.map((message) => ({ message }));
 }
 
-function EventForm({ action, defaultValues = EMPTY, submitLabel, disabled }: EventFormProps) {
+function EventForm({ action, defaultValues = EMPTY, submitLabel, disabled, cancelHref }: EventFormProps) {
   const [state, formAction, pending] = useActionState(action, {});
   const values = { ...defaultValues, ...state.values };
   const errors = state.errors ?? {};
@@ -69,7 +71,7 @@ function EventForm({ action, defaultValues = EMPTY, submitLabel, disabled }: Eve
           ) : null}
           <Field data-invalid={!!errors.title}>
             <FieldLabel htmlFor="title">Judul acara</FieldLabel>
-            <Input id="title" name="title" required defaultValue={values.title} aria-invalid={!!errors.title} />
+            <Input id="title" name="title" required defaultValue={values.title} aria-invalid={!!errors.title} className="h-10" />
             <FieldError errors={toErrors(errors.title)} />
           </Field>
           <Field data-invalid={!!errors.description}>
@@ -87,7 +89,13 @@ function EventForm({ action, defaultValues = EMPTY, submitLabel, disabled }: Eve
           </Field>
           <Field data-invalid={!!errors.timezone}>
             <FieldLabel htmlFor="timezone">Zona waktu</FieldLabel>
-            <NativeSelect id="timezone" name="timezone" value={timezone} onChange={(event) => setTimezone(event.target.value)}>
+            <NativeSelect
+              id="timezone"
+              name="timezone"
+              value={timezone}
+              onChange={(event) => setTimezone(event.target.value)}
+              className="h-10"
+            >
               {EVENT_TIMEZONES.map((tz) => (
                 <option key={tz.id} value={tz.id}>
                   {tz.label} ({tz.id})
@@ -126,14 +134,19 @@ function EventForm({ action, defaultValues = EMPTY, submitLabel, disabled }: Eve
           </div>
           <Field data-invalid={!!errors.venue}>
             <FieldLabel htmlFor="venue">Lokasi</FieldLabel>
-            <Input id="venue" name="venue" required defaultValue={values.venue} aria-invalid={!!errors.venue} />
+            <Input id="venue" name="venue" required defaultValue={values.venue} aria-invalid={!!errors.venue} className="h-10" />
             <FieldDescription>Alamat tempat, atau tautan Zoom/Meet untuk acara online.</FieldDescription>
             <FieldError errors={toErrors(errors.venue)} />
           </Field>
-          <div>
-            <Button type="submit" size="lg">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="submit" className="h-10 px-4">
               {pending ? "Menyimpan..." : submitLabel}
             </Button>
+            {cancelHref ? (
+              <Button variant="ghost" className="h-10 px-4" nativeButton={false} render={<Link href={cancelHref} />}>
+                Batal
+              </Button>
+            ) : null}
           </div>
         </FieldGroup>
       </fieldset>

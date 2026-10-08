@@ -25,6 +25,7 @@ type FormFieldFormProps = {
   submitLabel: string;
   successMessage: string;
   resetOnSuccess?: boolean;
+  submitVariant?: "default" | "outline";
 };
 
 const EMPTY: FormFieldValues = { label: "", type: "TEXT", options: "", required: "" };
@@ -40,6 +41,7 @@ function FormFieldForm({
   submitLabel,
   successMessage,
   resetOnSuccess,
+  submitVariant = "outline",
 }: FormFieldFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, pending] = useActionState(action, {});
@@ -76,6 +78,7 @@ function FormFieldForm({
             placeholder="Asal instansi"
             defaultValue={values.label}
             aria-invalid={!!errors.label}
+            className="h-10"
           />
           <FieldError errors={toErrors(errors.label)} />
         </Field>
@@ -86,6 +89,7 @@ function FormFieldForm({
             name="type"
             value={type}
             onChange={(event) => setType(event.target.value)}
+            className="h-10"
           >
             {Object.entries(FORM_FIELD_TYPES).map(([value, label]) => (
               <option key={value} value={value}>
@@ -112,7 +116,7 @@ function FormFieldForm({
         </Field>
       ) : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex min-h-11 items-center gap-2.5 text-sm">
           <input
             type="checkbox"
             name="required"
@@ -121,7 +125,7 @@ function FormFieldForm({
           />
           Wajib diisi
         </label>
-        <Button type="submit" variant="outline" disabled={pending}>
+        <Button type="submit" variant={submitVariant} disabled={pending} className="h-10 px-4">
           {pending ? "Menyimpan..." : submitLabel}
         </Button>
       </div>

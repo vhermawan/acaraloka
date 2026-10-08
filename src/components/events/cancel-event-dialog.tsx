@@ -33,7 +33,7 @@ function CancelEventDialog({ title, action }: CancelEventDialogProps) {
 
   return (
     <Dialog>
-      <DialogTrigger render={<Button variant="destructive" />}>Batalkan acara</DialogTrigger>
+      <DialogTrigger render={<Button variant="outline" className="h-10 border-destructive/40 px-4 text-destructive hover:bg-destructive/5 hover:text-destructive" />}>Batalkan acara</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <form action={formAction} noValidate className="flex flex-col gap-4">
           <DialogHeader>

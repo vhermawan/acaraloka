@@ -19,7 +19,7 @@ export default async function NewEventPage() {
           Acara disimpan sebagai draf. Poster, tiket, dan formulir bisa diatur setelahnya.
         </p>
       </header>
-      <EventForm action={createEvent} submitLabel="Simpan draf" />
+      <EventForm action={createEvent} submitLabel="Simpan draf" cancelHref="/organizer" />
     </div>
   );
 }
