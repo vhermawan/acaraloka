@@ -4,7 +4,13 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "@/generated/prisma/client";
 import { defaultCertificateLayout } from "@/lib/certificate-layout";
 import { undoCheckIn } from "@/server/checkin";
-import { certificateIssueStats, issueCertificates } from "@/server/certificates";
+import {
+  certificateIssueStats,
+  getUserCertificateRenderData,
+  issueCertificates,
+  listUserCertificates,
+  updateRegistrationName,
+} from "@/server/certificates";
 import { unlockCertificate, type SignatureStore } from "@/server/signers";
 
 const runId = `itce-${Date.now()}`;
@@ -191,5 +197,50 @@ describe("issue certificates against Postgres", () => {
     expect(await unlockCertificate({ eventId, actorId: organizerId }, db, store)).toEqual({ ok: false, reason: "ISSUED" });
     expect(await undoCheckIn({ eventId, registrationId: registration.id, actorId: organizerId }, db)).toBe(false);
     expect(await undoCheckIn({ eventId, registrationId: waiting.id, actorId: organizerId }, db)).toBe(false);
+  });
+});
+
+describe("participant certificate access and name correction", () => {
+  it("lets the owner rename before issue, rejects other users and rejects after issue", async () => {
+    const eventId = await createEvent();
+    const mine = await addAttendee(eventId, "Nama Salah");
+    const other = await addAttendee(eventId, "Orang Lain");
+
+    expect(await updateRegistrationName(other.userId!, mine.id, "Dibajak", db)).toEqual({ ok: false, reason: "NOT_EDITABLE" });
+    expect(await updateRegistrationName(mine.userId!, mine.id, "Nama Benar", db)).toEqual({ ok: true });
+
+    await issueCertificates(eventId, organizerId, db);
+    const certificate = await db.certificate.findUniqueOrThrow({ where: { registrationId: mine.id } });
+    expect(certificate.recipientName).toBe("Nama Benar");
+
+    expect(await updateRegistrationName(mine.userId!, mine.id, "Terlambat", db)).toEqual({ ok: false, reason: "NOT_EDITABLE" });
+    const registration = await db.registration.findUniqueOrThrow({ where: { id: mine.id } });
+    expect(registration.name).toBe("Nama Benar");
+  });
+
+  it("rejects renaming a cancelled registration", async () => {
+    const eventId = await createEvent();
+    const cancelled = await addAttendee(eventId, "Batal", { cancelled: true });
+    expect(await updateRegistrationName(cancelled.userId!, cancelled.id, "Baru", db)).toEqual({ ok: false, reason: "NOT_EDITABLE" });
+  });
+
+  it("only returns certificate data to the owner and hides revoked ones", async () => {
+    const eventId = await createEvent();
+    const mine = await addAttendee(eventId, "Pemilik");
+    const other = await addAttendee(eventId, "Bukan Pemilik");
+    await issueCertificates(eventId, organizerId, db);
+    const certificate = await db.certificate.findUniqueOrThrow({ where: { registrationId: mine.id } });
+
+    expect(await getUserCertificateRenderData(other.userId!, certificate.number, db)).toBeNull();
+    const owned = await getUserCertificateRenderData(mine.userId!, certificate.number, db);
+    expect(owned?.data.recipientName).toBe("Pemilik");
+    expect(owned?.data.certificateNumber).toBe(certificate.number);
+
+    expect((await listUserCertificates(other.userId!, db)).map((row) => row.number)).not.toContain(certificate.number);
+    expect((await listUserCertificates(mine.userId!, db)).map((row) => row.number)).toEqual([certificate.number]);
+
+    await db.certificate.update({ where: { id: certificate.id }, data: { revokedAt: new Date() } });
+    expect(await getUserCertificateRenderData(mine.userId!, certificate.number, db)).toBeNull();
+    expect((await listUserCertificates(mine.userId!, db))[0].revokedAt).not.toBeNull();
   });
 });

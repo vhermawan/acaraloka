@@ -2,6 +2,13 @@ import { z } from "zod";
 
 import { phoneSchema } from "@/lib/validation/phone";
 
+export const registrantNameSchema = z
+  .string()
+  .trim()
+  .min(2, "Nama minimal 2 karakter.")
+  .max(100, "Nama maksimal 100 karakter.")
+  .refine((value) => !/\p{Cc}/u.test(value), "Nama mengandung karakter yang tidak valid.");
+
 export type RegistrationField = {
   id: string;
   label: string;
@@ -28,7 +35,7 @@ export function buildRegistrationSchema(fields: RegistrationField[], ticketTypeI
   return z
     .object({
       ticketTypeId: z.string().refine((value) => ticketTypeIds.includes(value), "Pilih jenis tiket."),
-      name: z.string().trim().min(2, "Nama minimal 2 karakter.").max(100, "Nama maksimal 100 karakter."),
+      name: registrantNameSchema,
       email: z.string().trim().toLowerCase().email("Email tidak valid."),
       phone: phoneSchema,
       consent: z.literal("on", { message: "Kamu perlu menyetujui penggunaan data untuk acara ini." }),
