@@ -62,11 +62,11 @@ describe("env", () => {
   });
 
   it("menerima APP_BASE_URL yang valid dari process.env", async () => {
-    process.env.APP_BASE_URL = "https://hadirly.example.com";
+    process.env.APP_BASE_URL = "https://acaraloka.example.com";
 
     const { env } = await import("@/lib/env");
 
-    expect(env.APP_BASE_URL).toBe("https://hadirly.example.com");
+    expect(env.APP_BASE_URL).toBe("https://acaraloka.example.com");
   });
 
   it("menolak APP_BASE_URL yang bukan URL", async () => {
@@ -84,29 +84,29 @@ describe("env", () => {
   it("memakai fallback VERCEL_URL saat preview tanpa APP_BASE_URL", async () => {
     vi.stubEnv("NODE_ENV", "production");
     process.env.VERCEL_ENV = "preview";
-    process.env.VERCEL_URL = "hadirly-git-preview.vercel.app";
+    process.env.VERCEL_URL = "acaraloka-git-preview.vercel.app";
 
     const { env } = await import("@/lib/env");
 
     expect(env.APP_BASE_URL).toBe(
-      "https://hadirly-git-preview.vercel.app",
+      "https://acaraloka-git-preview.vercel.app",
     );
   });
 
   it("menolak APP_BASE_URL http di production", async () => {
     vi.stubEnv("NODE_ENV", "production");
-    process.env.APP_BASE_URL = "http://hadirly.example.com";
+    process.env.APP_BASE_URL = "http://acaraloka.example.com";
 
     await expect(import("@/lib/env")).rejects.toThrow(/https/);
   });
 
   it("menerima APP_BASE_URL https di production", async () => {
     vi.stubEnv("NODE_ENV", "production");
-    process.env.APP_BASE_URL = "https://hadirly.example.com";
+    process.env.APP_BASE_URL = "https://acaraloka.example.com";
 
     const { env } = await import("@/lib/env");
 
-    expect(env.APP_BASE_URL).toBe("https://hadirly.example.com");
+    expect(env.APP_BASE_URL).toBe("https://acaraloka.example.com");
   });
 });
 

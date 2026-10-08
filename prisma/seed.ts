@@ -28,7 +28,7 @@ async function seedAdmin() {
     create: {
       id: randomUUID(),
       email: adminEmail,
-      name: "Admin Hadirly",
+      name: "Admin Acaraloka",
       emailVerified: true,
       isAdmin: true,
     },
@@ -41,7 +41,7 @@ async function seedSampleEvent(adminUserId: string) {
     update: {},
     create: {
       userId: adminUserId,
-      orgName: "Hadirly",
+      orgName: "Acaraloka",
       contactPhone: "081200000000",
     },
   });
@@ -52,12 +52,12 @@ async function seedSampleEvent(adminUserId: string) {
   endAt.setHours(endAt.getHours() + 2);
 
   const event = await prisma.event.upsert({
-    where: { slug: "contoh-workshop-hadirly" },
+    where: { slug: "contoh-workshop-acaraloka" },
     update: {},
     create: {
       organizerId: adminUserId,
-      slug: "contoh-workshop-hadirly",
-      title: "Contoh Workshop Hadirly",
+      slug: "contoh-workshop-acaraloka",
+      title: "Contoh Workshop Acaraloka",
       description: "Event contoh untuk memverifikasi alur pendaftaran gratis Tahap 1.",
       startAt,
       endAt,

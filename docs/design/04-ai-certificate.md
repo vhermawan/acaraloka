@@ -4,7 +4,7 @@ Status: konsep, belum masuk rencana atau todo. Di landing page tampil sebagai "S
 
 ## Masalah
 
-Template bawaan saat ini hanya satu. Panitia yang ingin sertifikat bernuansa acaranya (logo kampus, warna himpunan, tema acara) harus mendesain sendiri di Canva, lalu tidak bisa memakainya di Hadirly karena unggah template belum ada.
+Template bawaan saat ini hanya satu. Panitia yang ingin sertifikat bernuansa acaranya (logo kampus, warna himpunan, tema acara) harus mendesain sendiri di Canva, lalu tidak bisa memakainya di Acaraloka karena unggah template belum ada.
 
 ## Cara kerja yang diusulkan
 
@@ -13,13 +13,13 @@ AI tidak menggambar sertifikat jadi. AI menghasilkan dua hal:
 1. **Latar belakang** (gambar ornamen, bingkai, warna, posisi logo).
 2. **Layout** dalam format yang sama dengan `CertificateConfig.layout` (posisi nama, nomor, tanggal, blok tanda tangan, QR, ukuran huruf, perataan).
 
-Teks nama peserta, nomor, tanda tangan, dan QR tetap ditulis oleh renderer PDF Hadirly. Akibatnya nama tidak pernah salah eja oleh AI, QR tetap bisa di-scan, dan hasil AI bisa disunting di editor posisi yang sudah ada.
+Teks nama peserta, nomor, tanda tangan, dan QR tetap ditulis oleh renderer PDF Acaraloka. Akibatnya nama tidak pernah salah eja oleh AI, QR tetap bisa di-scan, dan hasil AI bisa disunting di editor posisi yang sudah ada.
 
 ## Alur panitia
 
 1. Di halaman Sertifikat acara, panitia pilih "Buat dengan AI" (di samping template bawaan).
 2. Isi prompt bebas, atau pilih chip gaya. Opsional: unggah logo (PNG/SVG) dan pilih warna utama.
-3. Hadirly menampilkan 3 pilihan template dengan data contoh.
+3. Acaraloka menampilkan 3 pilihan template dengan data contoh.
 4. Panitia pilih satu, lalu masuk ke editor posisi yang sudah ada untuk merapikan.
 5. Simpan. Setelah itu alurnya sama: undang penandatangan, desain terkunci saat tanda tangan pertama.
 
@@ -37,7 +37,7 @@ Dua kartu berdampingan: "Template bawaan" dan "Buat dengan AI" (badge "Baru"). K
 - Placeholder: "Contoh: sertifikat seminar kesehatan, warna hijau tua, formal, ada logo fakultas di tengah atas".
 - Chip gaya: Formal kampus, Minimalis, Warna cerah, Klasik dengan bingkai, Modern geometris.
 - Unggah logo (opsional), pemilih warna utama (opsional).
-- Info kecil: "Nama, nomor, tanda tangan, dan QR diisi otomatis oleh Hadirly. AI hanya membuat desain dan tata letak."
+- Info kecil: "Nama, nomor, tanda tangan, dan QR diisi otomatis oleh Acaraloka. AI hanya membuat desain dan tata letak."
 - Sisa kuota generate: "2 dari 3 percobaan tersisa untuk acara ini" (angka contoh, ganti setelah diputuskan).
 
 ### C. Sedang membuat

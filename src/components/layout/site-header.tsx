@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -26,9 +27,16 @@ async function SiteHeader() {
       <Container className="relative flex h-16 max-w-[75rem] items-center gap-4 lg:h-[72px]">
         <Link
           href="/"
-          className="rounded-md text-[22px] leading-[29px] font-bold tracking-[-0.5px] text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="-ml-2 shrink-0 rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          {APP_NAME}
+          <Image
+            src="/logo/acaraloka-horizontal.svg"
+            alt={APP_NAME}
+            width={431}
+            height={96}
+            priority
+            className="h-12 w-auto"
+          />
         </Link>
 
         <SiteNav signedIn={!!session} />
