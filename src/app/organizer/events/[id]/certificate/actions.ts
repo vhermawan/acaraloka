@@ -14,6 +14,7 @@ import { addSigner, regenerateSignerLink, removeSigner, unlockCertificate } from
 
 export async function saveLayout(eventId: string, layout: unknown): Promise<{ error?: string }> {
   const { event } = await requireEventOwner(eventId);
+  if (event.status === "DISABLED") return { error: "Acara ini dinonaktifkan admin." };
   const parsed = certificateLayoutSchema.safeParse(layout);
   if (!parsed.success) return { error: "Posisi elemen tidak valid. Muat ulang halaman lalu coba lagi." };
 
@@ -83,6 +84,7 @@ export async function regenerateLink(
 
 export async function deleteSigner(eventId: string, signerId: string): Promise<{ error?: string }> {
   const { event } = await requireEventOwner(eventId);
+  if (event.status === "DISABLED") return { error: "Acara ini dinonaktifkan admin." };
   const removed = await removeSigner({ eventId: event.id, signerId });
   if (!removed) return { error: "Penandatangan tidak bisa dihapus saat desain terkunci atau setelah tanda tangan." };
 
@@ -92,6 +94,7 @@ export async function deleteSigner(eventId: string, signerId: string): Promise<{
 
 export async function unlockDesign(eventId: string): Promise<{ error?: string }> {
   const { user, event } = await requireEventOwner(eventId);
+  if (event.status === "DISABLED") return { error: "Acara ini dinonaktifkan admin." };
   const result = await unlockCertificate({ eventId: event.id, actorId: user.id });
   if (!result.ok) {
     return {

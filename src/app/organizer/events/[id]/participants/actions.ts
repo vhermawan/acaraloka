@@ -12,6 +12,7 @@ export async function cancelParticipant(
   reason: string,
 ): Promise<{ error?: string }> {
   const { user, event } = await requireEventOwner(eventId);
+  if (event.status === "DISABLED") return { error: "Acara ini dinonaktifkan admin." };
   const parsed = cancellationReasonSchema.safeParse(reason);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
 

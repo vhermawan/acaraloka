@@ -21,6 +21,16 @@ export default async function EventLayout({ children, params }: LayoutProps<"/or
         </div>
         <EventNav eventId={event.id} />
       </header>
+      {event.status === "DISABLED" ? (
+        <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
+          <p className="font-medium text-destructive">Acara ini dinonaktifkan admin</p>
+          <p className="mt-1 break-words">{event.disabledReason ?? "Tidak ada alasan yang dicatat."}</p>
+          <p className="mt-2 text-muted-foreground">
+            Halaman publik, pendaftaran, check-in, dan penerbitan sertifikat ditutup. Sertifikat yang sudah terbit tetap
+            berlaku. Hubungi admin untuk mengaktifkan kembali.
+          </p>
+        </div>
+      ) : null}
       {children}
     </Container>
   );

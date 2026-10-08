@@ -6,6 +6,7 @@ const VARIANTS = {
   CHECKED_IN: "secondary",
   CANCELLED: "destructive",
   EVENT_CANCELLED: "destructive",
+  EVENT_DISABLED: "destructive",
   ENDED: "outline",
 } as const;
 
