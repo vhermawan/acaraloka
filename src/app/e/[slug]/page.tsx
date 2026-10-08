@@ -6,6 +6,8 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/layout/container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { env } from "@/lib/env";
+import { eventStructuredData, serializeJsonLd } from "@/lib/structured-data";
 import { formatEventDateTime } from "@/lib/timezone";
 import { getPublicEvent } from "@/server/public-event";
 import { POSTER_BUCKET, publicObjectUrl } from "@/server/storage";
@@ -44,6 +46,10 @@ export default async function PublicEventPage({ params }: PageProps<"/e/[slug]">
 
   return (
     <Container className="py-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(eventStructuredData(event, env.APP_BASE_URL, posterUrl)) }}
+      />
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <article className="flex min-w-0 flex-col gap-6">
           {cancelled ? (

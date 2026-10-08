@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 
-import { isPubliclyVisible } from "@/lib/event-publish";
+import { isPubliclyVisible, PUBLIC_EVENT_STATUSES } from "@/lib/event-publish";
 import { prisma } from "@/server/db";
 
 export const getPublicEvent = cache(async (slug: string) => {
@@ -15,3 +15,11 @@ export const getPublicEvent = cache(async (slug: string) => {
   if (!event || !isPubliclyVisible(event.status)) return null;
   return event;
 });
+
+export async function listSitemapEvents() {
+  return prisma.event.findMany({
+    where: { status: { in: [...PUBLIC_EVENT_STATUSES] } },
+    select: { slug: true, updatedAt: true },
+    orderBy: { startAt: "desc" },
+  });
+}
