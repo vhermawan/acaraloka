@@ -7,7 +7,7 @@ export const registrantNameSchema = z
   .trim()
   .min(2, "Nama minimal 2 karakter.")
   .max(100, "Nama maksimal 100 karakter.")
-  .refine((value) => !/\p{Cc}/u.test(value), "Nama mengandung karakter yang tidak valid.");
+  .refine((value) => !/[\p{Cc}\p{Cf}]/u.test(value), "Nama mengandung karakter yang tidak valid.");
 
 export type RegistrationField = {
   id: string;

@@ -80,7 +80,7 @@ export default async function TicketDetailPage({ params }: PageProps<"/me/ticket
       </article>
 
       {ticket.status === "CONFIRMED" && !ticket.certificate ? (
-        <RenameRegistrationForm registrationId={ticket.id} currentName={ticket.name} />
+        <RenameRegistrationForm key={ticket.name} registrationId={ticket.id} currentName={ticket.name} />
       ) : null}
 
       {state === "ACTIVE" ? <CancelRegistrationButton registrationId={ticket.id} /> : null}

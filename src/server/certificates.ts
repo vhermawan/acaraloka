@@ -114,7 +114,7 @@ export async function updateRegistrationName(
       data: { name },
     });
     return updated.count === 1 ? ({ ok: true } as const) : ({ ok: false, reason: "NOT_EDITABLE" } as const);
-  });
+  }, { maxWait: 10_000, timeout: 40_000 });
 }
 
 export async function listUserCertificates(userId: string, db: PrismaClient = prisma) {

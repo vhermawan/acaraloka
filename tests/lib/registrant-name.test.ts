@@ -17,4 +17,9 @@ describe("registrantNameSchema", () => {
     expect(registrantNameSchema.safeParse("Budi\u0000 Santoso").success).toBe(false);
     expect(registrantNameSchema.safeParse("Budi\nSantoso").success).toBe(false);
   });
+
+  it("rejects invisible format characters", () => {
+    expect(registrantNameSchema.safeParse("Budi\u200B Santoso").success).toBe(false);
+    expect(registrantNameSchema.safeParse("\u202EBudi Santoso").success).toBe(false);
+  });
 });
