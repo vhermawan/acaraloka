@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ImageIcon, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { createPosterUpload, setEventPoster } from "@/app/organizer/events/actions";
@@ -55,7 +56,7 @@ function PosterUploader({ eventId, posterUrl, disabled }: PosterUploaderProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative flex aspect-[4/5] w-full max-w-60 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
+      <div className="relative flex aspect-[4/5] w-full max-w-60 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted lg:max-w-none">
         {posterUrl ? (
           <Image
             src={posterUrl}
@@ -66,7 +67,10 @@ function PosterUploader({ eventId, posterUrl, disabled }: PosterUploaderProps) {
             className="size-full object-cover"
           />
         ) : (
-          <span className="px-4 text-center text-sm text-muted-foreground">Belum ada poster</span>
+          <span className="flex flex-col items-center gap-2 px-4 text-center text-sm text-muted-foreground">
+            <ImageIcon className="size-6" strokeWidth={1.5} aria-hidden="true" />
+            Belum ada poster
+          </span>
         )}
       </div>
       <input
@@ -85,10 +89,11 @@ function PosterUploader({ eventId, posterUrl, disabled }: PosterUploaderProps) {
         <Button
           type="button"
           variant="outline"
-          className="w-fit"
+          className="h-10 w-fit gap-2 px-4 lg:w-full"
           disabled={disabled || uploading}
           onClick={() => inputRef.current?.click()}
         >
+          <Upload aria-hidden="true" />
           {uploading ? "Mengunggah..." : posterUrl ? "Ganti poster" : "Unggah poster"}
         </Button>
         <p className="text-xs text-muted-foreground">JPG, PNG, atau WebP. Maksimal 2 MB.</p>

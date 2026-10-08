@@ -37,7 +37,7 @@ function DeleteEventButton({ eventId, title }: DeleteEventButtonProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="destructive" />}>Hapus draf</DialogTrigger>
+      <DialogTrigger render={<Button variant="outline" className="h-10 border-destructive/40 px-4 text-destructive hover:bg-destructive/5 hover:text-destructive" />}>Hapus draf</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Hapus &ldquo;{title}&rdquo;?</DialogTitle>

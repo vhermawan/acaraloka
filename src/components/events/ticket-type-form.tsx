@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { toast } from "sonner";
+import { cn } from "cn";
 
 import type { TicketFormState } from "@/app/organizer/events/[id]/tickets/actions";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,9 @@ type TicketTypeFormProps = {
   successMessage: string;
   resetOnSuccess?: boolean;
   disabled?: boolean;
+  hideLabelsOnDesktop?: boolean;
+  submitVariant?: "default" | "outline";
+  children?: React.ReactNode;
 };
 
 function toErrors(messages?: string[]) {
@@ -30,11 +34,15 @@ function TicketTypeForm({
   successMessage,
   resetOnSuccess,
   disabled,
+  hideLabelsOnDesktop,
+  submitVariant = "outline",
+  children,
 }: TicketTypeFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, pending] = useActionState(action, {});
   const values = { ...defaultValues, ...state.values };
   const errors = state.errors ?? {};
+  const labelClass = cn(hideLabelsOnDesktop && "sm:sr-only");
 
   useEffect(() => {
     if (!state.savedAt) return;
@@ -49,9 +57,18 @@ function TicketTypeForm({
           {state.message}
         </p>
       ) : null}
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem_auto] sm:items-start">
+      <div
+        className={cn(
+          "grid gap-3",
+          hideLabelsOnDesktop
+            ? "sm:grid-cols-[minmax(0,1fr)_7rem_9rem] sm:items-start"
+            : "sm:grid-cols-[minmax(0,1fr)_7rem_auto] sm:items-end",
+        )}
+      >
         <Field data-invalid={!!errors.name}>
-          <FieldLabel htmlFor={`${idPrefix}-name`}>Nama tiket</FieldLabel>
+          <FieldLabel htmlFor={`${idPrefix}-name`} className={labelClass}>
+            Nama tiket
+          </FieldLabel>
           <Input
             id={`${idPrefix}-name`}
             name="name"
@@ -60,11 +77,14 @@ function TicketTypeForm({
             defaultValue={values.name}
             disabled={disabled}
             aria-invalid={!!errors.name}
+            className="h-10"
           />
           <FieldError errors={toErrors(errors.name)} />
         </Field>
         <Field data-invalid={!!errors.quota}>
-          <FieldLabel htmlFor={`${idPrefix}-quota`}>Kuota</FieldLabel>
+          <FieldLabel htmlFor={`${idPrefix}-quota`} className={labelClass}>
+            Kuota
+          </FieldLabel>
           <Input
             id={`${idPrefix}-quota`}
             name="quota"
@@ -75,13 +95,16 @@ function TicketTypeForm({
             defaultValue={values.quota}
             disabled={disabled}
             aria-invalid={!!errors.quota}
-            className="tabular-nums"
+            className="h-10 tabular-nums"
           />
           <FieldError errors={toErrors(errors.quota)} />
         </Field>
-        <Button type="submit" variant="outline" disabled={disabled || pending} className="sm:mt-6">
-          {pending ? "Menyimpan..." : submitLabel}
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button type="submit" variant={submitVariant} disabled={disabled || pending} className="h-10 px-4">
+            {pending ? "Menyimpan..." : submitLabel}
+          </Button>
+          {children}
+        </div>
       </div>
     </form>
   );
