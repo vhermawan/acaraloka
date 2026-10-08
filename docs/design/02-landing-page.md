@@ -1,10 +1,10 @@
-# 02. Landing page Hadirly
+# 02. Landing page Acaraloka
 
 Frame: desktop 1440px dan mobile 390px. Urutan section di bawah sudah final; copy boleh disunting, angka jangan dikarang.
 
 ## 0. Header (sticky)
 
-- Kiri: wordmark Hadirly.
+- Kiri: wordmark Acaraloka.
 - Tengah (desktop): Fitur, Cara kerja, Sertifikat, Harga, FAQ. Link ke anchor di halaman yang sama.
 - Kanan: link "Masuk" (teks) + tombol primary "Buat acara gratis".
 - Mobile: wordmark + tombol menu. Menu terbuka sebagai sheet dari atas, tombol "Buat acara gratis" lebar penuh di bawah.
@@ -16,7 +16,7 @@ Layout desktop: dua kolom 6/6. Kiri teks, kanan visual produk. Mobile: teks dulu
 
 **Eyebrow (kecil, teal):** Untuk panitia seminar, workshop, dan meetup
 
-**H1:** Dari pendaftaran sampai sertifikat, semua di Hadirly
+**H1:** Dari pendaftaran sampai sertifikat, semua di Acaraloka
 
 **Subjudul:** Buka pendaftaran, kirim e-tiket QR, scan kehadiran di pintu masuk, lalu terbitkan sertifikat bertanda tangan untuk peserta yang benar-benar hadir.
 
@@ -37,7 +37,7 @@ Jangan pakai screenshot palsu dengan data asli; pakai nama contoh seperti "Rina 
 
 Latar `muted`. Satu baris judul + empat item kecil dengan ikon "x" abu-abu.
 
-**H2:** Kalau masih begini, Hadirly bisa bantu
+**H2:** Kalau masih begini, Acaraloka bisa bantu
 
 - Pendaftaran lewat Google Form, rekap manual di spreadsheet
 - Absen pakai kertas yang antre di meja registrasi
@@ -67,11 +67,11 @@ Desktop: grid bento 3 kolom dengan ukuran kartu berbeda (bukan 6 kartu sama besa
 | B | 1 kolom, tinggi | Tanda tangan dari HP | Kirim tautan ke penandatangan lewat WhatsApp. Mereka lihat pratinjau, setujui, lalu tanda tangan di layar. Tidak perlu bikin akun. | Mockup HP dengan kanvas tanda tangan |
 | C | 1 kolom | Formulir sesuai kebutuhan | Tambah pertanyaan: teks singkat, pilihan, atau dropdown. Ukuran kaos, asal kampus, apa saja. | Potongan form builder |
 | D | 1 kolom | Daftar peserta rapi | Cari, lihat status, dan pantau siapa yang sudah hadir. | Tabel mini dengan badge status |
-| E | 1 kolom | Sertifikat bisa dicek keasliannya | Tiap sertifikat punya nomor unik dan QR ke halaman verifikasi publik. | Potongan halaman verifikasi dengan label "Terverifikasi di Hadirly" |
+| E | 1 kolom | Sertifikat bisa dicek keasliannya | Tiap sertifikat punya nomor unik dan QR ke halaman verifikasi publik. | Potongan halaman verifikasi dengan label "Terverifikasi di Acaraloka" |
 
 ## 5. Sorotan sertifikat
 
-Section paling penting karena ini pembeda Hadirly. Latar putih, visual besar.
+Section paling penting karena ini pembeda Acaraloka. Latar putih, visual besar.
 
 **Eyebrow:** Sertifikat
 
@@ -90,9 +90,9 @@ Section paling penting karena ini pembeda Hadirly. Latar putih, visual besar.
 
 Kartu lebar dengan border teal tipis dan badge "Segera hadir". Detail fitur ada di `04-ai-certificate.md`.
 
-**H3:** Tulis gaya yang kamu mau, Hadirly siapkan templatenya
+**H3:** Tulis gaya yang kamu mau, Acaraloka siapkan templatenya
 
-**Body:** Ketik misalnya "sertifikat workshop fotografi, nuansa hangat, ada logo kampus di kiri atas". Hadirly membuat beberapa pilihan template yang bisa kamu atur lagi di editor.
+**Body:** Ketik misalnya "sertifikat workshop fotografi, nuansa hangat, ada logo kampus di kiri atas". Acaraloka membuat beberapa pilihan template yang bisa kamu atur lagi di editor.
 
 **Visual:** kolom input prompt di kiri, tiga thumbnail template hasil di kanan (desain berbeda: formal, minimal, berwarna).
 
@@ -121,7 +121,7 @@ Dua kartu berdampingan.
 | Isi | Peserta tanpa batas, e-tiket QR, check-in, sertifikat dengan 1 sampai 3 penandatangan | Semua fitur acara gratis, pembayaran QRIS langsung ke akun Mayar milik panitia |
 | Tombol | "Buat acara gratis" (primary) | tanpa tombol, atau "Kabari saya" |
 
-**Catatan di bawah kartu:** Sertifikat memuat tulisan kecil "Diterbitkan via Hadirly".
+**Catatan di bawah kartu:** Sertifikat memuat tulisan kecil "Diterbitkan via Acaraloka".
 
 Tarif acara berbayar di rencana (4%, minimum Rp2.000 per tiket) belum divalidasi. Jangan tampilkan angkanya sebelum diputuskan.
 
@@ -132,7 +132,7 @@ Accordion, 6 pertanyaan.
 1. **Apakah peserta harus punya akun?** Ya. Peserta masuk pakai akun Google supaya e-tiket dan sertifikat tersimpan di satu tempat.
 2. **Penandatangan perlu daftar?** Tidak. Panitia mengirim tautan khusus, penandatangan cukup membukanya dari HP.
 3. **Bagaimana kalau peserta lupa bawa HP?** Panitia bisa mencari nama, email, atau nomor HP peserta di halaman check-in.
-4. **Apakah sertifikatnya sah?** Sertifikat diterbitkan oleh panitia acara. Hadirly mencatat nomornya dan menyediakan halaman verifikasi publik, tapi tanda tangannya bukan tanda tangan elektronik tersertifikasi.
+4. **Apakah sertifikatnya sah?** Sertifikat diterbitkan oleh panitia acara. Acaraloka mencatat nomornya dan menyediakan halaman verifikasi publik, tapi tanda tangannya bukan tanda tangan elektronik tersertifikasi.
 5. **Bisa pakai desain sertifikat sendiri?** Saat ini tersedia template bawaan yang posisinya bisa diatur. Unggah desain sendiri dan AI pembuat template sedang disiapkan.
 6. **Apakah ada biaya?** Acara gratis tidak dikenai biaya. Acara berbayar segera hadir.
 
@@ -150,7 +150,7 @@ Satu-satunya blok penuh warna teal di halaman. Teks putih, rata tengah.
 
 - Kiri: wordmark + satu kalimat posisi (dari `01-brand.md`).
 - Kolom link: Produk (Fitur, Harga, FAQ), Legal (Syarat Layanan `/legal/terms`, Kebijakan Privasi `/legal/privacy`), Akun (Masuk, Tiket Saya).
-- Bawah: "© 2026 Hadirly."
+- Bawah: "© 2026 Acaraloka."
 
 ## Catatan responsif
 

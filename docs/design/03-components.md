@@ -60,7 +60,7 @@ Sertifikat landscape rasio A4 (297:210).
 - Teks "atas partisipasinya sebagai Peserta dalam Workshop Desain UI Dasar, 12 Oktober 2026".
 - 1 sampai 3 blok tanda tangan: gambar TTD, garis, nama, jabatan.
 - QR verifikasi + nomor sertifikat (Geist Mono) di pojok kanan bawah.
-- Teks kecil "Diterbitkan via Hadirly" di bawah.
+- Teks kecil "Diterbitkan via Acaraloka" di bawah.
 - Varian `preview` dengan watermark diagonal "PRATINJAU".
 
 ## SignaturePad

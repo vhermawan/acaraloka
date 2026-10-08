@@ -1,6 +1,6 @@
-# Brief desain Hadirly
+# Brief desain Acaraloka
 
-Kumpulan brief untuk mendesain landing page dan layar aplikasi Hadirly di pen.dev. Baca berurutan; tiap file bisa ditempel ke pen.dev sebagai konteks.
+Kumpulan brief untuk mendesain landing page dan layar aplikasi Acaraloka di pen.dev. Baca berurutan; tiap file bisa ditempel ke pen.dev sebagai konteks.
 
 | File | Isi |
 |---|---|
@@ -20,7 +20,7 @@ Kumpulan brief untuk mendesain landing page dan layar aplikasi Hadirly di pen.de
 
 ## Yang belum boleh muncul di desain
 
-- Angka pengguna, jumlah event, atau testimoni. Hadirly belum punya event nyata; pakai placeholder berlabel `[ISI: ...]` atau hapus section-nya.
+- Angka pengguna, jumlah event, atau testimoni. Acaraloka belum punya event nyata; pakai placeholder berlabel `[ISI: ...]` atau hapus section-nya.
 - Logo klien atau mitra.
-- Klaim "sertifikat sah secara hukum". Label resmi di halaman verifikasi adalah "Terverifikasi di Hadirly".
+- Klaim "sertifikat sah secara hukum". Label resmi di halaman verifikasi adalah "Terverifikasi di Acaraloka".
 - Fitur event berbayar dan AI template ditampilkan sebagai "Segera hadir", bukan fitur yang sudah ada.

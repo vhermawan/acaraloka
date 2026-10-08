@@ -1,10 +1,10 @@
 @AGENTS.md
 
-# hadirly (sebelumnya event-in)
+# acaraloka (sebelumnya event-in)
 
 ## Tentang project
 <!-- Isi setelah rencana disetujui: 2-3 kalimat tujuan sistem. -->
-Rencana lengkap: /Users/vihermawan/Documents/Obsidian Vault/agent-memory/plans/hadirly-v1.md
+Rencana lengkap: /Users/vihermawan/Documents/Obsidian Vault/agent-memory/plans/acaraloka-v1.md
 
 ## Perintah
 - Dev: `pnpm dev`
@@ -19,6 +19,6 @@ Rencana lengkap: /Users/vihermawan/Documents/Obsidian Vault/agent-memory/plans/h
 
 ## Aturan khusus project
 - Ikuti skill nextjs-conventions.
-- Memory project: /Users/vihermawan/Documents/Obsidian Vault/agent-memory/projects/hadirly.md
-- Todo: /Users/vihermawan/Documents/Obsidian Vault/agent-memory/projects/hadirly-todo.md
+- Memory project: /Users/vihermawan/Documents/Obsidian Vault/agent-memory/projects/acaraloka.md
+- Todo: /Users/vihermawan/Documents/Obsidian Vault/agent-memory/projects/acaraloka-todo.md
 <!-- Tambahkan: folder yang tidak boleh disentuh, keputusan arsitektur penting, dsb. -->

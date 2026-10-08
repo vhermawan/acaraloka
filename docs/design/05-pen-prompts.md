@@ -5,7 +5,7 @@ Tempel prompt ini satu per satu. Sebelum prompt pertama, lampirkan `01-brand.md`
 ## Prompt 0: setup gaya
 
 ```
-Set up a design system for "Hadirly", an Indonesian event management app for seminar, workshop, and meetup organizers.
+Set up a design system for "Acaraloka", an Indonesian event management app for seminar, workshop, and meetup organizers.
 Colors: primary #0F766E (dark mode #2DD4BF), background #FFFFFF, foreground #252525, muted #F7F7F7, muted-foreground #8E8E8E, border #EBEBEB.
 Status colors: success #16A34A, warning #CA8A04, danger #DC2626.
 Fonts: Plus Jakarta Sans for UI, Geist Mono for codes and certificate numbers.
@@ -17,15 +17,15 @@ Avoid gradients, glow, blobs, 3D icons, emoji in headings. Copy is in Bahasa Ind
 ## Prompt 1: komponen dasar
 
 ```
-Create reusable components: Button (default, outline, ghost, inverse; sizes sm 32px, default 40px, lg 48px), Badge (default, secondary, destructive, outline, soon), Card, SectionHeader (eyebrow + H2 + paragraph), PhoneFrame (300x620), CheckinResultScreen (valid green, already-checked-in yellow, invalid red), TicketCard with QR, CertificateMock (A4 landscape, serif participant name, 1-3 signature blocks, QR + mono certificate number bottom right, small "Diterbitkan via Hadirly" footer, optional diagonal "PRATINJAU" watermark), FAQItem accordion, PromptInput with suggestion chips.
+Create reusable components: Button (default, outline, ghost, inverse; sizes sm 32px, default 40px, lg 48px), Badge (default, secondary, destructive, outline, soon), Card, SectionHeader (eyebrow + H2 + paragraph), PhoneFrame (300x620), CheckinResultScreen (valid green, already-checked-in yellow, invalid red), TicketCard with QR, CertificateMock (A4 landscape, serif participant name, 1-3 signature blocks, QR + mono certificate number bottom right, small "Diterbitkan via Acaraloka" footer, optional diagonal "PRATINJAU" watermark), FAQItem accordion, PromptInput with suggestion chips.
 Follow the specs in 03-components.md.
 ```
 
 ## Prompt 2: header + hero (desktop 1440)
 
 ```
-Desktop frame 1440px wide, content max 1200px. Build the sticky header and hero section for Hadirly following section 0 and 1 of 02-landing-page.md.
-Hero: two columns. Left: small teal eyebrow "Untuk panitia seminar, workshop, dan meetup", H1 56px "Dari pendaftaran sampai sertifikat, semua di Hadirly", subtitle, primary button "Buat acara gratis", outline button "Lihat cara kerjanya", small note "Gratis untuk acara tanpa tiket berbayar. Masuk pakai akun Google."
+Desktop frame 1440px wide, content max 1200px. Build the sticky header and hero section for Acaraloka following section 0 and 1 of 02-landing-page.md.
+Hero: two columns. Left: small teal eyebrow "Untuk panitia seminar, workshop, dan meetup", H1 56px "Dari pendaftaran sampai sertifikat, semua di Acaraloka", subtitle, primary button "Buat acara gratis", outline button "Lihat cara kerjanya", small note "Gratis untuk acara tanpa tiket berbayar. Masuk pakai akun Google."
 Right: layered product composition: certificate in the back, phone showing green VALID check-in screen in the middle, small e-ticket card in front. Use sample names "Rina Pratama" and "Workshop Desain UI Dasar".
 ```
 
@@ -56,7 +56,7 @@ Add sections 7 to 11 from 02-landing-page.md:
 8. Pricing with two cards: "Acara gratis" Rp0 (badge "Tersedia sekarang", primary button) and "Acara berbayar" (badge "Segera hadir", price shown as placeholder, no button).
 9. FAQ accordion with 6 questions, first one open.
 10. Closing CTA: the only full teal block on the page, white text centered, inverse button "Buat acara gratis".
-11. Footer with wordmark, one-line description, link columns Produk / Legal / Akun, and "© 2026 Hadirly."
+11. Footer with wordmark, one-line description, link columns Produk / Legal / Akun, and "© 2026 Acaraloka."
 Do not add testimonials, user counts, or partner logos.
 ```
 

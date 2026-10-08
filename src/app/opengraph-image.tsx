@@ -11,10 +11,12 @@ export const contentType = "image/png";
 const fontDir = join(process.cwd(), "assets/fonts");
 
 export default async function OpengraphImage() {
-  const [semiBold, bold] = await Promise.all([
+  const [semiBold, bold, logo] = await Promise.all([
     readFile(join(fontDir, "plus-jakarta-sans-600.ttf")),
     readFile(join(fontDir, "plus-jakarta-sans-700.ttf")),
+    readFile(join(process.cwd(), "public/logo/acaraloka-horizontal.svg")),
   ]);
+  const logoSrc = `data:image/svg+xml;base64,${logo.toString("base64")}`;
 
   return new ImageResponse(
     (
@@ -32,7 +34,7 @@ export default async function OpengraphImage() {
           fontWeight: 600,
         }}
       >
-        <div style={{ fontSize: 44, fontWeight: 700, letterSpacing: -1 }}>{APP_NAME}</div>
+        <img src={logoSrc} alt={APP_NAME} width={431} height={96} style={{ marginLeft: -16 }} />
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <div style={{ fontSize: 22, fontWeight: 600, color: "#0f766e" }}>Untuk panitia seminar, workshop, dan meetup</div>
           <div style={{ fontSize: 68, fontWeight: 700, lineHeight: 1.1, letterSpacing: -2, maxWidth: 980 }}>

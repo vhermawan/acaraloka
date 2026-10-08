@@ -10,7 +10,7 @@ import {
 
 describe("certificate number", () => {
   it("derives the prefix from the product name", () => {
-    expect(CERTIFICATE_NUMBER_PREFIX).toBe("HA");
+    expect(CERTIFICATE_NUMBER_PREFIX).toBe("AC");
   });
 
   it("uses the Jakarta calendar for year and month", () => {
@@ -22,10 +22,10 @@ describe("certificate number", () => {
 
   it("builds prefix, year-month, padded sequence, and suffix", () => {
     expect(buildCertificateNumber({ date: new Date("2026-10-15T00:00:00Z"), seq: 42, suffix: "K7Q3XM" })).toBe(
-      "HA-2610-0042-K7Q3XM",
+      "AC-2610-0042-K7Q3XM",
     );
     expect(buildCertificateNumber({ date: new Date("2026-10-15T00:00:00Z"), seq: 12345, suffix: "AAAAAA" })).toBe(
-      "HA-2610-12345-AAAAAA",
+      "AC-2610-12345-AAAAAA",
     );
   });
 

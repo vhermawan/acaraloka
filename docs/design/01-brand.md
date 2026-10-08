@@ -1,14 +1,26 @@
-# 01. Brand Hadirly
+# 01. Brand Acaraloka
 
 ## Nama
 
-- Tulisan: **Hadirly** (H kapital, sisanya kecil). Jangan "HadirLy" atau "HADIRLY" di teks berjalan.
-- Asal kata: "hadir". Inti produk memang soal kehadiran: siapa yang hadir dapat sertifikat.
-- Wordmark: teks "Hadirly" dengan Plus Jakarta Sans 700. Ikon opsional: tanda centang yang menyatu dengan huruf "H" atau titik QR kecil. Jangan pakai ikon kalender generik.
+- Tulisan: **Acaraloka** (A kapital, sisanya kecil). Jangan "AcaraLoka" atau "ACARALOKA" di teks berjalan.
+- Asal kata: "acara" + "loka" (tempat). Tempat semua urusan acara: pendaftaran, kehadiran, sampai sertifikat.
+- Logo: file SVG di `public/logo/`. Pakai file yang ada, jangan gambar ulang wordmark dengan font.
+
+| File | Pakai untuk |
+|---|---|
+| `acaraloka-horizontal.svg` | Header, footer, latar terang |
+| `acaraloka-horizontal-putih.svg` | Latar gelap |
+| `acaraloka-bertumpuk.svg` | Ruang sempit tapi tinggi (splash, kartu) |
+| `acaraloka-ikon.svg` | Favicon, avatar, ikon aplikasi |
+| `acaraloka-simbol.svg` | Simbol tanpa kotak latar |
+| `acaraloka-wordmark.svg` | Tulisan saja tanpa simbol |
+| `acaraloka-mono-hitam.svg`, `acaraloka-mono-putih.svg` | Cetak satu warna |
+
+Warna logo: teal tua `#0F5257`, aksen kuning `#E9A23B`, tinta `#10202A`.
 
 ## Satu kalimat posisi
 
-Hadirly membantu panitia seminar, workshop, dan meetup mengurus pendaftaran, e-tiket QR, check-in, dan sertifikat bertanda tangan dalam satu tempat.
+Acaraloka membantu panitia seminar, workshop, dan meetup mengurus pendaftaran, e-tiket QR, check-in, dan sertifikat bertanda tangan dalam satu tempat.
 
 ## Untuk siapa
 
