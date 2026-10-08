@@ -9,6 +9,42 @@ import {
   spreadSigners,
 } from "@/lib/certificate-layout";
 
+describe("certificate theme", () => {
+  it("fills the default theme for layouts saved before themes existed", () => {
+    const source = defaultCertificateLayout(2);
+    const legacy: Record<string, unknown> = { ...source };
+    delete legacy.theme;
+    const parsed = parseCertificateLayout(legacy);
+    expect(parsed.theme).toEqual({
+      border: "classic",
+      accent: "teal",
+      fonts: { heading: "times", name: "times", body: "helvetica" },
+    });
+    expect(parsed).toEqual(source);
+  });
+
+  it("fills missing theme fields individually", () => {
+    const parsed = certificateLayoutSchema.parse({ ...defaultCertificateLayout(), theme: { accent: "navy", fonts: { name: "prata" } } });
+    expect(parsed.theme.accent).toBe("navy");
+    expect(parsed.theme.border).toBe("classic");
+    expect(parsed.theme.fonts).toEqual({ heading: "times", name: "prata", body: "helvetica" });
+  });
+
+  it("rejects unknown theme values", () => {
+    const base = defaultCertificateLayout();
+    const bad = [
+      { border: "fancy" },
+      { accent: "pink" },
+      { fonts: { heading: "comic-sans" } },
+      { fonts: { heading: "great-vibes" } },
+      { fonts: { body: "cinzel" } },
+    ];
+    for (const theme of bad) {
+      expect(certificateLayoutSchema.safeParse({ ...base, theme }).success).toBe(false);
+    }
+  });
+});
+
 describe("certificate layout", () => {
   it("produces a valid default for every signer count", () => {
     for (const count of [0, 1, 2, 3]) {

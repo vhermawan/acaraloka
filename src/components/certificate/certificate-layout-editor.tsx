@@ -6,8 +6,14 @@ import { toast } from "sonner";
 import { saveLayout } from "@/app/organizer/events/[id]/certificate/actions";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
+import { WEB_FONTS } from "@/components/certificate/certificate-web-fonts";
 import { CERTIFICATE_CREDIT, CERTIFICATE_NUMBER_PREFIX } from "@/lib/brand";
 import {
+  ACCENT_COLORS,
+  BORDER_PRESETS,
+  FONT_FAMILIES,
+  FONT_ROLE_LABELS,
+  FONT_ROLE_OPTIONS,
   NUDGE_STEP,
   PAGE_HEIGHT,
   PAGE_WIDTH,
@@ -15,7 +21,11 @@ import {
   clampCoordinate,
   defaultCertificateLayout,
   spreadSigners,
+  type AccentKey,
+  type BorderKey,
   type CertificateLayout,
+  type FontKey,
+  type FontRole,
   type TextAlign,
   type TextElementKey,
 } from "@/lib/certificate-layout";
@@ -24,6 +34,13 @@ import { cn } from "cn";
 type Selection = { kind: "text"; key: TextElementKey } | { kind: "signer"; index: number } | { kind: "qr" };
 
 const TEXT_KEYS: TextElementKey[] = ["recipientName", "eventTitle", "eventDate", "certificateNumber"];
+
+const FONT_ROLES = Object.keys(FONT_ROLE_LABELS) as FontRole[];
+
+function fontStyle(key: FontKey, weight: "regular" | "bold") {
+  const font = WEB_FONTS[key];
+  return { fontFamily: font.family, fontWeight: font[weight] };
+}
 
 const ALIGN_LABELS: Record<TextAlign, string> = { left: "Kiri", center: "Tengah", right: "Kanan" };
 
@@ -68,6 +85,23 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
   const signerCount = Math.max(1, signers.length);
   const dirty = JSON.stringify(layout) !== JSON.stringify(savedLayout);
   const scale = 100 / PAGE_WIDTH;
+  const { theme } = layout;
+  const accent = ACCENT_COLORS[theme.accent].hex;
+  const headingFont = fontStyle(theme.fonts.heading, "bold");
+  const nameFont = fontStyle(theme.fonts.name, "bold");
+  const bodyFont = fontStyle(theme.fonts.body, "regular");
+  const bodyBoldFont = fontStyle(theme.fonts.body, "bold");
+
+  function updateTheme(patch: Partial<Pick<CertificateLayout["theme"], "border" | "accent">>) {
+    setLayout((current) => ({ ...current, theme: { ...current.theme, ...patch } }));
+  }
+
+  function updateFont(role: FontRole, key: FontKey) {
+    setLayout((current) => ({
+      ...current,
+      theme: { ...current.theme, fonts: { ...current.theme.fonts, [role]: key } },
+    }));
+  }
 
   const selected =
     selection.kind === "text"
@@ -101,7 +135,7 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
         return;
       }
       setSavedLayout(layout);
-      toast.success("Posisi sertifikat disimpan.");
+      toast.success("Tampilan dan posisi sertifikat disimpan.");
     });
   }
 
@@ -120,14 +154,43 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
           aria-label="Sketsa posisi sertifikat"
           role="group"
         >
-          <div className="pointer-events-none absolute inset-[2.85%] border-[3px] border-primary" />
-          <div className="pointer-events-none absolute inset-[4%] border border-primary" />
+          {theme.border === "classic" ? (
+            <>
+              <div className="pointer-events-none absolute inset-[2.85%] border-[3px]" style={{ borderColor: accent }} />
+              <div className="pointer-events-none absolute inset-[4%] border" style={{ borderColor: accent }} />
+            </>
+          ) : null}
+          {theme.border === "thin" ? (
+            <div className="pointer-events-none absolute inset-[3.3%] border" style={{ borderColor: accent }} />
+          ) : null}
+          {theme.border === "corners" ? (
+            <>
+              {(
+                [
+                  "left-[2.85%] top-[4.03%] border-l-[3px] border-t-[3px]",
+                  "right-[2.85%] top-[4.03%] border-r-[3px] border-t-[3px]",
+                  "bottom-[4.03%] left-[2.85%] border-b-[3px] border-l-[3px]",
+                  "bottom-[4.03%] right-[2.85%] border-b-[3px] border-r-[3px]",
+                ] as const
+              ).map((position) => (
+                <div
+                  key={position}
+                  className={cn("pointer-events-none absolute h-[12%] w-[8.5%]", position)}
+                  style={{ borderColor: accent }}
+                />
+              ))}
+            </>
+          ) : null}
           <p
-            className="pointer-events-none absolute left-1/2 top-[19%] -translate-x-1/2 -translate-y-1/2 font-serif font-bold text-primary"
-            style={{ fontSize: `${38 * scale}cqw` }}
+            className="pointer-events-none absolute left-1/2 top-[19%] -translate-x-1/2 -translate-y-1/2"
+            style={{ fontSize: `${38 * scale}cqw`, color: accent, ...headingFont }}
           >
             SERTIFIKAT
           </p>
+          <span
+            className="pointer-events-none absolute left-1/2 top-[23.4%] h-px w-[14.3%] -translate-x-1/2"
+            style={{ backgroundColor: accent }}
+          />
           {TEXT_KEYS.map((key) => {
             const element = layout[key];
             const active = selection.kind === "text" && selection.key === key;
@@ -140,7 +203,6 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
                 aria-pressed={active}
                 className={cn(
                   "absolute whitespace-nowrap rounded-sm px-1 leading-tight outline-offset-2",
-                  key === "recipientName" ? "font-serif font-bold" : "",
                   active ? "outline-2 outline-primary" : "outline-1 outline-dashed outline-neutral-400",
                 )}
                 style={{
@@ -148,6 +210,7 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
                   top: `${element.y * 100}%`,
                   transform: TRANSLATE[element.align],
                   fontSize: `${element.fontSize * scale}cqw`,
+                  ...(key === "recipientName" ? nameFont : key === "eventTitle" ? bodyBoldFont : bodyFont),
                 }}
               >
                 {PREVIEW_TEXT[key]}
@@ -168,10 +231,15 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
                   "absolute flex w-[18%] -translate-x-1/2 flex-col items-center rounded-sm outline-offset-2",
                   active ? "outline-2 outline-primary" : "outline-1 outline-dashed outline-neutral-400",
                 )}
-                style={{ left: `${block.x * 100}%`, top: `${block.y * 100}%`, fontSize: `${block.fontSize * scale}cqw` }}
+                style={{
+                  left: `${block.x * 100}%`,
+                  top: `${block.y * 100}%`,
+                  fontSize: `${block.fontSize * scale}cqw`,
+                  ...bodyFont,
+                }}
               >
                 <span className="w-full border-t border-neutral-500" />
-                <span className="truncate font-semibold">{signer?.name ?? "Nama Penandatangan"}</span>
+                <span className="truncate" style={bodyBoldFont}>{signer?.name ?? "Nama Penandatangan"}</span>
                 <span className="truncate text-neutral-600">{signer?.title ?? "Jabatan"}</span>
               </button>
             );
@@ -196,7 +264,7 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
           </button>
           <p
             className="pointer-events-none absolute bottom-[6%] left-1/2 -translate-x-1/2 text-neutral-600"
-            style={{ fontSize: `${8 * scale}cqw` }}
+            style={{ fontSize: `${8 * scale}cqw`, ...bodyFont }}
           >
             {CERTIFICATE_CREDIT}
           </p>
@@ -209,7 +277,7 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
       <div className="flex flex-col gap-6">
         {locked ? (
           <p className="rounded-lg border border-border bg-muted px-3 py-2 text-sm">
-            Desain terkunci karena penandatangan sudah menyetujui. Posisi tidak bisa diubah.
+            Desain terkunci karena penandatangan sudah menyetujui. Posisi dan tampilan tidak bisa diubah.
           </p>
         ) : null}
 
@@ -329,19 +397,79 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
           ) : null}
         </fieldset>
 
+        <fieldset className="flex flex-col gap-4" disabled={locked}>
+          <legend className="mb-2 text-sm font-medium">Tampilan</legend>
+
+          <div className="flex flex-col gap-2">
+            <span id="theme-border-label" className="text-sm">Border</span>
+            <div role="group" aria-labelledby="theme-border-label" className="flex flex-wrap gap-2">
+              {(Object.entries(BORDER_PRESETS) as [BorderKey, string][]).map(([key, label]) => (
+                <Button
+                  key={key}
+                  type="button"
+                  size="sm"
+                  variant={theme.border === key ? "default" : "outline"}
+                  className="h-9"
+                  aria-pressed={theme.border === key}
+                  onClick={() => updateTheme({ border: key })}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span id="theme-accent-label" className="text-sm">Warna aksen</span>
+            <div role="group" aria-labelledby="theme-accent-label" className="flex flex-wrap gap-2">
+              {(Object.entries(ACCENT_COLORS) as [AccentKey, { label: string; hex: string }][]).map(([key, color]) => (
+                <Button
+                  key={key}
+                  type="button"
+                  size="sm"
+                  variant={theme.accent === key ? "default" : "outline"}
+                  className="h-9 gap-2"
+                  aria-pressed={theme.accent === key}
+                  onClick={() => updateTheme({ accent: key })}
+                >
+                  <span
+                    aria-hidden
+                    className="size-3.5 rounded-full border border-white/70 ring-1 ring-border"
+                    style={{ backgroundColor: color.hex }}
+                  />
+                  {color.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {FONT_ROLES.map((role) => (
+            <label key={role} className="flex flex-col gap-1.5 text-sm">
+              Font {FONT_ROLE_LABELS[role].toLowerCase()}
+              <NativeSelect value={theme.fonts[role]} onChange={(event) => updateFont(role, event.target.value as FontKey)}>
+                {FONT_ROLE_OPTIONS[role].map((key) => (
+                  <option key={key} value={key}>
+                    {FONT_FAMILIES[key]}
+                  </option>
+                ))}
+              </NativeSelect>
+            </label>
+          ))}
+        </fieldset>
+
         <fieldset className="flex flex-wrap gap-2" disabled={locked}>
           <legend className="sr-only">Tata letak</legend>
           <Button type="button" variant="ghost" className="h-11" onClick={() => setLayout((current) => spreadSigners(current, signerCount))}>
             Rapikan penandatangan
           </Button>
-          <Button type="button" variant="ghost" className="h-11" onClick={() => setLayout(defaultCertificateLayout(signerCount))}>
+          <Button type="button" variant="ghost" className="h-11" onClick={() => setLayout((current) => ({ ...defaultCertificateLayout(signerCount), theme: current.theme }))}>
             Kembalikan posisi awal
           </Button>
         </fieldset>
 
         <div className="flex flex-wrap gap-2">
           <Button type="button" className="h-11 px-4" disabled={locked || !dirty || pending} onClick={handleSave}>
-            {pending ? "Menyimpan..." : "Simpan posisi"}
+            {pending ? "Menyimpan..." : "Simpan perubahan"}
           </Button>
           <Button
             variant="outline"
