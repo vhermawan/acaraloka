@@ -61,7 +61,18 @@ export default async function AdminEventsPage({ searchParams }: PageProps<"/admi
 
       {result.rows.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-          {query ? `Tidak ada acara yang cocok dengan "${query}".` : "Belum ada acara."}
+          {result.total > 0 ? (
+            <>
+              Halaman ini kosong.{" "}
+              <Link href={pageHref(1)} className="underline underline-offset-4 hover:text-foreground">
+                Kembali ke halaman 1
+              </Link>
+            </>
+          ) : query ? (
+            `Tidak ada acara yang cocok dengan "${query}".`
+          ) : (
+            "Belum ada acara."
+          )}
         </p>
       ) : (
         <div className="overflow-x-auto">

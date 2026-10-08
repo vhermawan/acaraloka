@@ -5,7 +5,7 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { defaultCertificateLayout } from "@/lib/certificate-layout";
 import { disableEvent, enableEvent, listAdminEvents } from "@/server/admin-events";
 import { verifyCertificate } from "@/server/certificate-verification";
-import { checkIn } from "@/server/checkin";
+import { checkIn, undoCheckIn } from "@/server/checkin";
 import { getUserCertificateRenderData, issueCertificates } from "@/server/certificates";
 import { createRegistration } from "@/server/registration";
 import { getPublicEvent } from "@/server/public-event";
@@ -143,6 +143,22 @@ describe("disable and re-enable events against Postgres", () => {
       },
     });
     expect(await issueCertificates(event.id, organizerId, db)).toEqual({ ok: false, reason: "CLOSED" });
+  });
+
+  it("refuses undoing a check-in while disabled", async () => {
+    const { event, ticketTypeId } = await createEvent("PUBLISHED");
+    const registered = await createRegistration(registrationInput(event.id, ticketTypeId), db);
+    if (!registered.ok) throw new Error("registration failed");
+    const target = { registrationId: registered.registrationId };
+    expect((await checkIn({ eventId: event.id, actorId: organizerId, target }, db)).outcome).toBe("VALID");
+
+    await disableEvent({ eventId: event.id, actorId: adminId, reason: "Melanggar aturan" }, db);
+    const undo = { eventId: event.id, registrationId: registered.registrationId, actorId: organizerId };
+    expect(await undoCheckIn(undo, db)).toBe(false);
+    expect((await db.registration.findUniqueOrThrow({ where: { id: registered.registrationId } })).checkedInAt).not.toBeNull();
+
+    await enableEvent({ eventId: event.id, actorId: adminId }, db);
+    expect(await undoCheckIn(undo, db)).toBe(true);
   });
 
   it("keeps issued certificates verifiable and downloadable after the event is disabled", async () => {

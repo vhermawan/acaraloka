@@ -76,6 +76,7 @@ export async function undoCheckIn(
         status: "CONFIRMED",
         checkedInAt: { not: null },
         certificate: { is: null },
+        event: { status: { not: "DISABLED" } },
       },
       data: { checkedInAt: null, checkedInById: null },
     });
