@@ -2,6 +2,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PrismaClient } from "@/generated/prisma/client";
+import { CERTIFICATE_NUMBER_PREFIX } from "@/lib/brand";
 import { defaultCertificateLayout } from "@/lib/certificate-layout";
 import { undoCheckIn } from "@/server/checkin";
 import {
@@ -130,7 +131,7 @@ describe("issue certificates against Postgres", () => {
     expect(rows.map((row) => row.seq)).toEqual([1, 2, 3, 4, 5]);
     expect(new Set(rows.map((row) => row.registrationId)).size).toBe(5);
     expect(new Set(rows.map((row) => row.number)).size).toBe(5);
-    for (const row of rows) expect(row.number).toMatch(/^HA-\d{4}-\d{4}-[A-Z0-9]{6}$/);
+    for (const row of rows) expect(row.number).toMatch(new RegExp(`^${CERTIFICATE_NUMBER_PREFIX}-\\d{4}-\\d{4}-[A-Z0-9]{6}$`));
     expect(rows.every((row) => row.recipientName.startsWith("Hadir"))).toBe(true);
 
     const config = await db.certificateConfig.findUniqueOrThrow({ where: { eventId } });
