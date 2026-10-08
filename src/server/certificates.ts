@@ -76,7 +76,7 @@ export async function issueCertificates(
       },
     });
     return { ok: true, issued: rows.length, firstIssue } as const;
-  });
+  }, { timeout: 30_000 });
 }
 
 export async function certificateIssueStats(eventId: string, db: PrismaClient = prisma) {

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { saveLayout } from "@/app/organizer/events/[id]/certificate/actions";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
-import { CERTIFICATE_CREDIT } from "@/lib/brand";
+import { CERTIFICATE_CREDIT, CERTIFICATE_NUMBER_PREFIX } from "@/lib/brand";
 import {
   NUDGE_STEP,
   PAGE_HEIGHT,
@@ -31,7 +31,7 @@ const PREVIEW_TEXT: Record<TextElementKey, string> = {
   recipientName: "Nama Lengkap Peserta",
   eventTitle: "Nama acara",
   eventDate: "Tanggal · Penyelenggara",
-  certificateNumber: "No. EI-0000-0001",
+  certificateNumber: `No. ${CERTIFICATE_NUMBER_PREFIX}-0000-0001`,
 };
 
 const TRANSLATE: Record<TextAlign, string> = {
