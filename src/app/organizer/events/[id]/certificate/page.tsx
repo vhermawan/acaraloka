@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 
 import { CertificateLayoutEditor } from "@/components/certificate/certificate-layout-editor";
+import { IssuePanel } from "@/components/certificate/issue-panel";
 import { SignerPanel } from "@/components/certificate/signer-panel";
+import { issueBlocker } from "@/lib/certificate-issue";
 import { signerLinkState } from "@/lib/validation/signer";
 import { requireEventOwner } from "@/server/authz";
 import { getOrCreateCertificateConfig } from "@/server/certificate-config";
+import { certificateIssueStats } from "@/server/certificates";
 import { prisma } from "@/server/db";
 
 export const metadata: Metadata = {
@@ -14,12 +17,13 @@ export const metadata: Metadata = {
 export default async function CertificatePage({ params }: PageProps<"/organizer/events/[id]/certificate">) {
   const { id } = await params;
   const { event } = await requireEventOwner(id);
-  const [config, signers] = await Promise.all([
+  const [config, signers, stats] = await Promise.all([
     getOrCreateCertificateConfig(event.id),
     prisma.signer.findMany({
       where: { eventId: event.id },
       orderBy: { order: "asc" },
     }),
+    certificateIssueStats(event.id),
   ]);
 
   const signerRows = signers.map((signer) => ({
@@ -31,6 +35,16 @@ export default async function CertificatePage({ params }: PageProps<"/organizer/
     declineReason: signer.declineReason,
   }));
 
+  const blocker = issueBlocker(
+    {
+      eventStatus: event.status,
+      startAt: event.startAt,
+      lockedAt: config.lockedAt,
+      signerStatuses: signers.map((signer) => signer.status),
+    },
+    new Date(),
+  );
+
   return (
     <div className="flex flex-col gap-12">
       <SignerPanel
@@ -39,6 +53,13 @@ export default async function CertificatePage({ params }: PageProps<"/organizer/
         locked={config.lockedAt !== null}
         issued={config.firstIssuedAt !== null}
         closed={event.status === "CANCELLED" || event.status === "DISABLED"}
+      />
+      <IssuePanel
+        eventId={event.id}
+        blocker={blocker}
+        issued={stats.issued}
+        waiting={stats.waiting}
+        everIssued={config.firstIssuedAt !== null}
       />
       <div className="flex flex-col gap-6">
         <div className="flex max-w-prose flex-col gap-1">

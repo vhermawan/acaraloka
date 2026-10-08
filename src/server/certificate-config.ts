@@ -9,6 +9,7 @@ import {
   parseCertificateLayout,
   type CertificateLayout,
 } from "@/lib/certificate-layout";
+import { CERTIFICATE_NUMBER_PREFIX } from "@/lib/brand";
 import { env } from "@/lib/env";
 import type { CertificateRenderData } from "@/server/certificate-pdf";
 import { prisma } from "@/server/db";
@@ -59,7 +60,7 @@ export function verifyUrl(certificateNumber: string): string {
   return new URL(`/v/${encodeURIComponent(certificateNumber)}`, env.APP_BASE_URL).toString();
 }
 
-export const SAMPLE_CERTIFICATE_NUMBER = "EI-0000-0001-CONTOH";
+export const SAMPLE_CERTIFICATE_NUMBER = `${CERTIFICATE_NUMBER_PREFIX}-0000-0001-CONTOH`;
 
 export function sampleRenderData(
   event: { title: string; startAt: Date; timezone: string },

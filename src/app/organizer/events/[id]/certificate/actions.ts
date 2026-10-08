@@ -2,11 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 
+import { ISSUE_BLOCKER_MESSAGES } from "@/lib/certificate-issue";
 import { certificateLayoutSchema } from "@/lib/certificate-layout";
 import { env } from "@/lib/env";
 import { signerSchema } from "@/lib/validation/signer";
 import { requireEventOwner } from "@/server/authz";
 import { saveCertificateLayout } from "@/server/certificate-config";
+import { issueCertificates } from "@/server/certificates";
 import { addSigner, regenerateSignerLink, removeSigner, unlockCertificate } from "@/server/signers";
 
 export async function saveLayout(eventId: string, layout: unknown): Promise<{ error?: string }> {
@@ -101,4 +103,15 @@ export async function unlockDesign(eventId: string): Promise<{ error?: string }>
 
   revalidateCertificate(event.id);
   return {};
+}
+
+export async function issueEventCertificates(eventId: string): Promise<{ error?: string; issued?: number }> {
+  const { user, event } = await requireEventOwner(eventId);
+  const result = await issueCertificates(event.id, user.id);
+  if (!result.ok) {
+    return { error: result.reason === "NOT_FOUND" ? "Acara tidak ditemukan." : ISSUE_BLOCKER_MESSAGES[result.reason] };
+  }
+
+  revalidateCertificate(event.id);
+  return { issued: result.issued };
 }
