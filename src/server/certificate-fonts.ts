@@ -33,7 +33,10 @@ const glyphChecks = new WeakMap<PDFFont, (codePoint: number) => boolean>();
 function readFontBytes(file: string): Promise<Uint8Array> {
   let cached = bytesCache.get(file);
   if (!cached) {
-    cached = readFile(join(FONT_DIR, file));
+    cached = readFile(join(FONT_DIR, file)).catch((error: unknown) => {
+      bytesCache.delete(file);
+      throw error;
+    });
     bytesCache.set(file, cached);
   }
   return cached;

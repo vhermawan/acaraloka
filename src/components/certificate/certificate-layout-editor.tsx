@@ -401,8 +401,8 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
           <legend className="mb-2 text-sm font-medium">Tampilan</legend>
 
           <div className="flex flex-col gap-2">
-            <span className="text-sm">Border</span>
-            <div className="flex flex-wrap gap-2">
+            <span id="theme-border-label" className="text-sm">Border</span>
+            <div role="group" aria-labelledby="theme-border-label" className="flex flex-wrap gap-2">
               {(Object.entries(BORDER_PRESETS) as [BorderKey, string][]).map(([key, label]) => (
                 <Button
                   key={key}
@@ -420,8 +420,8 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
           </div>
 
           <div className="flex flex-col gap-2">
-            <span className="text-sm">Warna aksen</span>
-            <div className="flex flex-wrap gap-2">
+            <span id="theme-accent-label" className="text-sm">Warna aksen</span>
+            <div role="group" aria-labelledby="theme-accent-label" className="flex flex-wrap gap-2">
               {(Object.entries(ACCENT_COLORS) as [AccentKey, { label: string; hex: string }][]).map(([key, color]) => (
                 <Button
                   key={key}
