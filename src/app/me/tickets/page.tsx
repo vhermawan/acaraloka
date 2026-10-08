@@ -10,7 +10,7 @@ import { requireUser } from "@/server/authz";
 import { listUserTickets } from "@/server/tickets";
 
 export const metadata: Metadata = {
-  title: "Tiket saya | Hadirly",
+  title: "Tiket saya",
 };
 
 export default async function MyTicketsPage() {

@@ -11,7 +11,7 @@ import { prisma } from "@/server/db";
 import { createFormField, deleteFormField, moveFormField, updateFormField } from "./actions";
 
 export const metadata: Metadata = {
-  title: "Formulir acara | Hadirly",
+  title: "Formulir acara",
 };
 
 const FIXED_FIELDS = ["Nama lengkap", "Email", "Nomor HP"];

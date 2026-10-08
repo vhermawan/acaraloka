@@ -14,7 +14,7 @@ import { requireUser } from "@/server/authz";
 import { prisma } from "@/server/db";
 
 export const metadata: Metadata = {
-  title: "Jadi panitia | Hadirly",
+  title: "Jadi panitia",
 };
 
 export default async function JoinOrganizerPage() {

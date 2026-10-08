@@ -25,7 +25,7 @@ import { prisma } from "@/server/db";
 import { listParticipants } from "@/server/participants";
 
 export const metadata: Metadata = {
-  title: "Peserta | Hadirly",
+  title: "Peserta",
 };
 
 const STATUS_VARIANTS = { REGISTERED: "outline", ATTENDED: "default", CANCELLED: "destructive" } as const;

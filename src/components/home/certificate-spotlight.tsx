@@ -4,6 +4,7 @@ import { Container } from "@/components/layout/container";
 import { SectionHeading } from "@/components/home/section-heading";
 import { SignatureScribble } from "@/components/home/signature-scribble";
 import { certificateSerif } from "@/components/home/certificate-font";
+import { CERTIFICATE_CREDIT } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 const CHECKS = [
@@ -48,7 +49,7 @@ function CertificateMock() {
         ))}
       </div>
       <div className="flex w-full items-end justify-between">
-        <p className="text-[1.5cqw] text-muted-foreground">Diterbitkan via Hadirly</p>
+        <p className="text-[1.5cqw] text-muted-foreground">{CERTIFICATE_CREDIT}</p>
         <div className="flex items-center gap-[1.6cqw]">
           <div className="flex flex-col items-end">
             <p className="text-[1.4cqw] text-muted-foreground">verifikasi</p>

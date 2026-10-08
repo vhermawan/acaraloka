@@ -3,6 +3,7 @@ import "server-only";
 import { PDFDocument, StandardFonts, degrees, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import QRCode from "qrcode";
 
+import { APP_NAME, CERTIFICATE_CREDIT } from "@/lib/brand";
 import {
   PAGE_HEIGHT,
   PAGE_WIDTH,
@@ -136,8 +137,8 @@ export async function renderCertificatePdf(
 ): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   pdf.setTitle(`Sertifikat ${data.recipientName}`);
-  pdf.setProducer("Hadirly");
-  pdf.setCreator("Hadirly");
+  pdf.setProducer(APP_NAME);
+  pdf.setCreator(APP_NAME);
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   const fonts: Fonts = {
     title: await pdf.embedFont(StandardFonts.TimesRomanBold),
@@ -239,7 +240,7 @@ export async function renderCertificatePdf(
 
   drawQr(page, data.verifyUrl, layout.verifyQr, fonts);
 
-  drawAligned(page, "Diterbitkan via Hadirly", {
+  drawAligned(page, CERTIFICATE_CREDIT, {
     x: PAGE_WIDTH / 2,
     y: 46,
     size: 8,

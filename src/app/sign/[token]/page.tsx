@@ -7,7 +7,7 @@ import { formatCertificateDate } from "@/server/certificate-config";
 import { findSignerByToken } from "@/server/signers";
 
 export const metadata: Metadata = {
-  title: "Tanda tangan sertifikat | Hadirly",
+  title: "Tanda tangan sertifikat",
   robots: { index: false, follow: false },
   referrer: "no-referrer",
 };

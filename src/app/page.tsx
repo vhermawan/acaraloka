@@ -10,10 +10,11 @@ import { HowItWorks } from "@/components/home/how-it-works";
 import { Pricing } from "@/components/home/pricing";
 import { Roles } from "@/components/home/roles";
 import { env } from "@/lib/env";
+import { APP_NAME } from "@/lib/brand";
 
-const TITLE = "Hadirly | Pendaftaran, check-in, dan sertifikat acara";
+const TITLE = `${APP_NAME} | Pendaftaran, check-in, dan sertifikat acara`;
 const DESCRIPTION =
-  "Hadirly membantu panitia seminar, workshop, dan meetup mengurus pendaftaran, e-tiket QR, check-in, dan sertifikat bertanda tangan dalam satu tempat.";
+  `${APP_NAME} membantu panitia seminar, workshop, dan meetup mengurus pendaftaran, e-tiket QR, check-in, dan sertifikat bertanda tangan dalam satu tempat.`;
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: "/",
-    siteName: "Hadirly",
+    siteName: APP_NAME,
     locale: "id_ID",
     title: TITLE,
     description: DESCRIPTION,
@@ -35,10 +36,10 @@ function structuredData() {
   return {
     "@context": "https://schema.org",
     "@graph": [
-      { "@type": "WebSite", "@id": `${url}/#website`, url, name: "Hadirly", inLanguage: "id-ID" },
+      { "@type": "WebSite", "@id": `${url}/#website`, url, name: APP_NAME, inLanguage: "id-ID" },
       {
         "@type": "SoftwareApplication",
-        name: "Hadirly",
+        name: APP_NAME,
         url,
         description: DESCRIPTION,
         applicationCategory: "BusinessApplication",

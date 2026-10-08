@@ -6,6 +6,7 @@ import { Container } from "@/components/layout/container";
 import { CREATE_EVENT_HREF } from "@/components/layout/create-event-href";
 import { certificateSerif } from "@/components/home/certificate-font";
 import { cn } from "@/lib/utils";
+import { APP_NAME } from "@/lib/brand";
 
 const floatingCard =
   "absolute flex flex-col gap-3 rounded-xl bg-card p-4 shadow-[0_8px_24px_-6px_rgb(0_0_0/0.08)] ring-1 ring-border origin-top-left";
@@ -135,7 +136,7 @@ function Hero() {
           id="hero-heading"
           className="text-4xl leading-[42px] font-bold tracking-[-0.9px] text-balance text-foreground sm:text-[56px] sm:leading-16 sm:tracking-[-1.4px]"
         >
-          Dari pendaftaran sampai sertifikat, semua di Hadirly
+          Dari pendaftaran sampai sertifikat, semua di {APP_NAME}
         </h1>
         <p className="max-w-[620px] text-base leading-[26px] text-pretty sm:text-[17px] sm:leading-7 text-neutral-600">
           Peserta daftar dari HP, kamu scan tiket di meja registrasi, dan sertifikat terbit otomatis untuk yang benar-benar

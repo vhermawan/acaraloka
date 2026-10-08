@@ -6,7 +6,7 @@ import { Container } from "@/components/layout/container";
 import { requireOrganizer } from "@/server/authz";
 
 export const metadata: Metadata = {
-  title: "Buat acara | Hadirly",
+  title: "Buat acara",
 };
 
 export default async function NewEventPage() {

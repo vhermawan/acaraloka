@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { saveLayout } from "@/app/organizer/events/[id]/certificate/actions";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
+import { CERTIFICATE_CREDIT } from "@/lib/brand";
 import {
   NUDGE_STEP,
   PAGE_HEIGHT,
@@ -197,7 +198,7 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
             className="pointer-events-none absolute bottom-[6%] left-1/2 -translate-x-1/2 text-neutral-600"
             style={{ fontSize: `${8 * scale}cqw` }}
           >
-            Diterbitkan via Hadirly
+            {CERTIFICATE_CREDIT}
           </p>
         </div>
         <p className="text-sm text-muted-foreground">
