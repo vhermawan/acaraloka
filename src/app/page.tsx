@@ -10,6 +10,7 @@ import { HowItWorks } from "@/components/home/how-it-works";
 import { Pricing } from "@/components/home/pricing";
 import { Roles } from "@/components/home/roles";
 import { env } from "@/lib/env";
+import { serializeJsonLd } from "@/lib/structured-data";
 import { APP_NAME } from "@/lib/brand";
 
 const TITLE = `${APP_NAME} | Pendaftaran, check-in, dan sertifikat acara`;
@@ -36,7 +37,15 @@ function structuredData() {
   return {
     "@context": "https://schema.org",
     "@graph": [
-      { "@type": "WebSite", "@id": `${url}/#website`, url, name: APP_NAME, inLanguage: "id-ID" },
+      { "@type": "Organization", "@id": `${url}/#organization`, url, name: APP_NAME },
+      {
+        "@type": "WebSite",
+        "@id": `${url}/#website`,
+        url,
+        name: APP_NAME,
+        inLanguage: "id-ID",
+        publisher: { "@id": `${url}/#organization` },
+      },
       {
         "@type": "SoftwareApplication",
         name: APP_NAME,
@@ -56,7 +65,7 @@ export default function Home() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData()).replace(/</g, "\\u003c") }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData()) }}
       />
       <Hero />
       <HowItWorks />
