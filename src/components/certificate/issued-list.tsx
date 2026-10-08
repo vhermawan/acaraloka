@@ -52,7 +52,11 @@ function RevokeButton({ eventId, certificate }: { eventId: string; certificate: 
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="ghost" size="sm" />}>Cabut</DialogTrigger>
+      <DialogTrigger
+        render={<Button variant="ghost" className="h-10 shrink-0 px-3 text-destructive hover:bg-destructive/5 hover:text-destructive" />}
+      >
+        Cabut
+      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Cabut sertifikat {certificate.recipientName}?</DialogTitle>
@@ -80,18 +84,22 @@ function RevokeButton({ eventId, certificate }: { eventId: string; certificate: 
 function IssuedList({ eventId, certificates }: IssuedListProps) {
   return (
     <section aria-labelledby="issued-heading" className="flex flex-col gap-4">
-      <h2 id="issued-heading" className="text-lg font-semibold">
-        Sertifikat terbit
+      <h2 id="issued-heading" className="text-lg/[26px] font-semibold">
+        Sertifikat terbit <span className="font-normal text-muted-foreground tabular-nums">({certificates.length})</span>
       </h2>
-      <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+      <ul className="flex flex-col divide-y divide-border rounded-xl border border-border">
         {certificates.map((certificate) => (
-          <li key={certificate.id} className="flex items-center justify-between gap-4 p-4">
-            <div className="flex min-w-0 flex-col gap-1">
-              <span className="font-medium">{certificate.recipientName}</span>
-              <span className="break-all font-mono text-xs text-muted-foreground">{certificate.number}</span>
+          <li key={certificate.id} className="flex items-center justify-between gap-4 px-4 py-3">
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className={certificate.revokedAt ? "font-medium text-muted-foreground" : "font-medium"}>
+                {certificate.recipientName}
+              </span>
+              <span className="font-mono text-xs break-all text-muted-foreground">{certificate.number}</span>
             </div>
             {certificate.revokedAt ? (
-              <Badge variant="destructive">Dicabut</Badge>
+              <Badge variant="outline" className="border-transparent bg-destructive/10 text-destructive">
+                Dicabut
+              </Badge>
             ) : (
               <RevokeButton eventId={eventId} certificate={certificate} />
             )}

@@ -45,7 +45,11 @@ function CancelParticipantButton({ eventId, registrationId, name }: CancelPartic
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="ghost" size="sm" />}>Batalkan</DialogTrigger>
+      <DialogTrigger
+        render={<Button variant="ghost" className="h-11 px-3 text-destructive hover:bg-destructive/5 hover:text-destructive md:h-9" />}
+      >
+        Batalkan
+      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Batalkan pendaftaran {name}?</DialogTitle>

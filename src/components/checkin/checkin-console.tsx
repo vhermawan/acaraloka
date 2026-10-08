@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import type QrScanner from "qr-scanner";
+import { Camera, CameraOff } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -21,9 +22,31 @@ type HistoryItem = {
   id: number;
   result: CheckInResult;
   undone: boolean;
+  scannedAt: string;
 };
 
 const HISTORY_SIZE = 5;
+
+const OUTCOME_DOTS: Record<CheckInResult["outcome"], string> = {
+  VALID: "bg-success",
+  ALREADY_CHECKED_IN: "bg-[#CA8A04]",
+  WRONG_EVENT: "bg-destructive",
+  CANCELLED: "bg-destructive",
+  EVENT_CANCELLED: "bg-destructive",
+  INVALID: "bg-destructive",
+};
+
+function ScanCorners() {
+  const corner = "absolute size-8 border-white";
+  return (
+    <>
+      <span className={`${corner} top-0 left-0 rounded-tl-lg border-t-[3px] border-l-[3px]`} />
+      <span className={`${corner} top-0 right-0 rounded-tr-lg border-t-[3px] border-r-[3px]`} />
+      <span className={`${corner} bottom-0 left-0 rounded-bl-lg border-b-[3px] border-l-[3px]`} />
+      <span className={`${corner} right-0 bottom-0 rounded-br-lg border-r-[3px] border-b-[3px]`} />
+    </>
+  );
+}
 
 function cameraErrorMessage(error: unknown): string {
   const name = error instanceof Error ? error.name : String(error);
@@ -42,6 +65,7 @@ type CheckInConsoleProps = {
 
 function CheckInConsole({ eventId, timezone }: CheckInConsoleProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const scannerRef = useRef<QrScanner | null>(null);
   const busyRef = useRef(false);
   const lastScanRef = useRef<{ code: string; at: number } | null>(null);
@@ -74,7 +98,8 @@ function CheckInConsole({ eventId, timezone }: CheckInConsoleProps) {
     setResult(next);
     historyIdRef.current += 1;
     const id = historyIdRef.current;
-    setHistory((items) => [{ id, result: next, undone: false }, ...items].slice(0, HISTORY_SIZE));
+    const scannedAt = new Date().toISOString();
+    setHistory((items) => [{ id, result: next, undone: false, scannedAt }, ...items].slice(0, HISTORY_SIZE));
     setSearchVersion((version) => version + 1);
   }, []);
 
@@ -142,6 +167,7 @@ function CheckInConsole({ eventId, timezone }: CheckInConsoleProps) {
           preferredCamera: "environment",
           maxScansPerSecond: 10,
           highlightScanRegion: true,
+          overlay: overlayRef.current ?? undefined,
           returnDetailedScanResult: true,
         });
       }
@@ -191,12 +217,12 @@ function CheckInConsole({ eventId, timezone }: CheckInConsoleProps) {
   const cameraOn = cameraState === "active" || cameraState === "starting";
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,28rem)_minmax(0,1fr)]">
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-10">
       <section aria-labelledby="scanner-heading" className="flex flex-col gap-4">
-        <h2 id="scanner-heading" className="text-lg font-semibold">
+        <h2 id="scanner-heading" className="text-lg/[26px] font-semibold">
           Scan QR tiket
         </h2>
-        <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-neutral-900">
+        <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-neutral-900">
           <video
             ref={videoRef}
             muted
@@ -204,14 +230,24 @@ function CheckInConsole({ eventId, timezone }: CheckInConsoleProps) {
             aria-label="Pratinjau kamera"
             className={cameraOn ? "size-full object-cover" : "hidden"}
           />
+          <div ref={overlayRef} aria-hidden="true" className={cameraOn ? "hidden" : "invisible hidden"}>
+            <ScanCorners />
+          </div>
           {!cameraOn ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center text-neutral-100">
-              <p className="max-w-xs text-sm text-pretty">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 p-6 text-center text-neutral-100">
+              <div aria-hidden="true" className="absolute inset-[18%]">
+                <ScanCorners />
+              </div>
+              {cameraState === "error" ? (
+                <CameraOff className="relative size-7 text-neutral-300" strokeWidth={1.5} aria-hidden="true" />
+              ) : null}
+              <p className="relative max-w-xs text-sm text-pretty" role={cameraState === "error" ? "alert" : undefined}>
                 {cameraState === "error"
                   ? cameraError
                   : "Arahkan kamera belakang ke QR di tiket peserta. Layar tetap menyala selama scanner aktif."}
               </p>
-              <Button size="lg" className="h-11 px-5" onClick={startCamera}>
+              <Button className="relative h-11 gap-2 px-5" onClick={startCamera}>
+                <Camera aria-hidden="true" />
                 {cameraState === "error" ? "Coba buka kamera lagi" : "Nyalakan kamera"}
               </Button>
             </div>
@@ -223,30 +259,41 @@ function CheckInConsole({ eventId, timezone }: CheckInConsoleProps) {
           ) : null}
         </div>
         {cameraState === "active" ? (
-          <Button variant="outline" className="h-11 self-start" onClick={stopCamera}>
+          <Button variant="outline" className="h-11 self-start px-4" onClick={stopCamera}>
             Matikan kamera
           </Button>
         ) : null}
+      </section>
 
-        <div className="flex flex-col gap-2">
-          <h3 className="text-sm font-medium">Scan terakhir</h3>
+      <div className="flex min-w-0 flex-col gap-8">
+        <section aria-labelledby="recent-heading" className="flex flex-col gap-3">
+          <h2 id="recent-heading" className="text-lg/[26px] font-semibold">
+            Scan terakhir
+          </h2>
           {history.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Belum ada tiket yang di-scan di perangkat ini.</p>
+            <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+              Belum ada tiket yang di-scan di perangkat ini.
+            </p>
           ) : (
-            <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+            <ul className="flex flex-col divide-y divide-border rounded-xl border border-border">
               {history.map((item) => (
-                <li key={item.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
-                  <div className="min-w-0">
+                <li key={item.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+                  <span
+                    aria-hidden="true"
+                    className={`size-2 shrink-0 rounded-full ${item.undone ? "bg-muted-foreground" : OUTCOME_DOTS[item.result.outcome]}`}
+                  />
+                  <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{item.result.participant?.name ?? "Tanpa nama"}</p>
                     <p className="text-muted-foreground">
+                      <span className="tabular-nums">{formatTime(item.scannedAt)}</span>
+                      {" · "}
                       {item.undone ? "Check-in dibatalkan" : CHECK_IN_OUTCOME_LABELS[item.result.outcome]}
                     </p>
                   </div>
                   {item.result.outcome === "VALID" && !item.undone && item.result.participant ? (
                     <Button
                       variant="ghost"
-                      size="sm"
-                      className="h-11 shrink-0"
+                      className="h-11 shrink-0 px-3 text-destructive hover:bg-destructive/5 hover:text-destructive"
                       disabled={undoPending}
                       onClick={() => handleUndo(item.result.participant!.registrationId)}
                     >
@@ -257,17 +304,17 @@ function CheckInConsole({ eventId, timezone }: CheckInConsoleProps) {
               ))}
             </ul>
           )}
-        </div>
-      </section>
+        </section>
 
-      <CheckInSearch
-        eventId={eventId}
-        formatTime={formatTime}
-        refreshKey={searchVersion}
-        onCheckIn={handleManualCheckIn}
-        onUndo={handleUndo}
-        undoPending={undoPending}
-      />
+        <CheckInSearch
+          eventId={eventId}
+          formatTime={formatTime}
+          refreshKey={searchVersion}
+          onCheckIn={handleManualCheckIn}
+          onUndo={handleUndo}
+          undoPending={undoPending}
+        />
+      </div>
 
       {result ? (
         <CheckInResultOverlay

@@ -7,21 +7,11 @@ import {
   createSigner,
   deleteSigner,
   regenerateLink,
-  unlockDesign,
   type SignerFormState,
 } from "@/app/organizer/events/[id]/certificate/actions";
+import { ConfirmActionButton } from "@/components/events/confirm-action-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { MAX_SIGNERS } from "@/lib/certificate-layout";
@@ -36,12 +26,12 @@ export type SignerRow = {
   declineReason: string | null;
 };
 
-const STATE_VARIANTS = {
-  ACTIVE: "outline",
-  EXPIRED: "secondary",
-  SIGNED: "default",
-  DECLINED: "destructive",
-} as const;
+const STATE_STYLES: Record<SignerLinkState, string> = {
+  ACTIVE: "border-border text-muted-foreground",
+  EXPIRED: "border-transparent bg-[#CA8A04]/10 text-[#8A5A00] dark:text-[#FACC15]",
+  SIGNED: "border-transparent bg-success/10 text-success",
+  DECLINED: "border-transparent bg-destructive/10 text-destructive",
+};
 
 function toErrors(messages?: string[]) {
   return messages?.map((message) => ({ message }));
@@ -91,53 +81,14 @@ function ShareLink({ signerName, url, onClose }: { signerName: string; url: stri
   );
 }
 
-function UnlockButton({ eventId }: { eventId: string }) {
-  const [open, setOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
-
-  function confirm() {
-    startTransition(async () => {
-      const result = await unlockDesign(eventId);
-      if (result.error) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success("Desain dibuka. Semua tanda tangan direset.");
-      setOpen(false);
-    });
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" className="h-11 w-fit px-4" />}>Buka kunci desain</DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Buka kunci desain?</DialogTitle>
-          <DialogDescription>
-            Semua tanda tangan yang sudah masuk dihapus dan tautan lama tidak berlaku. Setelah mengubah desain, buat ulang
-            tautan dan minta semua penandatangan tanda tangan lagi.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>Tidak jadi</DialogClose>
-          <Button variant="destructive" onClick={confirm} disabled={pending}>
-            {pending ? "Membuka..." : "Buka kunci dan reset"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 type SignerPanelProps = {
   eventId: string;
   signers: SignerRow[];
   locked: boolean;
-  issued: boolean;
   closed: boolean;
 };
 
-function SignerPanel({ eventId, signers, locked, issued, closed }: SignerPanelProps) {
+function SignerPanel({ eventId, signers, locked, closed }: SignerPanelProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, pending] = useActionState<SignerFormState, FormData>(
     createSigner.bind(null, eventId),
@@ -170,40 +121,23 @@ function SignerPanel({ eventId, signers, locked, issued, closed }: SignerPanelPr
     });
   }
 
-  function handleDelete(signer: SignerRow) {
-    startRow(async () => {
-      const result = await deleteSigner(eventId, signer.id);
-      if (result.error) toast.error(result.error);
-      else toast.success(`${signer.name} dihapus dari penandatangan.`);
-    });
-  }
-
   return (
-    <section aria-labelledby="signers-heading" className="flex flex-col gap-4">
-      <div className="flex max-w-prose flex-col gap-1">
-        <h2 id="signers-heading" className="text-lg font-semibold">
-          Penandatangan
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          1 sampai 3 orang. Setiap penandatangan membuka tautan, melihat pratinjau, lalu menggambar tanda tangan di HP-nya.
-          Desain terkunci setelah tanda tangan pertama masuk.
-        </p>
-      </div>
+    <div className="flex flex-col gap-4">
 
       {shared ? <ShareLink signerName={shared.signerName} url={shared.url} onClose={() => setDismissedAt(Date.now())} /> : null}
 
       {signers.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+        <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
           Belum ada penandatangan.
         </p>
       ) : (
-        <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+        <ul className="flex flex-col divide-y divide-border rounded-xl border border-border">
           {signers.map((signer) => (
             <li key={signer.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0 text-sm">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-medium">{signer.name}</p>
-                  <Badge variant={STATE_VARIANTS[signer.state]}>{SIGNER_STATUS_LABELS[signer.state]}</Badge>
+                  <Badge variant="outline" className={STATE_STYLES[signer.state]}>{SIGNER_STATUS_LABELS[signer.state]}</Badge>
                 </div>
                 <p className="text-muted-foreground">
                   {signer.title} · <span className="break-all">{signer.email}</span>
@@ -225,16 +159,17 @@ function SignerPanel({ eventId, signers, locked, issued, closed }: SignerPanelPr
                     Buat ulang tautan
                   </Button>
                   {!locked ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-11 px-3"
+                    <ConfirmActionButton
+                      triggerLabel="Hapus"
+                      triggerAriaLabel={`Hapus penandatangan ${signer.name}`}
+                      title={`Hapus ${signer.name} dari penandatangan?`}
+                      description="Tautan tanda tangan untuknya tidak berlaku lagi."
+                      confirmLabel="Hapus"
+                      pendingLabel="Menghapus..."
+                      successMessage={`${signer.name} dihapus dari penandatangan.`}
                       disabled={rowPending}
-                      onClick={() => handleDelete(signer)}
-                    >
-                      Hapus
-                    </Button>
+                      action={() => deleteSigner(eventId, signer.id)}
+                    />
                   ) : null}
                 </div>
               ) : null}
@@ -244,8 +179,8 @@ function SignerPanel({ eventId, signers, locked, issued, closed }: SignerPanelPr
       )}
 
       {canAdd ? (
-        <form ref={formRef} action={formAction} noValidate className="flex flex-col gap-3">
-          <h3 className="text-sm font-medium">Tambah penandatangan</h3>
+        <form ref={formRef} action={formAction} noValidate className="flex flex-col gap-3 border-t border-border pt-5">
+          <h3 className="text-sm font-semibold">Tambah penandatangan</h3>
           {state.message ? (
             <p role="alert" className="text-sm text-destructive">
               {state.message}
@@ -254,7 +189,7 @@ function SignerPanel({ eventId, signers, locked, issued, closed }: SignerPanelPr
           <div className="grid gap-3 md:grid-cols-3">
             <Field data-invalid={!!errors.name}>
               <FieldLabel htmlFor="signer-name">Nama lengkap dan gelar</FieldLabel>
-              <Input id="signer-name" name="name" required defaultValue={values.name} aria-invalid={!!errors.name} />
+              <Input id="signer-name" name="name" required defaultValue={values.name} aria-invalid={!!errors.name} className="h-10" />
               <FieldError errors={toErrors(errors.name)} />
             </Field>
             <Field data-invalid={!!errors.title}>
@@ -266,6 +201,7 @@ function SignerPanel({ eventId, signers, locked, issued, closed }: SignerPanelPr
                 placeholder="Ketua Pelaksana"
                 defaultValue={values.title}
                 aria-invalid={!!errors.title}
+                className="h-10"
               />
               <FieldError errors={toErrors(errors.title)} />
             </Field>
@@ -279,18 +215,18 @@ function SignerPanel({ eventId, signers, locked, issued, closed }: SignerPanelPr
                 required
                 defaultValue={values.email}
                 aria-invalid={!!errors.email}
+                className="h-10"
               />
               <FieldError errors={toErrors(errors.email)} />
             </Field>
           </div>
-          <Button type="submit" className="h-11 w-fit px-4" disabled={pending}>
+          <Button type="submit" className="h-10 w-fit px-4" disabled={pending}>
             {pending ? "Menambahkan..." : "Tambah dan buat tautan"}
           </Button>
         </form>
       ) : null}
 
-      {locked && !issued && !closed ? <UnlockButton eventId={eventId} /> : null}
-    </section>
+    </div>
   );
 }
 
