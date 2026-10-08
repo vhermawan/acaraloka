@@ -44,6 +44,7 @@ export async function createEvent(_prev: EventFormState, formData: FormData): Pr
     data: { ...parsed.data, organizerId: user.id, slug: createEventSlug(parsed.data.title) },
   });
 
+  revalidatePath("/organizer", "layout");
   redirect(`/organizer/events/${event.id}`);
 }
 
@@ -62,7 +63,7 @@ export async function updateEvent(
   if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors, values };
 
   await prisma.event.update({ where: { id: event.id }, data: parsed.data });
-  revalidatePath(`/organizer/events/${event.id}`);
+  revalidatePath("/organizer", "layout");
   return { values, savedAt: Date.now() };
 }
 
@@ -73,6 +74,7 @@ export async function deleteEvent(eventId: string): Promise<{ error?: string }> 
   await prisma.event.delete({ where: { id: event.id } });
   if (event.posterPath) await removeObjects(POSTER_BUCKET, [event.posterPath]).catch(() => undefined);
 
+  revalidatePath("/organizer", "layout");
   redirect("/organizer");
 }
 

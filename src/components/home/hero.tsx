@@ -130,7 +130,7 @@ function Hero() {
 
       <HeroVisual />
 
-      <Container className="flex max-w-[50rem] flex-col items-center gap-4 pt-4 text-center sm:gap-5 sm:pb-20">
+      <Container className="flex max-w-[60rem] flex-col items-center gap-4 pt-4 text-center sm:gap-5 sm:pb-20">
         <p className="text-xs leading-[18px] font-semibold sm:text-[13px] text-primary">Untuk panitia seminar, workshop, dan meetup</p>
         <h1
           id="hero-heading"

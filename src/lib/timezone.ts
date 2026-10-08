@@ -46,11 +46,17 @@ export function formatEventDateTime(date: Date, timezone: string): string {
   return `${formatted} ${timezoneLabel(timezone)}`;
 }
 
-export function formatEventDate(date: Date, timezone: string): string {
-  return new Intl.DateTimeFormat("id-ID", {
+export function formatEventSchedule(date: Date, timezone: string): string {
+  const parts = new Intl.DateTimeFormat("id-ID", {
+    weekday: "short",
     day: "numeric",
     month: "short",
     year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
     timeZone: timezone,
-  }).format(date);
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("weekday")}, ${part("day")} ${part("month")} ${part("year")} · ${part("hour")}.${part("minute")} ${timezoneLabel(timezone)}`;
 }

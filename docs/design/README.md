@@ -9,6 +9,7 @@ Kumpulan brief untuk mendesain landing page dan layar aplikasi Acaraloka di pen.
 | [03-components.md](03-components.md) | Komponen yang dipakai ulang: tombol, kartu, badge status, mockup sertifikat |
 | [04-ai-certificate.md](04-ai-certificate.md) | Konsep fitur AI pembuat template sertifikat dan layar-layarnya |
 | [05-pen-prompts.md](05-pen-prompts.md) | Prompt siap tempel untuk pen.dev, satu prompt per frame |
+| [06-organizer-dashboard.md](06-organizer-dashboard.md) | Redesign dashboard panitia: shell, semua halaman `/organizer`, palet baru, prompt D0-D7 |
 
 ## Urutan kerja di pen.dev
 
