@@ -94,6 +94,7 @@ export async function createPosterUpload(
 
 export async function setEventPoster(eventId: string, path: string): Promise<{ error?: string }> {
   const { event } = await requireEventOwner(eventId);
+  if (!EDITABLE_STATUSES.has(event.status)) return { error: "Poster acara ini tidak bisa diubah." };
   if (!path.startsWith(`events/${event.id}/`) || path.includes("..")) return { error: "Berkas poster tidak valid." };
 
   await prisma.event.update({ where: { id: event.id }, data: { posterPath: path } });

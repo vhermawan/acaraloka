@@ -40,6 +40,13 @@ export default async function TicketDetailPage({ params }: PageProps<"/me/ticket
         </div>
       ) : null}
 
+      {state === "EVENT_DISABLED" ? (
+        <div role="status" className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
+          <p className="font-medium text-destructive">Acara dinonaktifkan</p>
+          <p className="mt-1">Acara ini dinonaktifkan oleh admin. Tiket tidak bisa dipakai untuk check-in.</p>
+        </div>
+      ) : null}
+
       <article className="flex flex-col gap-6 rounded-xl border border-border p-5">
         <header className="flex flex-col gap-2">
           <div className="flex items-start justify-between gap-3">

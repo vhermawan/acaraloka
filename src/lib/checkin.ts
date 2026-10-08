@@ -23,7 +23,7 @@ export const CHECK_IN_OUTCOME_LABELS: Record<CheckInOutcome, string> = {
   ALREADY_CHECKED_IN: "Sudah check-in",
   WRONG_EVENT: "Bukan tiket acara ini",
   CANCELLED: "Pendaftaran dibatalkan",
-  EVENT_CANCELLED: "Acara dibatalkan",
+  EVENT_CANCELLED: "Acara ditutup",
   INVALID: "Tiket tidak valid",
 };
 
