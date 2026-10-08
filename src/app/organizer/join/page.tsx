@@ -1,15 +1,10 @@
 import type { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { Container } from "@/components/layout/container";
 import { JoinOrganizerForm } from "@/components/organizer/join-organizer-form";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { APP_NAME } from "@/lib/brand";
 import { requireUser } from "@/server/authz";
 import { prisma } from "@/server/db";
 
@@ -25,19 +20,32 @@ export default async function JoinOrganizerPage() {
   if (existing) redirect("/organizer");
 
   return (
-    <Container className="flex justify-center py-12">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">Jadi panitia</CardTitle>
-          <CardDescription>
-            Isi data penyelenggara untuk mulai membuat acara. Kontak ini bisa
-            dilihat peserta yang mendaftar.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div className="flex min-h-dvh flex-col items-center bg-sidebar px-4 py-10 sm:justify-center sm:py-16">
+      <div className="flex w-full max-w-[440px] flex-col gap-6">
+        <Link
+          href="/"
+          className="w-fit self-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          <Image src="/logo/acaraloka-horizontal.svg" alt={APP_NAME} width={144} height={32} priority className="h-8 w-auto" />
+        </Link>
+        <section
+          aria-labelledby="join-heading"
+          className="flex flex-col gap-6 rounded-xl border border-border bg-card p-6 sm:p-8"
+        >
+          <div className="flex flex-col gap-1.5">
+            <h1 id="join-heading" className="text-2xl/8 font-bold tracking-tight">
+              Jadi panitia
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Isi data penyelenggara untuk mulai membuat acara. Kontak ini bisa dilihat peserta yang mendaftar.
+            </p>
+          </div>
           <JoinOrganizerForm defaultEmail={user.email} />
-        </CardContent>
-      </Card>
-    </Container>
+        </section>
+        <p className="text-center text-sm text-muted-foreground">
+          Masuk sebagai <span className="font-medium text-foreground">{user.email}</span>
+        </p>
+      </div>
+    </div>
   );
 }

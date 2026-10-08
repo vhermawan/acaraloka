@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 
 function isDashboardPath(pathname: string) {
-  return pathname.startsWith("/organizer") && !pathname.startsWith("/organizer/join");
+  return pathname === "/organizer" || pathname.startsWith("/organizer/");
 }
 
 function SiteChrome({ children }: { children: React.ReactNode }) {

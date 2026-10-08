@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { CircleCheck, CircleX, TriangleAlert } from "lucide-react";
 
 import { CHECK_IN_OUTCOME_LABELS, type CheckInResult } from "@/lib/checkin";
 import { cn } from "cn";
@@ -23,6 +24,15 @@ const HINTS = {
   INVALID: "Kode tidak dikenali. Minta peserta membuka tiket dari halaman Tiket Saya.",
 } as const;
 
+const ICONS = {
+  VALID: CircleCheck,
+  ALREADY_CHECKED_IN: TriangleAlert,
+  WRONG_EVENT: CircleX,
+  CANCELLED: CircleX,
+  EVENT_CANCELLED: CircleX,
+  INVALID: CircleX,
+} as const;
+
 export const VALID_AUTO_DISMISS_MS = 1800;
 
 type CheckInResultOverlayProps = {
@@ -37,6 +47,7 @@ function CheckInResultOverlay({ result, formatTime, onDismiss, onUndo, undoPendi
   const dismissRef = useRef<HTMLButtonElement>(null);
   const { outcome, participant } = result;
   const valid = outcome === "VALID";
+  const Icon = ICONS[outcome];
 
   useEffect(() => {
     dismissRef.current?.focus();
@@ -55,6 +66,7 @@ function CheckInResultOverlay({ result, formatTime, onDismiss, onUndo, undoPendi
       className={cn("fixed inset-0 z-50 flex flex-col justify-between gap-8 px-6 py-10", TONES[outcome])}
     >
       <div className="flex flex-1 flex-col justify-center gap-3">
+        <Icon className="size-14" strokeWidth={1.75} aria-hidden="true" />
         <p id="checkin-result-title" className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
           {CHECK_IN_OUTCOME_LABELS[outcome]}
         </p>

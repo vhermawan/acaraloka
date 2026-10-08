@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Info } from "lucide-react";
 import { toast } from "sonner";
 
 import { issueEventCertificates } from "@/app/organizer/events/[id]/certificate/actions";
@@ -45,37 +46,34 @@ function IssuePanel({ eventId, blocker, issued, waiting, everIssued }: IssuePane
     });
   }
 
+  const notice = blocker
+    ? ISSUE_BLOCKER_MESSAGES[blocker]
+    : waiting === 0
+      ? followUp
+        ? "Belum ada peserta baru yang menunggu sertifikat."
+        : "Belum ada peserta yang check-in."
+      : null;
+
   return (
-    <section aria-labelledby="issue-heading" className="flex flex-col gap-4">
-      <div className="flex max-w-prose flex-col gap-1">
-        <h2 id="issue-heading" className="text-lg font-semibold">
-          Terbitkan sertifikat
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Sertifikat hanya untuk peserta yang sudah check-in. Peserta yang check-in setelahnya bisa disusulkan.
-        </p>
-      </div>
-      <dl className="grid max-w-sm grid-cols-2 gap-3 text-sm">
-        <div className="rounded-lg border border-border px-4 py-3">
-          <dt className="text-muted-foreground">Sudah terbit</dt>
-          <dd className="text-lg font-semibold">{issued}</dd>
+    <div className="flex flex-col gap-5">
+      <dl className="flex flex-wrap divide-x divide-border">
+        <div className="flex flex-col gap-0.5 pr-6">
+          <dt className="text-sm text-muted-foreground">Sudah terbit</dt>
+          <dd className="text-2xl/8 font-bold tabular-nums">{issued}</dd>
         </div>
-        <div className="rounded-lg border border-border px-4 py-3">
-          <dt className="text-muted-foreground">Hadir, menunggu</dt>
-          <dd className="text-lg font-semibold">{waiting}</dd>
+        <div className="flex flex-col gap-0.5 pl-6">
+          <dt className="text-sm text-muted-foreground">Hadir, menunggu</dt>
+          <dd className="text-2xl/8 font-bold tabular-nums">{waiting}</dd>
         </div>
       </dl>
-      {blocker ? (
-        <p role="status" className="text-sm text-muted-foreground">
-          {ISSUE_BLOCKER_MESSAGES[blocker]}
-        </p>
-      ) : waiting === 0 ? (
-        <p role="status" className="text-sm text-muted-foreground">
-          {followUp ? "Belum ada peserta baru yang menunggu sertifikat." : "Belum ada peserta yang check-in."}
+      {notice ? (
+        <p role="status" className="flex items-start gap-2 rounded-lg bg-muted px-3 py-2.5 text-sm text-muted-foreground">
+          <Info className="mt-0.5 size-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
+          {notice}
         </p>
       ) : null}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger render={<Button className="h-11 w-fit px-4" disabled={disabled} />}>{label}</DialogTrigger>
+        <DialogTrigger render={<Button className="h-10 w-fit px-4" disabled={disabled} />}>{label}</DialogTrigger>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{label}?</DialogTitle>
@@ -92,7 +90,7 @@ function IssuePanel({ eventId, blocker, issued, waiting, everIssued }: IssuePane
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </section>
+    </div>
   );
 }
 

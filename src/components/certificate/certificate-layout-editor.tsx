@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Tabs } from "@base-ui/react/tabs";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ExternalLink, Minus, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { saveLayout } from "@/app/organizer/events/[id]/certificate/actions";
@@ -50,6 +52,44 @@ const PREVIEW_TEXT: Record<TextElementKey, string> = {
   eventDate: "Tanggal · Penyelenggara",
   certificateNumber: `No. ${CERTIFICATE_NUMBER_PREFIX}-0000-0001`,
 };
+
+const tabClass =
+  "flex h-9 items-center justify-center rounded-md text-sm font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-[active]:text-foreground";
+
+const optionActive = "border-primary bg-primary/8 text-primary hover:bg-primary/10 hover:text-primary";
+
+function Stepper({
+  label,
+  value,
+  decreaseLabel,
+  increaseLabel,
+  onDecrease,
+  onIncrease,
+}: {
+  label: string;
+  value: number;
+  decreaseLabel: string;
+  increaseLabel: string;
+  onDecrease: () => void;
+  onIncrease: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-sm font-medium">{label}</span>
+      <div className="flex items-center gap-1">
+        <Button type="button" variant="outline" size="icon" className="size-11" aria-label={decreaseLabel} onClick={onDecrease}>
+          <Minus aria-hidden="true" />
+        </Button>
+        <span className="w-10 text-center font-mono text-sm tabular-nums" aria-live="polite">
+          {value}
+        </span>
+        <Button type="button" variant="outline" size="icon" className="size-11" aria-label={increaseLabel} onClick={onIncrease}>
+          <Plus aria-hidden="true" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 const TRANSLATE: Record<TextAlign, string> = {
   left: "translate(0, -50%)",
@@ -146,7 +186,7 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
   ];
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-8">
       <div className="flex flex-col gap-3">
         <div
           className="relative w-full overflow-hidden rounded-md border border-border bg-white text-neutral-900 shadow-sm"
@@ -274,213 +314,222 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
         </p>
       </div>
 
-      <div className="flex flex-col gap-6">
-        {locked ? (
-          <p className="rounded-lg border border-border bg-muted px-3 py-2 text-sm">
-            Desain terkunci karena penandatangan sudah menyetujui. Posisi dan tampilan tidak bisa diubah.
-          </p>
-        ) : null}
+      <div className="flex flex-col gap-5">
+        <Tabs.Root defaultValue="appearance" className="flex flex-col gap-5">
+          <Tabs.List
+            aria-label="Pengaturan sertifikat"
+            className="relative z-0 grid grid-cols-2 rounded-lg bg-muted p-1"
+          >
+            <Tabs.Tab value="appearance" className={tabClass}>
+              Tampilan
+            </Tabs.Tab>
+            <Tabs.Tab value="layout" className={tabClass}>
+              Tata letak
+            </Tabs.Tab>
+            <Tabs.Indicator className="absolute top-1 left-0 -z-10 h-[calc(100%-0.5rem)] w-(--active-tab-width) translate-x-(--active-tab-left) rounded-md bg-background shadow-sm transition-[translate,width] duration-200 motion-reduce:transition-none" />
+          </Tabs.List>
 
-        <fieldset className="flex flex-col gap-2" disabled={locked}>
-          <legend className="mb-2 text-sm font-medium">Elemen</legend>
-          <div className="flex flex-wrap gap-2">
-            {elementButtons.map((item) => (
-              <Button
-                key={selectionLabel(item)}
-                type="button"
-                size="sm"
-                variant={sameSelection(item, selection) ? "default" : "outline"}
-                className="h-9"
-                aria-pressed={sameSelection(item, selection)}
-                onClick={() => setSelection(item)}
-              >
-                {selectionLabel(item)}
-              </Button>
-            ))}
-          </div>
-        </fieldset>
+          <Tabs.Panel value="appearance" className="outline-none">
+            <fieldset className="flex flex-col gap-5" disabled={locked}>
+              <legend className="sr-only">Tampilan</legend>
+              <div className="flex flex-col gap-2">
+                <span id="theme-border-label" className="text-sm font-medium">
+                  Border
+                </span>
+                <div role="group" aria-labelledby="theme-border-label" className="grid grid-cols-2 gap-2">
+                  {(Object.entries(BORDER_PRESETS) as [BorderKey, string][]).map(([key, label]) => (
+                    <Button
+                      key={key}
+                      type="button"
+                      variant="outline"
+                      className={cn("h-10", theme.border === key && optionActive)}
+                      aria-pressed={theme.border === key}
+                      onClick={() => updateTheme({ border: key })}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
 
-        <fieldset className="flex flex-col gap-4" disabled={locked}>
-          <legend className="mb-2 text-sm font-medium">Atur {selectionLabel(selection).toLowerCase()}</legend>
+              <div className="flex flex-col gap-2">
+                <span id="theme-accent-label" className="text-sm font-medium">
+                  Warna aksen
+                  <span className="font-normal text-muted-foreground"> · {ACCENT_COLORS[theme.accent].label}</span>
+                </span>
+                <div role="group" aria-labelledby="theme-accent-label" className="flex flex-wrap gap-2">
+                  {(Object.entries(ACCENT_COLORS) as [AccentKey, { label: string; hex: string }][]).map(([key, color]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      aria-label={color.label}
+                      aria-pressed={theme.accent === key}
+                      title={color.label}
+                      onClick={() => updateTheme({ accent: key })}
+                      className={cn(
+                        "flex size-11 items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50",
+                        theme.accent === key ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : "",
+                      )}
+                    >
+                      <span aria-hidden="true" className="size-8 rounded-full" style={{ backgroundColor: color.hex }} />
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-          <div className="grid w-fit grid-cols-3 gap-1">
-            <span />
-            <Button type="button" variant="outline" size="icon" className="size-11" aria-label="Geser ke atas" onClick={() => nudge(0, -NUDGE_STEP)}>
-              ↑
-            </Button>
-            <span />
-            <Button type="button" variant="outline" size="icon" className="size-11" aria-label="Geser ke kiri" onClick={() => nudge(-NUDGE_STEP, 0)}>
-              ←
-            </Button>
-            <span className="flex items-center justify-center text-xs tabular-nums text-muted-foreground">
-              {Math.round(selected.x * 100)},{Math.round(selected.y * 100)}
-            </span>
-            <Button type="button" variant="outline" size="icon" className="size-11" aria-label="Geser ke kanan" onClick={() => nudge(NUDGE_STEP, 0)}>
-              →
-            </Button>
-            <span />
-            <Button type="button" variant="outline" size="icon" className="size-11" aria-label="Geser ke bawah" onClick={() => nudge(0, NUDGE_STEP)}>
-              ↓
-            </Button>
-            <span />
-          </div>
-
-          {"fontSize" in selected ? (
-            <div className="flex items-center gap-3">
-              <span className="text-sm">Ukuran huruf</span>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="size-11"
-                aria-label="Perkecil huruf"
-                onClick={() => update({ fontSize: Math.max(8, selected.fontSize - 1) })}
-              >
-                −
-              </Button>
-              <span className="w-8 text-center text-sm tabular-nums">{selected.fontSize}</span>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="size-11"
-                aria-label="Perbesar huruf"
-                onClick={() => update({ fontSize: Math.min(selection.kind === "signer" ? 24 : 72, selected.fontSize + 1) })}
-              >
-                +
-              </Button>
-            </div>
-          ) : null}
-
-          {"size" in selected ? (
-            <div className="flex items-center gap-3">
-              <span className="text-sm">Ukuran QR</span>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="size-11"
-                aria-label="Perkecil QR"
-                onClick={() => update({ size: Math.max(0.06, Math.round((selected.size - 0.01) * 100) / 100) })}
-              >
-                −
-              </Button>
-              <span className="w-8 text-center text-sm tabular-nums">{Math.round(selected.size * 100)}</span>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="size-11"
-                aria-label="Perbesar QR"
-                onClick={() => update({ size: Math.min(0.25, Math.round((selected.size + 0.01) * 100) / 100) })}
-              >
-                +
-              </Button>
-            </div>
-          ) : null}
-
-          {selection.kind === "text" ? (
-            <label className="flex items-center gap-3 text-sm">
-              Perataan
-              <NativeSelect
-                value={layout[selection.key].align}
-                onChange={(event) => update({ align: event.target.value as TextAlign })}
-                className="w-32"
-              >
-                {Object.entries(ALIGN_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </NativeSelect>
-            </label>
-          ) : null}
-        </fieldset>
-
-        <fieldset className="flex flex-col gap-4" disabled={locked}>
-          <legend className="mb-2 text-sm font-medium">Tampilan</legend>
-
-          <div className="flex flex-col gap-2">
-            <span id="theme-border-label" className="text-sm">Border</span>
-            <div role="group" aria-labelledby="theme-border-label" className="flex flex-wrap gap-2">
-              {(Object.entries(BORDER_PRESETS) as [BorderKey, string][]).map(([key, label]) => (
-                <Button
-                  key={key}
-                  type="button"
-                  size="sm"
-                  variant={theme.border === key ? "default" : "outline"}
-                  className="h-9"
-                  aria-pressed={theme.border === key}
-                  onClick={() => updateTheme({ border: key })}
-                >
-                  {label}
-                </Button>
+              {FONT_ROLES.map((role) => (
+                <label key={role} className="flex flex-col gap-1.5 text-sm font-medium">
+                  Font {FONT_ROLE_LABELS[role].toLowerCase()}
+                  <NativeSelect
+                    value={theme.fonts[role]}
+                    onChange={(event) => updateFont(role, event.target.value as FontKey)}
+                    className="h-10 font-normal"
+                  >
+                    {FONT_ROLE_OPTIONS[role].map((key) => (
+                      <option key={key} value={key}>
+                        {FONT_FAMILIES[key]}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </label>
               ))}
-            </div>
-          </div>
+            </fieldset>
+          </Tabs.Panel>
 
-          <div className="flex flex-col gap-2">
-            <span id="theme-accent-label" className="text-sm">Warna aksen</span>
-            <div role="group" aria-labelledby="theme-accent-label" className="flex flex-wrap gap-2">
-              {(Object.entries(ACCENT_COLORS) as [AccentKey, { label: string; hex: string }][]).map(([key, color]) => (
-                <Button
-                  key={key}
-                  type="button"
-                  size="sm"
-                  variant={theme.accent === key ? "default" : "outline"}
-                  className="h-9 gap-2"
-                  aria-pressed={theme.accent === key}
-                  onClick={() => updateTheme({ accent: key })}
-                >
-                  <span
-                    aria-hidden
-                    className="size-3.5 rounded-full border border-white/70 ring-1 ring-border"
-                    style={{ backgroundColor: color.hex }}
-                  />
-                  {color.label}
+          <Tabs.Panel value="layout" className="outline-none">
+            <fieldset className="flex flex-col gap-5" disabled={locked}>
+              <legend className="sr-only">Tata letak</legend>
+              <div className="flex flex-col gap-2">
+                <span id="element-label" className="text-sm font-medium">
+                  Elemen
+                </span>
+                <div role="group" aria-labelledby="element-label" className="flex flex-wrap gap-2">
+                  {elementButtons.map((item) => (
+                    <Button
+                      key={selectionLabel(item)}
+                      type="button"
+                      variant="outline"
+                      className={cn("h-9 px-3", sameSelection(item, selection) && optionActive)}
+                      aria-pressed={sameSelection(item, selection)}
+                      onClick={() => setSelection(item)}
+                    >
+                      {selectionLabel(item)}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <span className="text-sm font-medium">Geser {selectionLabel(selection).toLowerCase()}</span>
+                <div className="grid w-fit grid-cols-3 gap-1">
+                  <span />
+                  <Button type="button" variant="outline" size="icon" className="size-11" aria-label="Geser ke atas" onClick={() => nudge(0, -NUDGE_STEP)}>
+                    <ArrowUp aria-hidden="true" />
+                  </Button>
+                  <span />
+                  <Button type="button" variant="outline" size="icon" className="size-11" aria-label="Geser ke kiri" onClick={() => nudge(-NUDGE_STEP, 0)}>
+                    <ArrowLeft aria-hidden="true" />
+                  </Button>
+                  <span className="flex items-center justify-center font-mono text-xs text-muted-foreground tabular-nums">
+                    {Math.round(selected.x * 100)},{Math.round(selected.y * 100)}
+                  </span>
+                  <Button type="button" variant="outline" size="icon" className="size-11" aria-label="Geser ke kanan" onClick={() => nudge(NUDGE_STEP, 0)}>
+                    <ArrowRight aria-hidden="true" />
+                  </Button>
+                  <span />
+                  <Button type="button" variant="outline" size="icon" className="size-11" aria-label="Geser ke bawah" onClick={() => nudge(0, NUDGE_STEP)}>
+                    <ArrowDown aria-hidden="true" />
+                  </Button>
+                  <span />
+                </div>
+              </div>
+
+              {"fontSize" in selected ? (
+                <Stepper
+                  label="Ukuran huruf"
+                  value={selected.fontSize}
+                  decreaseLabel="Perkecil huruf"
+                  increaseLabel="Perbesar huruf"
+                  onDecrease={() => update({ fontSize: Math.max(8, selected.fontSize - 1) })}
+                  onIncrease={() => update({ fontSize: Math.min(selection.kind === "signer" ? 24 : 72, selected.fontSize + 1) })}
+                />
+              ) : null}
+
+              {"size" in selected ? (
+                <Stepper
+                  label="Ukuran QR"
+                  value={Math.round(selected.size * 100)}
+                  decreaseLabel="Perkecil QR"
+                  increaseLabel="Perbesar QR"
+                  onDecrease={() => update({ size: Math.max(0.06, Math.round((selected.size - 0.01) * 100) / 100) })}
+                  onIncrease={() => update({ size: Math.min(0.25, Math.round((selected.size + 0.01) * 100) / 100) })}
+                />
+              ) : null}
+
+              {selection.kind === "text" ? (
+                <div className="flex flex-col gap-2">
+                  <span id="align-label" className="text-sm font-medium">
+                    Perataan
+                  </span>
+                  <div role="group" aria-labelledby="align-label" className="grid grid-cols-3 gap-2">
+                    {(Object.entries(ALIGN_LABELS) as [TextAlign, string][]).map(([value, label]) => {
+                      const active = layout[selection.key].align === value;
+                      return (
+                        <Button
+                          key={value}
+                          type="button"
+                          variant="outline"
+                          className={cn("h-10", active && optionActive)}
+                          aria-pressed={active}
+                          onClick={() => update({ align: value })}
+                        >
+                          {label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap gap-1 border-t border-border pt-4">
+                <Button type="button" variant="ghost" className="h-10 px-3" onClick={() => setLayout((current) => spreadSigners(current, signerCount))}>
+                  Rapikan penandatangan
                 </Button>
-              ))}
-            </div>
-          </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-10 px-3"
+                  onClick={() => setLayout((current) => ({ ...defaultCertificateLayout(signerCount), theme: current.theme }))}
+                >
+                  Kembalikan posisi awal
+                </Button>
+              </div>
+            </fieldset>
+          </Tabs.Panel>
+        </Tabs.Root>
+      </div>
 
-          {FONT_ROLES.map((role) => (
-            <label key={role} className="flex flex-col gap-1.5 text-sm">
-              Font {FONT_ROLE_LABELS[role].toLowerCase()}
-              <NativeSelect value={theme.fonts[role]} onChange={(event) => updateFont(role, event.target.value as FontKey)}>
-                {FONT_ROLE_OPTIONS[role].map((key) => (
-                  <option key={key} value={key}>
-                    {FONT_FAMILIES[key]}
-                  </option>
-                ))}
-              </NativeSelect>
-            </label>
-          ))}
-        </fieldset>
-
-        <fieldset className="flex flex-wrap gap-2" disabled={locked}>
-          <legend className="sr-only">Tata letak</legend>
-          <Button type="button" variant="ghost" className="h-11" onClick={() => setLayout((current) => spreadSigners(current, signerCount))}>
-            Rapikan penandatangan
-          </Button>
-          <Button type="button" variant="ghost" className="h-11" onClick={() => setLayout((current) => ({ ...defaultCertificateLayout(signerCount), theme: current.theme }))}>
-            Kembalikan posisi awal
-          </Button>
-        </fieldset>
-
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" className="h-11 px-4" disabled={locked || !dirty || pending} onClick={handleSave}>
-            {pending ? "Menyimpan..." : "Simpan perubahan"}
-          </Button>
+      <div className="sticky bottom-0 z-10 -mx-5 -mb-5 flex items-center justify-between gap-3 rounded-b-xl border-t border-border bg-card px-5 py-3 lg:col-span-2">
+        <p className="min-w-0 text-sm text-muted-foreground" aria-live="polite">
+          {locked ? "Desain terkunci." : dirty ? "Ada perubahan yang belum disimpan." : "Semua perubahan tersimpan."}
+        </p>
+        <div className="flex shrink-0 gap-2">
           <Button
             variant="outline"
-            className="h-11 px-4"
+            aria-label="Pratinjau PDF (tab baru)"
+            className="h-10 gap-1.5 px-3 sm:px-4"
             nativeButton={false}
             render={<a href={`/organizer/events/${eventId}/certificate/preview`} target="_blank" rel="noopener" />}
           >
-            Lihat pratinjau PDF
+            <ExternalLink aria-hidden="true" />
+            <span aria-hidden="true" className="hidden sm:inline">
+              Pratinjau PDF
+            </span>
+          </Button>
+          <Button type="button" className="h-10 px-4" disabled={locked || !dirty || pending} onClick={handleSave}>
+            {pending ? "Menyimpan..." : "Simpan"}
           </Button>
         </div>
-        {dirty ? <p className="text-sm text-muted-foreground">Ada perubahan yang belum disimpan.</p> : null}
       </div>
     </div>
   );

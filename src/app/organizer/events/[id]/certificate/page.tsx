@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import { Lock } from "lucide-react";
 
 import { CertificateLayoutEditor } from "@/components/certificate/certificate-layout-editor";
+import { CertificateStep } from "@/components/certificate/certificate-step";
 import { IssuedList } from "@/components/certificate/issued-list";
 import { IssuePanel } from "@/components/certificate/issue-panel";
 import { SignerPanel } from "@/components/certificate/signer-panel";
+import { UnlockDesignButton } from "@/components/certificate/unlock-design-button";
 import { issueBlocker } from "@/lib/certificate-issue";
 import { signerLinkState } from "@/lib/validation/signer";
 import { requireEventOwner } from "@/server/authz";
@@ -47,37 +50,83 @@ export default async function CertificatePage({ params }: PageProps<"/organizer/
     new Date(),
   );
 
+  const locked = config.lockedAt !== null;
+  const everIssued = config.firstIssuedAt !== null;
+  const closed = event.status === "CANCELLED" || event.status === "DISABLED";
+  const signedCount = signers.filter((signer) => signer.status === "SIGNED").length;
+
+  const designStatus = locked
+    ? { label: "Terkunci", tone: "done" as const }
+    : { label: "Bisa diubah", tone: "todo" as const };
+  const signerStatus =
+    signers.length === 0
+      ? { label: "Belum ada", tone: "todo" as const }
+      : signedCount === signers.length
+        ? { label: "Semua sudah tanda tangan", tone: "done" as const }
+        : { label: `${signedCount} dari ${signers.length} sudah tanda tangan`, tone: "progress" as const };
+  const issueStatus =
+    blocker !== null
+      ? { label: "Belum bisa", tone: "todo" as const }
+      : stats.waiting > 0
+        ? { label: "Siap diterbitkan", tone: "progress" as const }
+        : stats.issued > 0
+          ? { label: `${stats.issued} terbit`, tone: "done" as const }
+          : { label: "Menunggu check-in", tone: "todo" as const };
+
   return (
-    <div className="flex flex-col gap-12">
-      <SignerPanel
-        eventId={event.id}
-        signers={signerRows}
-        locked={config.lockedAt !== null}
-        issued={config.firstIssuedAt !== null}
-        closed={event.status === "CANCELLED" || event.status === "DISABLED"}
-      />
-      <IssuePanel
-        eventId={event.id}
-        blocker={blocker}
-        issued={stats.issued}
-        waiting={stats.waiting}
-        everIssued={config.firstIssuedAt !== null}
-      />
-      {certificates.length > 0 ? <IssuedList eventId={event.id} certificates={certificates} /> : null}
-      <div className="flex flex-col gap-6">
-        <div className="flex max-w-prose flex-col gap-1">
-          <h2 className="text-lg font-semibold">Posisi elemen sertifikat</h2>
-          <p className="text-sm text-muted-foreground">
-            Pilih elemen, geser dengan tombol panah, lalu simpan. Sertifikat hanya terbit untuk peserta yang sudah check-in.
-          </p>
-        </div>
+    <div className="flex flex-col gap-6">
+      <CertificateStep
+        id="step-design"
+        number="01"
+        title="Desain sertifikat"
+        status={designStatus}
+        description={
+          locked ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Lock className="size-3.5" aria-hidden="true" />
+              Desain terkunci karena penandatangan sudah menyetujui.
+            </span>
+          ) : (
+            "Desain belum terkunci. Terkunci otomatis setelah tanda tangan pertama."
+          )
+        }
+        aside={locked && !everIssued && !closed ? <UnlockDesignButton eventId={event.id} /> : null}
+      >
         <CertificateLayoutEditor
           eventId={event.id}
           initialLayout={config.layout}
           signers={signers.map((signer) => ({ name: signer.name, title: signer.title }))}
-          locked={config.lockedAt !== null}
+          locked={locked}
         />
-      </div>
+      </CertificateStep>
+
+      <CertificateStep
+        id="step-signers"
+        number="02"
+        title="Penandatangan"
+        status={signerStatus}
+        description="1 sampai 3 orang. Setiap penandatangan membuka tautan, melihat pratinjau, lalu menggambar tanda tangan di HP-nya."
+      >
+        <SignerPanel eventId={event.id} signers={signerRows} locked={locked} closed={closed} />
+      </CertificateStep>
+
+      <CertificateStep
+        id="step-issue"
+        number="03"
+        title="Terbitkan"
+        status={issueStatus}
+        description="Sertifikat hanya untuk peserta yang sudah check-in. Peserta yang check-in setelahnya bisa disusulkan."
+      >
+        <IssuePanel
+          eventId={event.id}
+          blocker={blocker}
+          issued={stats.issued}
+          waiting={stats.waiting}
+          everIssued={everIssued}
+        />
+      </CertificateStep>
+
+      {certificates.length > 0 ? <IssuedList eventId={event.id} certificates={certificates} /> : null}
     </div>
   );
 }

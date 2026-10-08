@@ -39,9 +39,23 @@ function JoinOrganizerForm({ defaultEmail }: JoinOrganizerFormProps) {
             autoComplete="organization"
             defaultValue={state.values?.orgName}
             aria-invalid={!!state.errors?.orgName}
+            className="h-10"
           />
           <FieldDescription>Tampil di halaman acara dan sertifikat.</FieldDescription>
           <FieldError errors={toErrors(state.errors?.orgName)} />
+        </Field>
+        <Field data-invalid={!!state.errors?.contactEmail}>
+          <FieldLabel htmlFor="contactEmail">Email kontak (opsional)</FieldLabel>
+          <Input
+            id="contactEmail"
+            name="contactEmail"
+            type="email"
+            autoComplete="email"
+            defaultValue={state.values?.contactEmail ?? defaultEmail}
+            aria-invalid={!!state.errors?.contactEmail}
+            className="h-10"
+          />
+          <FieldError errors={toErrors(state.errors?.contactEmail)} />
         </Field>
         <Field data-invalid={!!state.errors?.contactPhone}>
           <FieldLabel htmlFor="contactPhone">Nomor HP kontak</FieldLabel>
@@ -55,22 +69,11 @@ function JoinOrganizerForm({ defaultEmail }: JoinOrganizerFormProps) {
             placeholder="081234567890"
             defaultValue={state.values?.contactPhone}
             aria-invalid={!!state.errors?.contactPhone}
+            className="h-10"
           />
           <FieldError errors={toErrors(state.errors?.contactPhone)} />
         </Field>
-        <Field data-invalid={!!state.errors?.contactEmail}>
-          <FieldLabel htmlFor="contactEmail">Email kontak (opsional)</FieldLabel>
-          <Input
-            id="contactEmail"
-            name="contactEmail"
-            type="email"
-            autoComplete="email"
-            defaultValue={state.values?.contactEmail ?? defaultEmail}
-            aria-invalid={!!state.errors?.contactEmail}
-          />
-          <FieldError errors={toErrors(state.errors?.contactEmail)} />
-        </Field>
-        <Button type="submit" size="lg" disabled={pending}>
+        <Button type="submit" className="h-11 w-full" disabled={pending}>
           {pending ? "Menyimpan..." : "Aktifkan akun panitia"}
         </Button>
       </FieldGroup>
