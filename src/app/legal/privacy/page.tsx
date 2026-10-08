@@ -20,9 +20,9 @@ export default function PrivacyPage() {
 
       <h2>Pengendali data</h2>
       <p>
-        {APP_NAME} dikelola oleh {LEGAL_OPERATOR.name}, {LEGAL_OPERATOR.address}.
+        {APP_NAME}{' '} dikelola oleh {LEGAL_OPERATOR.name}, {LEGAL_OPERATOR.address}.
         Untuk pertanyaan atau permintaan terkait data pribadi, hubungi{" "}
-        {LEGAL_OPERATOR.email}.
+        {LEGAL_OPERATOR.email} atau {LEGAL_OPERATOR.phone}.
       </p>
       <p>
         Data yang kamu isi saat mendaftar sebuah acara juga diproses oleh
@@ -70,7 +70,8 @@ export default function PrivacyPage() {
       <h2>Hakmu</h2>
       <p>
         Kamu berhak meminta akses, perbaikan, atau penghapusan data pribadimu,
-        serta menarik persetujuan. Kirim permintaan ke {LEGAL_OPERATOR.email}.
+        serta menarik persetujuan. Kirim permintaan ke {LEGAL_OPERATOR.email} atau{" "}
+        {LEGAL_OPERATOR.phone}.
         Penghapusan data dapat membuat sertifikat yang sudah terbit tidak bisa
         diverifikasi lagi.
       </p>
