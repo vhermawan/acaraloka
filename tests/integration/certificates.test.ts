@@ -270,6 +270,9 @@ describe("public verification and revocation", () => {
     });
     expect(result?.eventTitle).toBe((await db.event.findUniqueOrThrow({ where: { id: eventId } })).title);
     expect(result).not.toHaveProperty("signaturePath");
+    expect(result).not.toHaveProperty("email");
+    expect(result).not.toHaveProperty("phone");
+    expect(result).not.toHaveProperty("registrationId");
   });
 
   it("returns the revoked status with the revoked date", async () => {
