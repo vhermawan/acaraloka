@@ -47,6 +47,7 @@ function AccountMenu({ name, email, isOrganizer, isAdmin }: AccountMenuProps) {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem render={<Link href="/me/tickets" />}>Tiket saya</DropdownMenuItem>
+          <DropdownMenuItem render={<Link href="/me/certificates" />}>Sertifikat saya</DropdownMenuItem>
           <DropdownMenuItem render={<Link href={isOrganizer ? "/organizer" : "/organizer/join"} />}>
             {isOrganizer ? "Dashboard panitia" : "Jadi panitia"}
           </DropdownMenuItem>

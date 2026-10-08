@@ -3,7 +3,11 @@ import "server-only";
 import type { PrismaClient } from "@/generated/prisma/client";
 import { issueBlocker, type IssueBlocker } from "@/lib/certificate-issue";
 import { buildCertificateNumber } from "@/lib/certificate-number";
+import type { CertificateLayout } from "@/lib/certificate-layout";
+import { formatCertificateDate, getOrCreateCertificateConfig, verifyUrl } from "@/server/certificate-config";
+import type { CertificateRenderData } from "@/server/certificate-pdf";
 import { prisma } from "@/server/db";
+import { loadSignerRenderData } from "@/server/signers";
 
 export type IssueResult =
   | { ok: true; issued: number; firstIssue: boolean }
@@ -87,4 +91,75 @@ export async function certificateIssueStats(eventId: string, db: PrismaClient = 
     }),
   ]);
   return { issued, waiting };
+}
+
+export type RegistrationNameResult = { ok: true } | { ok: false; reason: "NOT_EDITABLE" };
+
+export async function updateRegistrationName(
+  userId: string,
+  registrationId: string,
+  name: string,
+  db: PrismaClient = prisma,
+): Promise<RegistrationNameResult> {
+  return db.$transaction(async (tx) => {
+    const registration = await tx.registration.findFirst({
+      where: { id: registrationId, userId },
+      select: { eventId: true },
+    });
+    if (!registration) return { ok: false, reason: "NOT_EDITABLE" } as const;
+
+    await tx.$queryRaw`SELECT "id" FROM "certificate_configs" WHERE "event_id" = ${registration.eventId} FOR UPDATE`;
+    const updated = await tx.registration.updateMany({
+      where: { id: registrationId, userId, status: "CONFIRMED", certificate: { is: null } },
+      data: { name },
+    });
+    return updated.count === 1 ? ({ ok: true } as const) : ({ ok: false, reason: "NOT_EDITABLE" } as const);
+  }, { maxWait: 10_000, timeout: 40_000 });
+}
+
+export async function listUserCertificates(userId: string, db: PrismaClient = prisma) {
+  return db.certificate.findMany({
+    where: { registration: { userId } },
+    orderBy: { issuedAt: "desc" },
+    select: {
+      id: true,
+      number: true,
+      revokedAt: true,
+      event: { select: { title: true, startAt: true, timezone: true } },
+    },
+  });
+}
+
+export async function getUserCertificateRenderData(
+  userId: string,
+  number: string,
+  db: PrismaClient = prisma,
+): Promise<{ data: CertificateRenderData; layout: CertificateLayout } | null> {
+  const certificate = await db.certificate.findFirst({
+    where: { number, revokedAt: null, registration: { userId } },
+    select: {
+      number: true,
+      recipientName: true,
+      event: { select: { id: true, title: true, startAt: true, timezone: true, organizer: { select: { orgName: true } } } },
+    },
+  });
+  if (!certificate) return null;
+
+  const { event } = certificate;
+  const [config, signers] = await Promise.all([
+    getOrCreateCertificateConfig(event.id, db),
+    loadSignerRenderData(event.id, db),
+  ]);
+  return {
+    layout: config.layout,
+    data: {
+      recipientName: certificate.recipientName,
+      certificateNumber: certificate.number,
+      eventTitle: event.title,
+      eventDate: formatCertificateDate(event.startAt, event.timezone),
+      organizerName: event.organizer.orgName,
+      verifyUrl: verifyUrl(certificate.number),
+      signers,
+    },
+  };
 }

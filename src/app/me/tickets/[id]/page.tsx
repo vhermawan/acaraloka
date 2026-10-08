@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { Container } from "@/components/layout/container";
 import { CancelRegistrationButton } from "@/components/tickets/cancel-registration-button";
+import { RenameRegistrationForm } from "@/components/tickets/rename-registration-form";
 import { TicketQr } from "@/components/tickets/ticket-qr";
 import { TicketStateBadge } from "@/components/tickets/ticket-state-badge";
 import { ticketState } from "@/lib/ticket-state";
@@ -77,6 +78,10 @@ export default async function TicketDetailPage({ params }: PageProps<"/me/ticket
           <dd className="break-words">{event.venue}</dd>
         </dl>
       </article>
+
+      {ticket.status === "CONFIRMED" && !ticket.certificate ? (
+        <RenameRegistrationForm key={ticket.name} registrationId={ticket.id} currentName={ticket.name} />
+      ) : null}
 
       {state === "ACTIVE" ? <CancelRegistrationButton registrationId={ticket.id} /> : null}
 

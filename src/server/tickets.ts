@@ -28,6 +28,7 @@ export async function getUserTicket(userId: string, registrationId: string) {
     include: {
       event: { select: { ...eventSelect, organizer: { select: { orgName: true, contactPhone: true, contactEmail: true } } } },
       ticketType: { select: { name: true } },
+      certificate: { select: { id: true } },
     },
   });
 }

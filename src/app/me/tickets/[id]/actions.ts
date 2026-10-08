@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import { requireUser } from "@/server/authz";
 import { cancelRegistration } from "@/server/cancellation";
+import { registrantNameSchema } from "@/lib/validation/registration";
+import { updateRegistrationName } from "@/server/certificates";
 import { prisma } from "@/server/db";
 
 export async function cancelMyRegistration(registrationId: string): Promise<{ error?: string }> {
@@ -27,5 +29,18 @@ export async function cancelMyRegistration(registrationId: string): Promise<{ er
   revalidatePath(`/me/tickets/${registrationId}`);
   revalidatePath("/me/tickets");
   revalidatePath(`/e/${registration.event.slug}`);
+  return {};
+}
+
+export async function renameMyRegistration(registrationId: string, name: string): Promise<{ error?: string }> {
+  const user = await requireUser();
+  const parsed = registrantNameSchema.safeParse(name);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Nama tidak valid." };
+
+  const result = await updateRegistrationName(user.id, registrationId, parsed.data);
+  if (!result.ok) return { error: "Nama tidak bisa diubah karena sertifikat sudah terbit atau pendaftaran tidak aktif." };
+
+  revalidatePath(`/me/tickets/${registrationId}`);
+  revalidatePath("/me/tickets");
   return {};
 }
