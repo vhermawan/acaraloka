@@ -1,15 +1,18 @@
 import "server-only";
 
-import { PDFDocument, StandardFonts, degrees, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { PDFDocument, degrees, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import QRCode from "qrcode";
 
 import { APP_NAME, CERTIFICATE_CREDIT } from "@/lib/brand";
 import {
+  ACCENT_COLORS,
   PAGE_HEIGHT,
   PAGE_WIDTH,
   type CertificateLayout,
+  type CertificateTheme,
   type TextAlign,
 } from "@/lib/certificate-layout";
+import { hasGlyph, loadThemeFonts, type ThemeFonts } from "@/server/certificate-fonts";
 
 export type CertificateRenderData = {
   recipientName: string;
@@ -23,26 +26,50 @@ export type CertificateRenderData = {
 
 const INK = rgb(0.11, 0.11, 0.12);
 const MUTED = rgb(0.38, 0.38, 0.4);
-const ACCENT = rgb(15 / 255, 118 / 255, 110 / 255);
 const NAME_MAX_WIDTH = PAGE_WIDTH * 0.8;
 const NAME_MIN_SIZE = 16;
 const SIGNATURE_BOX = { width: PAGE_WIDTH * 0.18, height: PAGE_HEIGHT * 0.1 };
 
-type Fonts = { title: PDFFont; serif: PDFFont; sans: PDFFont; sansBold: PDFFont };
+function accentColor(theme: CertificateTheme) {
+  const hex = ACCENT_COLORS[theme.accent].hex;
+  return rgb(
+    Number.parseInt(hex.slice(1, 3), 16) / 255,
+    Number.parseInt(hex.slice(3, 5), 16) / 255,
+    Number.parseInt(hex.slice(5, 7), 16) / 255,
+  );
+}
+
+const LETTER_FALLBACKS: Record<string, string> = {
+  Ł: "L",
+  ł: "l",
+  Đ: "D",
+  đ: "d",
+  Ø: "O",
+  ø: "o",
+  ı: "i",
+  ß: "ss",
+  Æ: "AE",
+  æ: "ae",
+  Œ: "OE",
+  œ: "oe",
+};
+
+function canEncode(font: PDFFont, text: string): boolean {
+  const known = [...text].map((char) => hasGlyph(font, char.codePointAt(0) ?? 0));
+  if (known.every((value) => value !== null)) return known.every(Boolean);
+  try {
+    font.encodeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export function sanitizeForFont(text: string, font: PDFFont): string {
   let output = "";
   for (const char of text) {
-    const candidates = [char, char.normalize("NFKD").replace(/\p{M}/gu, "")];
-    const usable = candidates.find((candidate) => {
-      if (!candidate) return false;
-      try {
-        font.encodeText(candidate);
-        return true;
-      } catch {
-        return false;
-      }
-    });
+    const candidates = [char, char.normalize("NFKD").replace(/\p{M}/gu, ""), LETTER_FALLBACKS[char]];
+    const usable = candidates.find((candidate) => candidate && canEncode(font, candidate));
     output += usable ?? "?";
   }
   return output;
@@ -76,36 +103,71 @@ function toPoint(x: number, y: number) {
   return { x: x * PAGE_WIDTH, y: (1 - y) * PAGE_HEIGHT };
 }
 
-function drawClassicTemplate(page: PDFPage, fonts: Fonts) {
-  const outer = 24;
-  const inner = 34;
-  page.drawRectangle({
-    x: outer,
-    y: outer,
-    width: PAGE_WIDTH - outer * 2,
-    height: PAGE_HEIGHT - outer * 2,
-    borderColor: ACCENT,
-    borderWidth: 3,
-  });
-  page.drawRectangle({
-    x: inner,
-    y: inner,
-    width: PAGE_WIDTH - inner * 2,
-    height: PAGE_HEIGHT - inner * 2,
-    borderColor: ACCENT,
-    borderWidth: 0.75,
-  });
+function drawBorder(page: PDFPage, theme: CertificateTheme, color: ReturnType<typeof rgb>) {
+  if (theme.border === "classic") {
+    const outer = 24;
+    const inner = 34;
+    page.drawRectangle({
+      x: outer,
+      y: outer,
+      width: PAGE_WIDTH - outer * 2,
+      height: PAGE_HEIGHT - outer * 2,
+      borderColor: color,
+      borderWidth: 3,
+    });
+    page.drawRectangle({
+      x: inner,
+      y: inner,
+      width: PAGE_WIDTH - inner * 2,
+      height: PAGE_HEIGHT - inner * 2,
+      borderColor: color,
+      borderWidth: 0.75,
+    });
+    return;
+  }
+  if (theme.border === "thin") {
+    const inset = 28;
+    page.drawRectangle({
+      x: inset,
+      y: inset,
+      width: PAGE_WIDTH - inset * 2,
+      height: PAGE_HEIGHT - inset * 2,
+      borderColor: color,
+      borderWidth: 1,
+    });
+    return;
+  }
+  if (theme.border === "corners") {
+    const corners = [
+      { x: 24, y: 24, dx: 1, dy: 1 },
+      { x: PAGE_WIDTH - 24, y: 24, dx: -1, dy: 1 },
+      { x: 24, y: PAGE_HEIGHT - 24, dx: 1, dy: -1 },
+      { x: PAGE_WIDTH - 24, y: PAGE_HEIGHT - 24, dx: -1, dy: -1 },
+    ];
+    for (const { x, y, dx, dy } of corners) {
+      page.drawLine({ start: { x, y }, end: { x: x + dx * 72, y }, thickness: 3, color });
+      page.drawLine({ start: { x, y }, end: { x, y: y + dy * 72 }, thickness: 3, color });
+      const ix = x + dx * 10;
+      const iy = y + dy * 10;
+      page.drawLine({ start: { x: ix, y: iy }, end: { x: ix + dx * 44, y: iy }, thickness: 0.75, color });
+      page.drawLine({ start: { x: ix, y: iy }, end: { x: ix, y: iy + dy * 44 }, thickness: 0.75, color });
+      page.drawRectangle({ x: x + dx * 20 - 2, y: y + dy * 20 - 2, width: 4, height: 4, color });
+    }
+  }
+}
+
+function drawHeading(page: PDFPage, fonts: ThemeFonts, color: ReturnType<typeof rgb>) {
   const center = PAGE_WIDTH / 2;
-  drawAligned(page, "SERTIFIKAT", { x: center, y: PAGE_HEIGHT * 0.81, size: 38, font: fonts.title, align: "center", color: ACCENT });
+  drawAligned(page, "SERTIFIKAT", { x: center, y: PAGE_HEIGHT * 0.81, size: 38, font: fonts.heading.bold, align: "center", color });
   page.drawLine({
     start: { x: center - 60, y: PAGE_HEIGHT * 0.81 - 26 },
     end: { x: center + 60, y: PAGE_HEIGHT * 0.81 - 26 },
     thickness: 1,
-    color: ACCENT,
+    color,
   });
 }
 
-function drawQr(page: PDFPage, url: string, layout: CertificateLayout["verifyQr"], fonts: Fonts) {
+function drawQr(page: PDFPage, url: string, layout: CertificateLayout["verifyQr"], font: PDFFont) {
   const qr = QRCode.create(url, { errorCorrectionLevel: "M" });
   const count = qr.modules.size;
   const size = layout.size * PAGE_WIDTH;
@@ -124,7 +186,7 @@ function drawQr(page: PDFPage, url: string, layout: CertificateLayout["verifyQr"
     x: center.x,
     y: top - size - 12,
     size: 7,
-    font: fonts.sans,
+    font,
     align: "center",
     color: MUTED,
   });
@@ -140,34 +202,31 @@ export async function renderCertificatePdf(
   pdf.setProducer(APP_NAME);
   pdf.setCreator(APP_NAME);
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  const fonts: Fonts = {
-    title: await pdf.embedFont(StandardFonts.TimesRomanBold),
-    serif: await pdf.embedFont(StandardFonts.TimesRoman),
-    sans: await pdf.embedFont(StandardFonts.Helvetica),
-    sansBold: await pdf.embedFont(StandardFonts.HelveticaBold),
-  };
+  const fonts = await loadThemeFonts(pdf, layout.theme);
+  const accent = accentColor(layout.theme);
 
-  drawClassicTemplate(page, fonts);
+  drawBorder(page, layout.theme, accent);
+  drawHeading(page, fonts, accent);
 
   const name = layout.recipientName;
   const namePoint = toPoint(name.x, name.y);
-  const nameText = sanitizeForFont(data.recipientName, fonts.title);
-  const nameSize = fitFontSize(nameText, fonts.title, name.fontSize, NAME_MAX_WIDTH, NAME_MIN_SIZE);
+  const nameText = sanitizeForFont(data.recipientName, fonts.name.bold);
+  const nameSize = fitFontSize(nameText, fonts.name.bold, name.fontSize, NAME_MAX_WIDTH, NAME_MIN_SIZE);
   drawAligned(page, "Diberikan kepada", {
     x: namePoint.x,
     y: namePoint.y + nameSize * 0.9 + 6,
     size: 12,
-    font: fonts.serif,
+    font: fonts.heading.regular,
     align: name.align,
     color: MUTED,
   });
-  drawAligned(page, nameText, { x: namePoint.x, y: namePoint.y, size: nameSize, font: fonts.title, align: name.align });
+  drawAligned(page, nameText, { x: namePoint.x, y: namePoint.y, size: nameSize, font: fonts.name.bold, align: name.align });
 
   const title = layout.eventTitle;
   const titlePoint = toPoint(title.x, title.y);
   const titleSize = fitFontSize(
-    sanitizeForFont(data.eventTitle, fonts.sansBold),
-    fonts.sansBold,
+    sanitizeForFont(data.eventTitle, fonts.body.bold),
+    fonts.body.bold,
     title.fontSize,
     PAGE_WIDTH * 0.85,
     9,
@@ -176,11 +235,11 @@ export async function renderCertificatePdf(
     x: titlePoint.x,
     y: titlePoint.y + titleSize + 6,
     size: 11,
-    font: fonts.serif,
+    font: fonts.heading.regular,
     align: title.align,
     color: MUTED,
   });
-  drawAligned(page, data.eventTitle, { x: titlePoint.x, y: titlePoint.y, size: titleSize, font: fonts.sansBold, align: title.align });
+  drawAligned(page, data.eventTitle, { x: titlePoint.x, y: titlePoint.y, size: titleSize, font: fonts.body.bold, align: title.align });
 
   const date = layout.eventDate;
   const datePoint = toPoint(date.x, date.y);
@@ -188,7 +247,7 @@ export async function renderCertificatePdf(
     x: datePoint.x,
     y: datePoint.y,
     size: date.fontSize,
-    font: fonts.sans,
+    font: fonts.body.regular,
     align: date.align,
     color: MUTED,
   });
@@ -199,7 +258,7 @@ export async function renderCertificatePdf(
     x: numberPoint.x,
     y: numberPoint.y,
     size: number.fontSize,
-    font: fonts.sans,
+    font: fonts.body.regular,
     align: number.align,
     color: MUTED,
   });
@@ -225,38 +284,38 @@ export async function renderCertificatePdf(
       x: point.x,
       y: lineY - block.fontSize - 2,
       size: block.fontSize,
-      font: fonts.sansBold,
+      font: fonts.body.bold,
       align: "center",
     });
     drawAligned(page, signer.title, {
       x: point.x,
       y: lineY - block.fontSize * 2 - 6,
       size: Math.max(8, block.fontSize - 2),
-      font: fonts.sans,
+      font: fonts.body.regular,
       align: "center",
       color: MUTED,
     });
   }
 
-  drawQr(page, data.verifyUrl, layout.verifyQr, fonts);
+  drawQr(page, data.verifyUrl, layout.verifyQr, fonts.body.regular);
 
   drawAligned(page, CERTIFICATE_CREDIT, {
     x: PAGE_WIDTH / 2,
     y: 46,
     size: 8,
-    font: fonts.sans,
+    font: fonts.body.regular,
     align: "center",
     color: MUTED,
   });
 
   if (options.watermark) {
     const size = 72;
-    const width = fonts.sansBold.widthOfTextAtSize(options.watermark, size);
+    const width = fonts.body.bold.widthOfTextAtSize(options.watermark, size);
     page.drawText(options.watermark, {
       x: PAGE_WIDTH / 2 - (width / 2) * Math.cos(Math.PI / 9),
       y: PAGE_HEIGHT / 2 - (width / 2) * Math.sin(Math.PI / 9),
       size,
-      font: fonts.sansBold,
+      font: fonts.body.bold,
       color: rgb(0.85, 0.2, 0.2),
       opacity: 0.18,
       rotate: degrees(20),

@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  outputFileTracingIncludes: {
+    "/organizer/events/*/certificate/preview": ["./assets/fonts/**/*"],
+    "/sign/*/preview": ["./assets/fonts/**/*"],
+    "/me/certificates/*/pdf": ["./assets/fonts/**/*"],
+  },
   async headers() {
     return [
       {
