@@ -4,18 +4,29 @@ import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { ADMIN_EVENTS_PAGE_SIZE, statusBeforeDisable } from "@/lib/event-disable";
 import { prisma } from "@/server/db";
 
-export async function listAdminEvents(query: string, page: number, db: PrismaClient = prisma) {
-  const where: Prisma.EventWhereInput = query
-    ? {
-        OR: [
-          { title: { contains: query, mode: "insensitive" } },
-          { slug: { contains: query, mode: "insensitive" } },
-          { organizer: { orgName: { contains: query, mode: "insensitive" } } },
-        ],
-      }
-    : {};
+export async function listAdminEvents(
+  query: string,
+  page: number,
+  organizerId: string | null = null,
+  db: PrismaClient = prisma,
+) {
+  const where: Prisma.EventWhereInput = {
+    ...(organizerId ? { organizerId } : {}),
+    ...(query
+      ? {
+          OR: [
+            { title: { contains: query, mode: "insensitive" } },
+            { slug: { contains: query, mode: "insensitive" } },
+            { organizer: { orgName: { contains: query, mode: "insensitive" } } },
+          ],
+        }
+      : {}),
+  };
 
-  const [total, rows] = await Promise.all([
+  const [organizer, total, rows] = await Promise.all([
+    organizerId
+      ? db.organizerProfile.findUnique({ where: { userId: organizerId }, select: { orgName: true } })
+      : Promise.resolve(null),
     db.event.count({ where }),
     db.event.findMany({
       where,
@@ -37,6 +48,7 @@ export async function listAdminEvents(query: string, page: number, db: PrismaCli
   ]);
 
   return {
+    organizer: organizerId ? { id: organizerId, orgName: organizer?.orgName ?? null } : null,
     rows: rows.map(({ _count, ...row }) => ({ ...row, activeRegistrations: _count.registrations })),
     total,
     pageCount: Math.max(1, Math.ceil(total / ADMIN_EVENTS_PAGE_SIZE)),

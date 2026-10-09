@@ -222,7 +222,7 @@ describe("listAdminEvents against Postgres", () => {
       data: { status: "CANCELLED" },
     });
 
-    const byTitle = await listAdminEvents(event.title, 1, db);
+    const byTitle = await listAdminEvents(event.title, 1, null, db);
     expect(byTitle.rows).toHaveLength(1);
     expect(byTitle.rows[0]).toMatchObject({
       id: event.id,
@@ -231,12 +231,12 @@ describe("listAdminEvents against Postgres", () => {
       organizer: { orgName: `Panitia ${runId}` },
     });
 
-    expect((await listAdminEvents(event.slug.toUpperCase(), 1, db)).rows.map((row) => row.id)).toEqual([event.id]);
-    expect((await listAdminEvents(`Panitia ${runId}`, 1, db)).total).toBe(eventIds.length);
-    expect((await listAdminEvents(`${runId}-zzz`, 1, db)).rows).toEqual([]);
+    expect((await listAdminEvents(event.slug.toUpperCase(), 1, null, db)).rows.map((row) => row.id)).toEqual([event.id]);
+    expect((await listAdminEvents(`Panitia ${runId}`, 1, null, db)).total).toBe(eventIds.length);
+    expect((await listAdminEvents(`${runId}-zzz`, 1, null, db)).rows).toEqual([]);
 
-    const firstPage = await listAdminEvents(`Panitia ${runId}`, 1, db);
+    const firstPage = await listAdminEvents(`Panitia ${runId}`, 1, null, db);
     expect(firstPage.pageCount).toBe(1);
-    expect((await listAdminEvents(`Panitia ${runId}`, 99, db)).rows).toEqual([]);
+    expect((await listAdminEvents(`Panitia ${runId}`, 99, null, db)).rows).toEqual([]);
   });
 });

@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { parseOrganizerFilter } from "@/lib/admin-organizers";
 import { parsePage, parseQuery } from "@/lib/participants";
 import { formatEventDateTime } from "@/lib/timezone";
 import { requireAdmin } from "@/server/authz";
@@ -27,13 +28,15 @@ export const metadata: Metadata = {
 
 export default async function AdminEventsPage({ searchParams }: PageProps<"/admin/events">) {
   await requireAdmin();
-  const { q, page: pageParam } = await searchParams;
+  const { q, page: pageParam, organizer: organizerParam } = await searchParams;
   const query = parseQuery(q);
   const page = parsePage(pageParam);
-  const result = await listAdminEvents(query, page);
+  const organizerId = parseOrganizerFilter(organizerParam);
+  const result = await listAdminEvents(query, page, organizerId);
 
   function pageHref(target: number) {
     const search = new URLSearchParams();
+    if (organizerId) search.set("organizer", organizerId);
     if (query) search.set("q", query);
     if (target > 1) search.set("page", String(target));
     const suffix = search.toString();
@@ -46,7 +49,19 @@ export default async function AdminEventsPage({ searchParams }: PageProps<"/admi
         <h1 className="text-balance text-2xl font-semibold tracking-tight">Acara</h1>
       </header>
 
+      {result.organizer ? (
+        <p className="flex flex-wrap items-center gap-3 text-sm">
+          <span className="rounded-full bg-foreground/5 px-3 py-1 font-medium">
+            Panitia: {result.organizer.orgName ?? "tidak dikenal"}
+          </span>
+          <Link href="/admin/events" className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+            Hapus filter
+          </Link>
+        </p>
+      ) : null}
+
       <form role="search" className="flex max-w-md gap-2">
+        {organizerId ? <input type="hidden" name="organizer" value={organizerId} /> : null}
         <label htmlFor="event-search" className="sr-only">
           Cari judul, slug, atau panitia
         </label>
@@ -67,6 +82,8 @@ export default async function AdminEventsPage({ searchParams }: PageProps<"/admi
             </>
           ) : query ? (
             `Tidak ada acara yang cocok dengan "${query}".`
+          ) : organizerId ? (
+            "Panitia ini belum punya acara."
           ) : (
             "Belum ada acara."
           )}
