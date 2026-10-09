@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 
-import { joinOrganizer, type JoinOrganizerState } from "@/app/organizer/join/actions";
+import { registerOrganizer, type OrganizerRegisterState } from "@/app/organizer/register/actions";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -13,23 +13,33 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
-type JoinOrganizerFormProps = {
+type OrganizerRegisterFormProps = {
   defaultEmail: string;
+  next: string;
 };
 
 function toErrors(messages?: string[]) {
   return messages?.map((message) => ({ message }));
 }
 
-function JoinOrganizerForm({ defaultEmail }: JoinOrganizerFormProps) {
-  const [state, formAction, pending] = useActionState<JoinOrganizerState, FormData>(
-    joinOrganizer,
+function OrganizerRegisterForm({ defaultEmail, next }: OrganizerRegisterFormProps) {
+  const [state, formAction, pending] = useActionState<OrganizerRegisterState, FormData>(
+    registerOrganizer,
     {},
   );
 
   return (
     <form action={formAction} noValidate>
       <FieldGroup>
+        <input type="hidden" name="next" value={next} />
+        {state.message ? (
+          <p
+            role="alert"
+            className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+          >
+            {state.message}
+          </p>
+        ) : null}
         <Field data-invalid={!!state.errors?.orgName}>
           <FieldLabel htmlFor="orgName">Nama penyelenggara</FieldLabel>
           <Input
@@ -74,11 +84,11 @@ function JoinOrganizerForm({ defaultEmail }: JoinOrganizerFormProps) {
           <FieldError errors={toErrors(state.errors?.contactPhone)} />
         </Field>
         <Button type="submit" className="h-11 w-full" disabled={pending}>
-          {pending ? "Menyimpan..." : "Aktifkan akun panitia"}
+          {pending ? "Menyimpan..." : "Buat akun panitia"}
         </Button>
       </FieldGroup>
     </form>
   );
 }
 
-export { JoinOrganizerForm };
+export { OrganizerRegisterForm };

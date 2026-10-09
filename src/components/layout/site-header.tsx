@@ -8,16 +8,10 @@ import { SiteNav } from "@/components/layout/site-nav";
 import { AccountMenu } from "@/components/auth/account-menu";
 import { getSession } from "@/lib/session";
 import { APP_NAME } from "@/lib/brand";
-import { prisma } from "@/server/db";
 
 async function SiteHeader() {
   const session = await getSession();
-  const isOrganizer = session
-    ? !!(await prisma.organizerProfile.findUnique({
-        where: { userId: session.user.id },
-        select: { userId: true },
-      }))
-    : false;
+  const isOrganizer = session?.user.role === "ORGANIZER";
 
   return (
     <header

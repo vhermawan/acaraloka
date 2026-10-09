@@ -46,7 +46,11 @@ export default async function RegisterPage({ params }: PageProps<"/e/[slug]/regi
         <h1 className="mt-2 text-balance text-2xl font-semibold tracking-tight">{event.title}</h1>
         <p className="text-sm text-muted-foreground">{formatEventDateTime(event.startAt, event.timezone)}</p>
       </header>
-      {existing ? (
+      {user.role === "ORGANIZER" ? (
+        <p role="alert" className="rounded-lg border border-border p-4 text-sm">
+          Akun panitia tidak bisa mendaftar acara. Masuk dengan akun peserta untuk mendaftar.
+        </p>
+      ) : existing ? (
         <div className="flex flex-col gap-3 rounded-lg border border-border p-4 text-sm">
           <p>Kamu sudah terdaftar di acara ini.</p>
           <Button className="w-fit" nativeButton={false} render={<Link href={`/me/tickets/${existing.id}`} />}>

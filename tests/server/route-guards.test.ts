@@ -22,8 +22,8 @@ beforeEach(() => {
 
 describe("/organizer", () => {
   it("is blocked when requireOrganizer rejects", async () => {
-    mocks.requireOrganizer.mockRejectedValue(new Error("REDIRECT:/organizer/join"));
-    await expect(OrganizerDashboardPage()).rejects.toThrow("REDIRECT:/organizer/join");
+    mocks.requireOrganizer.mockRejectedValue(new Error("REDIRECT:/organizer/register"));
+    await expect(OrganizerDashboardPage()).rejects.toThrow("REDIRECT:/organizer/register");
   });
 
   it("renders for organizers", async () => {

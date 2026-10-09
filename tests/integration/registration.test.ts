@@ -99,4 +99,16 @@ describe("createRegistration against Postgres", () => {
     await expect(createRegistration(input(PARALLEL), db)).resolves.toEqual({ ok: false, reason: "CLOSED" });
     await db.event.update({ where: { id: eventId }, data: { status: "PUBLISHED" } });
   });
+
+  it("refuses registration for ORGANIZER accounts without reserving a seat", async () => {
+    const before = await db.ticketType.findUniqueOrThrow({ where: { id: ticketTypeId } });
+    await db.user.update({ where: { id: `${runId}-u${PARALLEL}` }, data: { role: "ORGANIZER" } });
+    await expect(createRegistration(input(PARALLEL), db)).resolves.toEqual({
+      ok: false,
+      reason: "ORGANIZER_ACCOUNT",
+    });
+    const after = await db.ticketType.findUniqueOrThrow({ where: { id: ticketTypeId } });
+    expect(after.reservedCount).toBe(before.reservedCount);
+    await db.user.update({ where: { id: `${runId}-u${PARALLEL}` }, data: { role: "PARTICIPANT" } });
+  });
 });

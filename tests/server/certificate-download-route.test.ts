@@ -30,6 +30,12 @@ describe("GET /me/certificates/[number]/pdf", () => {
     expect(mocks.getUserCertificateRenderData).not.toHaveBeenCalled();
   });
 
+  it("returns 404 for organizer accounts without looking up certificates", async () => {
+    mocks.getSession.mockResolvedValue({ user: { id: "u3", disabledAt: null, role: "ORGANIZER" } });
+    await expect(GET(new Request("http://x"), context("HA-1"))).rejects.toThrow("NOT_FOUND");
+    expect(mocks.getUserCertificateRenderData).not.toHaveBeenCalled();
+  });
+
   it("returns 404 when the certificate is not owned by the user", async () => {
     mocks.getSession.mockResolvedValue({ user: { id: "u2", disabledAt: null } });
     mocks.getUserCertificateRenderData.mockResolvedValue(null);

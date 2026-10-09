@@ -1,9 +1,11 @@
 import "server-only";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "@better-auth/prisma-adapter";
+import { getOAuthState } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/server/db";
 import { env, getAuthConfig } from "@/lib/env";
+import { USER_ROLES, resolveNewUserRole } from "@/lib/roles";
 
 const authConfig = getAuthConfig();
 
@@ -29,6 +31,12 @@ export const auth = betterAuth({
         defaultValue: false,
         input: false,
       },
+      role: {
+        type: [...USER_ROLES],
+        required: false,
+        defaultValue: "PARTICIPANT",
+        input: false,
+      },
       disabledAt: {
         type: "date",
         required: false,
@@ -40,6 +48,15 @@ export const auth = betterAuth({
       termsAcceptedAt: {
         type: "date",
         required: false,
+      },
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => ({
+          data: { ...user, role: resolveNewUserRole(await getOAuthState()) },
+        }),
       },
     },
   },

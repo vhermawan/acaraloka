@@ -135,7 +135,7 @@ Di bawahnya **daftar sertifikat terbit**: nama peserta, nomor (Geist Mono, conto
 
 Mobile: langkah ditumpuk; panel editor jadi sheet bawah di atas pratinjau.
 
-### 3.9 Jadi panitia `/organizer/join`
+### 3.9 Daftar panitia `/organizer/register` (dulu `/organizer/join`, kini dialihkan permanen)
 
 - Tanpa sidebar (pengguna belum panitia). Layout terpusat, kartu 440px, logo di atas.
 - Judul "Jadi panitia", sub "Isi data penyelenggara untuk mulai membuat acara. Kontak ini bisa dilihat peserta yang mendaftar."

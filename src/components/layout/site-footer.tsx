@@ -27,6 +27,7 @@ const COLUMNS = [
     title: "Akun",
     links: [
       { href: "/login", label: "Masuk" },
+      { href: "/organizer/login", label: "Masuk panitia" },
       { href: CREATE_EVENT_HREF, label: "Buat acara" },
       { href: "/me/tickets", label: "Tiket Saya" },
     ],

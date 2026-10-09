@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { Award, CalendarDays, EllipsisVertical, Menu, Plus, Shield, Ticket, X, type LucideIcon } from "lucide-react";
+import { CalendarDays, EllipsisVertical, Menu, Plus, Shield, X, type LucideIcon } from "lucide-react";
 import { cn } from "cn";
 
 import { Button } from "@/components/ui/button";
@@ -196,12 +196,12 @@ function SidebarContent({
             />
           ) : null}
         </div>
-        <div className="flex flex-col gap-1">
-          <p className="px-3 pb-1 text-xs font-medium text-muted-foreground">Akun</p>
-          <NavItem href="/me/tickets" label="Tiket saya" icon={Ticket} active={false} onNavigate={onNavigate} />
-          <NavItem href="/me/certificates" label="Sertifikat saya" icon={Award} active={false} onNavigate={onNavigate} />
-          {isAdmin ? <NavItem href="/admin" label="Admin" icon={Shield} active={false} onNavigate={onNavigate} /> : null}
-        </div>
+        {isAdmin ? (
+          <div className="flex flex-col gap-1">
+            <p className="px-3 pb-1 text-xs font-medium text-muted-foreground">Akun</p>
+            <NavItem href="/admin" label="Admin" icon={Shield} active={false} onNavigate={onNavigate} />
+          </div>
+        ) : null}
       </nav>
 
       <UserBlock userName={userName} userEmail={userEmail} />

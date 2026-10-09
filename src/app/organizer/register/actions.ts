@@ -2,20 +2,25 @@
 
 import { redirect } from "next/navigation";
 
+import { ROLE_CONFLICT_MESSAGES, resolvePostLoginPath } from "@/lib/roles";
 import { organizerProfileSchema } from "@/lib/validation/organizer";
 import { requireUser } from "@/server/authz";
 import { prisma } from "@/server/db";
 
-export type JoinOrganizerState = {
+export type OrganizerRegisterState = {
   errors?: Partial<Record<"orgName" | "contactPhone" | "contactEmail", string[]>>;
+  message?: string;
   values?: Record<string, string>;
 };
 
-export async function joinOrganizer(
-  _prev: JoinOrganizerState,
+export async function registerOrganizer(
+  _prev: OrganizerRegisterState,
   formData: FormData,
-): Promise<JoinOrganizerState> {
-  const user = await requireUser();
+): Promise<OrganizerRegisterState> {
+  const user = await requireUser({ loginPath: "/organizer/login", next: "/organizer/register" });
+  if (user.role !== "ORGANIZER") {
+    return { message: ROLE_CONFLICT_MESSAGES["role-participant"] };
+  }
 
   const values = {
     orgName: String(formData.get("orgName") ?? ""),
@@ -33,5 +38,5 @@ export async function joinOrganizer(
     update: {},
   });
 
-  redirect("/organizer");
+  redirect(resolvePostLoginPath("ORGANIZER", formData.get("next"), true));
 }

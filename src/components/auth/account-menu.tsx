@@ -46,11 +46,14 @@ function AccountMenu({ name, email, isOrganizer, isAdmin }: AccountMenuProps) {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem render={<Link href="/me/tickets" />}>Tiket saya</DropdownMenuItem>
-          <DropdownMenuItem render={<Link href="/me/certificates" />}>Sertifikat saya</DropdownMenuItem>
-          <DropdownMenuItem render={<Link href={isOrganizer ? "/organizer" : "/organizer/join"} />}>
-            {isOrganizer ? "Dashboard panitia" : "Jadi panitia"}
-          </DropdownMenuItem>
+          {isOrganizer ? (
+            <DropdownMenuItem render={<Link href="/organizer" />}>Dashboard panitia</DropdownMenuItem>
+          ) : (
+            <>
+              <DropdownMenuItem render={<Link href="/me/tickets" />}>Tiket saya</DropdownMenuItem>
+              <DropdownMenuItem render={<Link href="/me/certificates" />}>Sertifikat saya</DropdownMenuItem>
+            </>
+          )}
           {isAdmin ? (
             <DropdownMenuItem render={<Link href="/admin" />}>Admin</DropdownMenuItem>
           ) : null}

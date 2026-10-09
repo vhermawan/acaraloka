@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
     "/sign/*/preview": ["./assets/fonts/**/*"],
     "/me/certificates/*/pdf": ["./assets/fonts/**/*"],
   },
+  async redirects() {
+    return [{ source: "/organizer/join", destination: "/organizer/register", permanent: true }];
+  },
   async headers() {
     return [
       {

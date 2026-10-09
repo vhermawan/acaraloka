@@ -5,9 +5,13 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
+import { intentParam, type UserRole } from "@/lib/roles";
 
 type GoogleSignInButtonProps = {
-  callbackURL: string;
+  role: UserRole;
+  next: string;
+  label: string;
+  selectAccount?: boolean;
 };
 
 function GoogleIcon() {
@@ -21,14 +25,16 @@ function GoogleIcon() {
   );
 }
 
-function GoogleSignInButton({ callbackURL }: GoogleSignInButtonProps) {
+function GoogleSignInButton({ role, next, label, selectAccount = false }: GoogleSignInButtonProps) {
   const [pending, setPending] = useState(false);
 
   async function handleClick() {
     setPending(true);
     const { error } = await authClient.signIn.social({
       provider: "google",
-      callbackURL,
+      callbackURL: `/auth/continue?intent=${intentParam(role)}&next=${encodeURIComponent(next)}`,
+      additionalData: { intent: role },
+      additionalParams: selectAccount ? { prompt: "select_account" } : undefined,
     });
     if (error) {
       setPending(false);
@@ -45,7 +51,7 @@ function GoogleSignInButton({ callbackURL }: GoogleSignInButtonProps) {
       className="h-11 w-full gap-2.5 bg-muted/60 font-medium hover:bg-muted"
     >
       <GoogleIcon />
-      {pending ? "Mengalihkan..." : "Masuk dengan Google"}
+      {pending ? "Mengalihkan..." : label}
     </Button>
   );
 }

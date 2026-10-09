@@ -4,12 +4,13 @@ import { prisma } from "@/server/db";
 
 export default async function OrganizerLayout({ children }: LayoutProps<"/organizer">) {
   const session = await getSession();
-  const organizer = session
-    ? await prisma.organizerProfile.findUnique({
-        where: { userId: session.user.id },
-        select: { orgName: true },
-      })
-    : null;
+  const organizer =
+    session && session.user.role === "ORGANIZER"
+      ? await prisma.organizerProfile.findUnique({
+          where: { userId: session.user.id },
+          select: { orgName: true },
+        })
+      : null;
 
   if (!session || !organizer) return children;
 
