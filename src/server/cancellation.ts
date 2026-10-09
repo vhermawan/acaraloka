@@ -20,7 +20,7 @@ export async function cancelRegistration(
     if (!registration) return { ok: false, reason: "NOT_CANCELLABLE" };
 
     const cancelled = await tx.registration.updateMany({
-      where: { id: input.registrationId, status: "CONFIRMED", checkedInAt: null },
+      where: { id: input.registrationId, eventId: input.eventId, status: "CONFIRMED", checkedInAt: null },
       data: { status: "CANCELLED", cancelledAt: now, cancelReason: input.reason, cancelledById: input.actorId },
     });
     if (cancelled.count === 0) return { ok: false, reason: "NOT_CANCELLABLE" };

@@ -68,7 +68,7 @@ export async function deleteTicketType(eventId: string, ticketTypeId: string): P
   const { event } = await requireEventOwner(eventId);
   if (!EDITABLE_STATUSES.has(event.status)) return { error: "Tiket acara ini tidak bisa diubah." };
 
-  const registrations = await prisma.registration.count({ where: { ticketTypeId } });
+  const registrations = await prisma.registration.count({ where: { ticketTypeId, eventId: event.id } });
   if (registrations > 0) return { error: "Tiket yang sudah punya pendaftar tidak bisa dihapus. Kurangi kuotanya saja." };
 
   await prisma.ticketType.deleteMany({ where: { id: ticketTypeId, eventId: event.id } });
