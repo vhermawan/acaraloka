@@ -16,4 +16,10 @@ function SiteChrome({ children }: { children: React.ReactNode }) {
   return children;
 }
 
-export { SiteChrome };
+function StandaloneOnly({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  if (!isStandalonePath(pathname)) return null;
+  return children;
+}
+
+export { SiteChrome, StandaloneOnly };
