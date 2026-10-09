@@ -1,5 +1,6 @@
 import "server-only";
 import { betterAuth } from "better-auth";
+import { z } from "zod";
 import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { APIError, createAuthMiddleware, getOAuthState } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
@@ -64,6 +65,9 @@ export const auth = betterAuth({
   account: {
     accountLinking: { enabled: true, requireLocalEmailVerified: true },
   },
+  advanced: {
+    ipAddress: { ipAddressHeaders: ["x-vercel-forwarded-for", "x-forwarded-for"] },
+  },
   rateLimit: {
     storage: "database",
     customRules: AUTH_RATE_LIMITS,
@@ -78,7 +82,21 @@ export const auth = betterAuth({
           message: "Setujui Syarat Layanan dan Kebijakan Privasi untuk mendaftar.",
         });
       }
-      if (typeof body.email === "string") await discardUnverifiedPasswordSignUp(body.email.trim().toLowerCase());
+      const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+      if (!z.email().safeParse(email).success) {
+        throw new APIError("BAD_REQUEST", { code: "INVALID_EMAIL", message: "Invalid email" });
+      }
+      const password = typeof body.password === "string" ? body.password : "";
+      if (password.length < MIN_PASSWORD_LENGTH) {
+        throw new APIError("BAD_REQUEST", { code: "PASSWORD_TOO_SHORT", message: "Password too short" });
+      }
+      if (password.length > MAX_PASSWORD_LENGTH) {
+        throw new APIError("BAD_REQUEST", { code: "PASSWORD_TOO_LONG", message: "Password too long" });
+      }
+      if (typeof body.name !== "string" || body.name.trim().length === 0) {
+        throw new APIError("BAD_REQUEST", { code: "INVALID_NAME", message: "Name is required" });
+      }
+      await discardUnverifiedPasswordSignUp(email);
     }),
   },
   user: {

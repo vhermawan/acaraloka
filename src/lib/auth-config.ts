@@ -5,6 +5,7 @@ export const RESET_TTL_SECONDS = 60 * 60;
 export const AUTH_EMAIL_BUCKET_SECONDS = 60;
 export const ACCOUNT_NOTICE_BUCKET_SECONDS = 60 * 60;
 export const RESEND_COOLDOWN_SECONDS = 60;
+export const AUTH_EMAILS_PER_ADDRESS_PER_HOUR = 5;
 
 export const AUTH_RATE_LIMITS = {
   "/sign-in/email": { window: 60, max: 10 },

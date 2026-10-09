@@ -1,5 +1,6 @@
 import "server-only";
 
+import { AUTH_EMAILS_PER_ADDRESS_PER_HOUR } from "@/lib/auth-config";
 import {
   accountExistsEmail,
   resetPasswordEmail,
@@ -14,6 +15,10 @@ import { scheduleEmailDrain } from "@/server/email-schedule";
 type AuthUser = { id: string; name: string; email: string; role?: unknown };
 
 async function queue(item: OutboxItem) {
+  const recent = await prisma.emailOutbox.count({
+    where: { to: item.to, template: item.template, createdAt: { gt: new Date(Date.now() - 60 * 60 * 1000) } },
+  });
+  if (recent >= AUTH_EMAILS_PER_ADDRESS_PER_HOUR) return;
   await enqueueEmails(prisma, [item]);
   scheduleEmailDrain({ urgent: true });
 }
@@ -54,12 +59,21 @@ export async function markEmailVerified(userId: string) {
 }
 
 export async function discardUnverifiedPasswordSignUp(email: string) {
-  await prisma.user.deleteMany({
+  const candidates = await prisma.user.findMany({
     where: {
       email,
       emailVerified: false,
       disabledAt: null,
-      accounts: { every: { providerId: "credential" } },
+      OR: [{ isAdmin: null }, { isAdmin: false }],
+      accounts: { some: { providerId: "credential" }, none: { providerId: { not: "credential" } } },
+      registrations: { none: {} },
+      organizerProfile: null,
     },
+    select: { id: true },
   });
+  for (const { id } of candidates) {
+    const audited = await prisma.auditLog.count({ where: { actorId: id } });
+    if (audited > 0) continue;
+    await prisma.user.deleteMany({ where: { id, emailVerified: false } }).catch(() => undefined);
+  }
 }

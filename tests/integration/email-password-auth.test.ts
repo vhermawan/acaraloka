@@ -224,6 +224,100 @@ describe("email and password auth", () => {
     expect((await signIn(email, "password-korban-123")).status).toBe(200);
   });
 
+  it("keeps an unverified account that has Google, registrations, an organizer profile or no account", async () => {
+    const google = nextEmail("tautan");
+    const withRegistration = nextEmail("tiket");
+    const orphan = nextEmail("yatim");
+    const organizer = nextEmail("profil");
+    const ids = { google: `${runId}-g2`, registration: `${runId}-r2`, orphan: `${runId}-o2`, organizer: `${runId}-p2` };
+    await db.user.createMany({
+      data: [
+        { id: ids.google, name: "G", email: google },
+        { id: ids.registration, name: "R", email: withRegistration },
+        { id: ids.orphan, name: "O", email: orphan },
+        { id: ids.organizer, name: "P", email: organizer },
+      ],
+    });
+    await db.account.createMany({
+      data: [
+        { id: `${ids.google}-a`, accountId: "g", providerId: "google", userId: ids.google },
+        { id: `${ids.google}-b`, accountId: ids.google, providerId: "credential", userId: ids.google, password: "x" },
+        { id: `${ids.registration}-a`, accountId: ids.registration, providerId: "credential", userId: ids.registration, password: "x" },
+        { id: `${ids.organizer}-a`, accountId: ids.organizer, providerId: "credential", userId: ids.organizer, password: "x" },
+      ],
+    });
+    await db.organizerProfile.create({ data: { userId: ids.organizer, orgName: "Uji", contactPhone: "081234567890" } });
+    const event = await db.event.create({
+      data: {
+        organizerId: ids.organizer,
+        slug: `${runId}-ev`,
+        title: "Uji",
+        description: "Uji",
+        startAt: new Date(Date.now() + 86_400_000),
+        endAt: new Date(Date.now() + 90_000_000),
+        venue: "Aula",
+        status: "PUBLISHED",
+        ticketTypes: { create: { name: "Umum", quota: 5 } },
+      },
+      include: { ticketTypes: true },
+    });
+    await db.registration.create({
+      data: {
+        eventId: event.id,
+        ticketTypeId: event.ticketTypes[0].id,
+        userId: ids.registration,
+        name: "R",
+        email: withRegistration,
+        phone: "081234567890",
+        consentAt: new Date(),
+        ticketCode: `${runId}-code`,
+      },
+    });
+
+    for (const email of [google, withRegistration, orphan, organizer]) {
+      const result = await signUp(email, "PARTICIPANT", {}, "password-lain-1");
+      expect(result.status).toBe(200);
+      expect(result.json?.token).toBeNull();
+      expect(await db.user.count({ where: { email } })).toBe(1);
+    }
+    expect((await db.user.findUniqueOrThrow({ where: { email: google } })).id).toBe(ids.google);
+
+    await db.registration.deleteMany({ where: { eventId: event.id } });
+    await db.event.deleteMany({ where: { id: event.id } });
+    await db.organizerProfile.deleteMany({ where: { userId: ids.organizer } });
+  });
+
+  it("does not delete a pending signup when the new request is invalid", async () => {
+    const email = nextEmail("valid");
+    await signUp(email, "PARTICIPANT");
+    const original = await db.user.findUniqueOrThrow({ where: { email } });
+
+    const bodies: Json[] = [
+      { password: "pendek" },
+      { password: "x".repeat(200) },
+      { name: "   " },
+      { acceptTerms: false },
+      { email: `${email} bukan-email` },
+    ];
+    for (const extra of bodies) {
+      const result = await signUp(email, "PARTICIPANT", extra);
+      expect(result.status).toBe(400);
+      expect((await db.user.findUniqueOrThrow({ where: { email } })).id).toBe(original.id);
+    }
+  });
+
+  it("caps verification and reset emails per address per hour", async () => {
+    const email = nextEmail("batas");
+    await signUp(email, "PARTICIPANT");
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      for (const row of await outboxFor(email)) {
+        await db.emailOutbox.update({ where: { id: row.id }, data: { dedupeKey: `${runId}:cap:${attempt}:${row.id}` } });
+      }
+      await signIn(email);
+    }
+    expect(await outboxFor(email, "verify-email")).toHaveLength(5);
+  });
+
   it("resets the password once, revokes the old one and verifies the mailbox", async () => {
     const email = nextEmail("reset");
     await signUp(email, "PARTICIPANT");
