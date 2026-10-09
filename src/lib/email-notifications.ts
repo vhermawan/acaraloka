@@ -1,3 +1,4 @@
+import { ACCOUNT_NOTICE_BUCKET_SECONDS, AUTH_EMAIL_BUCKET_SECONDS, timeBucket } from "@/lib/auth-config";
 import { EMAIL_PRIORITY, type OutboxItem } from "@/lib/email-outbox";
 import { formatEventDateTime, formatEventSchedule } from "@/lib/timezone";
 
@@ -67,5 +68,46 @@ export function certificateIssuedEmail(registration: Recipient, event: { title: 
       eventTitle: event.title,
       certificatesPath: "/me/certificates",
     },
+  };
+}
+
+type AuthRecipient = { id: string; name: string; email: string };
+
+function authPath(url: string) {
+  const parsed = new URL(url);
+  return `${parsed.pathname}${parsed.search}`;
+}
+
+export function verifyEmail(user: AuthRecipient, url: string, now = new Date()): OutboxItem {
+  return {
+    to: user.email,
+    dedupeKey: `verify-email:${user.id}:${timeBucket(now, AUTH_EMAIL_BUCKET_SECONDS)}`,
+    priority: EMAIL_PRIORITY.AUTH,
+    template: "verify-email",
+    payload: { name: user.name, verifyPath: authPath(url) },
+  };
+}
+
+export function resetPasswordEmail(user: AuthRecipient, url: string, now = new Date()): OutboxItem {
+  return {
+    to: user.email,
+    dedupeKey: `reset-password:${user.id}:${timeBucket(now, AUTH_EMAIL_BUCKET_SECONDS)}`,
+    priority: EMAIL_PRIORITY.AUTH,
+    template: "reset-password",
+    payload: { name: user.name, resetPath: authPath(url) },
+  };
+}
+
+export function accountExistsEmail(
+  user: AuthRecipient,
+  options: { reason: "signup" | "reset"; method: "google" | "password"; loginPath: string },
+  now = new Date(),
+): OutboxItem {
+  return {
+    to: user.email,
+    dedupeKey: `account-exists:${options.reason}:${user.id}:${timeBucket(now, ACCOUNT_NOTICE_BUCKET_SECONDS)}`,
+    priority: EMAIL_PRIORITY.AUTH,
+    template: "account-exists",
+    payload: { name: user.name, ...options },
   };
 }

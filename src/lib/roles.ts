@@ -41,6 +41,33 @@ export function intentParam(role: UserRole) {
   return role === "ORGANIZER" ? "organizer" : "participant";
 }
 
+const REGISTER_PATHS: Record<UserRole, string> = {
+  PARTICIPANT: "/register",
+  ORGANIZER: "/organizer/register",
+};
+
+export function registerPathFor(role: UserRole) {
+  return REGISTER_PATHS[role];
+}
+
+export function pathWithNext(path: string, role: UserRole, next: string) {
+  return next === homePathFor(role) ? path : `${path}?next=${encodeURIComponent(next)}`;
+}
+
+export function forgotPasswordPath(role: UserRole) {
+  return `/forgot-password?intent=${intentParam(role)}`;
+}
+
+export function checkEmailPath(role: UserRole, next: string, email: string) {
+  const params = new URLSearchParams({ email, intent: intentParam(role) });
+  if (next !== homePathFor(role)) params.set("next", next);
+  return `/check-email?${params.toString()}`;
+}
+
+export function continuePath(role: UserRole, next: string) {
+  return `/auth/continue?intent=${intentParam(role)}&next=${encodeURIComponent(next)}`;
+}
+
 export function detectRoleConflict(accountRole: UserRole, intent: UserRole): RoleConflict | null {
   if (accountRole === intent) return null;
   return accountRole === "PARTICIPANT" ? "role-participant" : "role-organizer";

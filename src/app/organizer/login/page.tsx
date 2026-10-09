@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { AuthScreen } from "@/components/auth/auth-screen";
+import { parseAuthNotice } from "@/lib/auth-notice";
 import { parseRole, parseRoleConflict, resolvePostLoginPath } from "@/lib/roles";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/server/db";
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function OrganizerLoginPage({ searchParams }: PageProps<"/organizer/login">) {
-  const { next, error } = await searchParams;
+  const { next, error, notice } = await searchParams;
 
   const session = await getSession();
   const sessionRole = session ? parseRole(session.user.role) : null;
@@ -31,6 +32,7 @@ export default async function OrganizerLoginPage({ searchParams }: PageProps<"/o
       next={resolvePostLoginPath("ORGANIZER", next, true)}
       conflict={sessionRole === "PARTICIPANT" ? "role-participant" : parseRoleConflict(error)}
       disabled={error === "disabled"}
+      notice={parseAuthNotice(error, notice)}
     />
   );
 }

@@ -69,6 +69,24 @@ describe("GET /auth/continue", () => {
     expect(mocks.signOut).not.toHaveBeenCalled();
   });
 
+  it("rejects an email and password session of the wrong role the same way as Google", async () => {
+    mocks.getSession.mockResolvedValue(sessionFor({ role: "PARTICIPANT", emailVerified: true }));
+    await expect(GET(request("intent=organizer&next=%2Forganizer%2Fevents"))).rejects.toThrow(
+      "REDIRECT:/organizer/login?error=role-participant",
+    );
+    expect(mocks.signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it("explains a failed verification link when no session was created", async () => {
+    mocks.getSession.mockResolvedValue(null);
+    await expect(GET(request("intent=participant&error=INVALID_TOKEN"))).rejects.toThrow(
+      "REDIRECT:/login?error=verify-expired",
+    );
+    await expect(GET(request("intent=organizer&error=TOKEN_EXPIRED"))).rejects.toThrow(
+      "REDIRECT:/organizer/login?error=verify-expired",
+    );
+  });
+
   it("sends organizers with a profile to the dashboard", async () => {
     mocks.getSession.mockResolvedValue(sessionFor({ role: "ORGANIZER" }));
     mocks.findProfile.mockResolvedValue({ userId: "u1" });

@@ -7,11 +7,11 @@ import { parseRole, parseRoleConflict, resolvePostLoginPath } from "@/lib/roles"
 import { getSession } from "@/lib/session";
 
 export const metadata: Metadata = {
-  title: "Masuk",
+  title: "Daftar",
 };
 
-export default async function LoginPage({ searchParams }: PageProps<"/login">) {
-  const { next, error, notice } = await searchParams;
+export default async function RegisterPage({ searchParams }: PageProps<"/register">) {
+  const { next, error } = await searchParams;
   const nextPath = resolvePostLoginPath("PARTICIPANT", next, true);
 
   const session = await getSession();
@@ -21,12 +21,12 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     <AuthScreen
       role="PARTICIPANT"
-      mode="login"
-      path="/login"
+      mode="register"
+      path="/register"
       next={nextPath}
       conflict={sessionRole === "ORGANIZER" ? "role-organizer" : parseRoleConflict(error)}
       disabled={error === "disabled"}
-      notice={parseAuthNotice(error, notice)}
+      notice={parseAuthNotice(error)}
     />
   );
 }

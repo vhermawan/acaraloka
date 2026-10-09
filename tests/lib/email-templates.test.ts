@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { APP_NAME } from "@/lib/brand";
 import {
+  accountExistsEmail,
   certificateIssuedEmail,
   eventCancelledEmail,
+  resetPasswordEmail,
   signerInviteEmail,
   ticketConfirmedEmail,
+  verifyEmail,
 } from "@/lib/email-notifications";
 import type { OutboxItem } from "@/lib/email-outbox";
 import { escapeHtml, parseEmailMessage, renderEmail } from "@/lib/email-templates";
@@ -82,5 +85,55 @@ describe("notification builders", () => {
 describe("escapeHtml", () => {
   it("escapes quotes and angle brackets", () => {
     expect(escapeHtml(`<a href="x">'</a>`)).toBe("&lt;a href=&quot;x&quot;&gt;&#39;&lt;/a&gt;");
+  });
+});
+
+describe("auth emails", () => {
+  const user = { id: "u1", name: "Sari <Admin>", email: "sari@contoh.test" };
+  const at = new Date("2026-10-09T10:00:30Z");
+  const verifyUrl = "http://localhost:3000/api/auth/verify-email?token=abc.def.ghi&callbackURL=%2Fauth%2Fcontinue";
+  const resetUrl = "http://localhost:3000/api/auth/reset-password/tok123?callbackURL=%2Freset-password";
+
+  it("renders Indonesian copy with absolute links and escaped names", () => {
+    const verify = renderEmail(verifyEmail(user, verifyUrl, at), BASE_URL);
+    expect(verify.subject).toBe("Verifikasi email akun Acaraloka");
+    expect(verify.text).toContain(`${BASE_URL}/api/auth/verify-email?token=abc.def.ghi&callbackURL=%2Fauth%2Fcontinue`);
+    expect(verify.text).toContain("24 jam");
+    expect(verify.html).toContain("Sari &lt;Admin&gt;");
+    expect(verify.html).not.toContain("<Admin>");
+
+    const reset = renderEmail(resetPasswordEmail(user, resetUrl, at), BASE_URL);
+    expect(reset.text).toContain(`${BASE_URL}/api/auth/reset-password/tok123?callbackURL=%2Freset-password`);
+    expect(reset.text).toContain("1 jam");
+  });
+
+  it("explains how to sign in when the account already exists", () => {
+    const google = renderEmail(accountExistsEmail(user, { reason: "reset", method: "google", loginPath: "/login" }, at), BASE_URL);
+    expect(google.text).toContain("masuk lewat Google dan tidak memakai password");
+    expect(google.text).toContain(`${BASE_URL}/login`);
+    const password = renderEmail(
+      accountExistsEmail(user, { reason: "signup", method: "password", loginPath: "/organizer/login" }, at),
+      BASE_URL,
+    );
+    expect(password.text).toContain("Lupa password");
+    expect(password.text).toContain(`${BASE_URL}/organizer/login`);
+  });
+
+  it("uses top priority and per-window dedupe keys so resending still works", () => {
+    const first = verifyEmail(user, verifyUrl, at);
+    const sameMinute = verifyEmail(user, verifyUrl, new Date(at.getTime() + 20_000));
+    const nextMinute = verifyEmail(user, verifyUrl, new Date(at.getTime() + 60_000));
+    expect(first.priority).toBe(0);
+    expect(sameMinute.dedupeKey).toBe(first.dedupeKey);
+    expect(nextMinute.dedupeKey).not.toBe(first.dedupeKey);
+    expect(resetPasswordEmail(user, resetUrl, at).priority).toBe(0);
+    expect(accountExistsEmail(user, { reason: "signup", method: "google", loginPath: "/login" }, at).priority).toBe(0);
+  });
+
+  it("keeps the token out of anything but the payload path", () => {
+    const item = verifyEmail(user, verifyUrl, at);
+    expect(item.dedupeKey).not.toContain("abc.def.ghi");
+    expect(item.payload).toEqual({ name: user.name, verifyPath: "/api/auth/verify-email?token=abc.def.ghi&callbackURL=%2Fauth%2Fcontinue" });
+    expect(parseEmailMessage(item.template, item.payload)).not.toBeNull();
   });
 });
