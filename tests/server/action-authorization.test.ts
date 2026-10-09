@@ -176,7 +176,7 @@ describe("with a disabled account", () => {
     mocks.getSession.mockResolvedValue(session({ disabledAt: new Date() }));
   });
 
-  it.each([...organizerActions, ...participantOnlyActions, ...signedInActions.slice(0, 2)])(
+  it.each([...organizerActions, ...participantOnlyActions, ...signedInActions])(
     "%s is refused and changes nothing",
     async (_name, call) => {
       await expect(call()).rejects.toThrow(/error=disabled/);

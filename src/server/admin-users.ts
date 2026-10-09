@@ -160,7 +160,10 @@ export async function disableUser(
       where: { id: input.userId, disabledAt: null, role: { not: "ADMIN" } },
       data: { disabledAt: new Date() },
     });
-    if (updated.count === 0) return { ok: false, reason: "ALREADY_DISABLED" } as const;
+    if (updated.count === 0) {
+      const current = await tx.user.findUnique({ where: { id: input.userId }, select: { role: true } });
+      return { ok: false, reason: current?.role === "ADMIN" ? "ADMIN_TARGET" : "ALREADY_DISABLED" } as const;
+    }
 
     const revoked = await tx.session.deleteMany({ where: { userId: input.userId } });
     await tx.auditLog.create({

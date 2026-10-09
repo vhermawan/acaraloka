@@ -10,6 +10,7 @@ import { prisma } from "@/server/db";
 export async function acceptTerms(formData: FormData) {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (session.user.disabledAt) redirect("/login?error=disabled");
 
   await prisma.user.update({
     where: { id: session.user.id },
