@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Lock } from "lucide-react";
 
+import { BackgroundPanel } from "@/components/certificate/background-panel";
 import { CertificateLayoutEditor } from "@/components/certificate/certificate-layout-editor";
 import { CertificateStep } from "@/components/certificate/certificate-step";
 import { IssuedList } from "@/components/certificate/issued-list";
@@ -54,6 +55,7 @@ export default async function CertificatePage({ params }: PageProps<"/organizer/
   const locked = config.lockedAt !== null;
   const everIssued = config.firstIssuedAt !== null;
   const closed = event.status === "CANCELLED" || event.status === "DISABLED";
+  const hasBackground = config.templateSource === "UPLOAD" && config.backgroundPath !== null;
   const signedCount = signers.filter((signer) => signer.status === "SIGNED").length;
 
   const designStatus = locked
@@ -93,11 +95,19 @@ export default async function CertificatePage({ params }: PageProps<"/organizer/
         }
         aside={locked && !everIssued && !closed ? <UnlockDesignButton eventId={event.id} /> : null}
       >
+        <BackgroundPanel eventId={event.id} hasBackground={hasBackground} locked={locked} closed={closed} />
         <CertificateLayoutEditor
           eventId={event.id}
           initialLayout={config.layout}
           signers={signers.map((signer) => ({ name: signer.name, title: signer.title }))}
           locked={locked}
+          pageWidth={config.pageWidth}
+          pageHeight={config.pageHeight}
+          backgroundUrl={
+            hasBackground
+              ? `/organizer/events/${event.id}/certificate/background?v=${encodeURIComponent(config.backgroundPath ?? "")}`
+              : null
+          }
         />
       </CertificateStep>
 

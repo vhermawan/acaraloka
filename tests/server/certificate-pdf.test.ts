@@ -1,4 +1,4 @@
-import { PDFDict, PDFDocument, PDFName, StandardFonts } from "pdf-lib";
+import { PDFArray, PDFDict, PDFDocument, PDFName, PDFRawStream, StandardFonts, decodePDFRawStream } from "pdf-lib";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -8,8 +8,15 @@ import {
   type BorderKey,
   type CertificateTheme,
 } from "@/lib/certificate-layout";
+import { pageSizeFor } from "@/lib/certificate-background";
 import { loadThemeFonts } from "@/server/certificate-fonts";
-import { fitFontSize, renderCertificatePdf, sanitizeForFont } from "@/server/certificate-pdf";
+import {
+  DEFAULT_TEMPLATE,
+  fitFontSize,
+  renderCertificatePdf,
+  sanitizeForFont,
+  type CertificateTemplate,
+} from "@/server/certificate-pdf";
 
 const PNG_1X1 = Uint8Array.from(
   atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="),
@@ -152,5 +159,63 @@ describe("text helpers", () => {
     expect(size).toBeLessThan(36);
     expect(size).toBeGreaterThanOrEqual(16);
     expect(fitFontSize("Ani", font, 36, 600, 16)).toBe(36);
+  });
+});
+
+function hex(text: string) {
+  return [...text].map((char) => char.charCodeAt(0).toString(16).padStart(2, "0")).join("").toUpperCase();
+}
+
+async function pageContent(bytes: Uint8Array): Promise<string> {
+  const pdf = await PDFDocument.load(bytes);
+  const contents = pdf.getPage(0).node.Contents();
+  const refs = contents instanceof PDFArray ? contents.asArray() : [];
+  const chunks = refs.map((ref) => {
+    const stream = pdf.context.lookup(ref);
+    return stream instanceof PDFRawStream ? Buffer.from(decodePDFRawStream(stream).decode()).toString("latin1") : "";
+  });
+  return chunks.join("\n").toUpperCase();
+}
+
+function uploadTemplate(format: "a4" | "wide"): CertificateTemplate {
+  const { width, height } = pageSizeFor(format);
+  return { pageWidth: width, pageHeight: height, background: { bytes: PNG_1X1, path: "events/e1/abc.png" } };
+}
+
+describe("uploaded background", () => {
+  it.each([
+    ["a4", 842, 595],
+    ["wide", 842, 474],
+  ] as const)("renders a %s page with the background and without the built-in heading", async (format, width, height) => {
+    const layout = defaultCertificateLayout(1);
+    const withBackground = await renderCertificatePdf(layout, data, { template: uploadTemplate(format) });
+    const pdf = await PDFDocument.load(withBackground);
+    expect(pdf.getPageCount()).toBe(1);
+    const size = pdf.getPage(0).getSize();
+    expect(Math.round(size.width)).toBe(width);
+    expect(Math.round(size.height)).toBe(height);
+
+    const content = await pageContent(withBackground);
+    expect(content).toContain(hex(data.recipientName));
+    expect(content).toContain(hex("Diberikan kepada"));
+    expect(content).not.toContain(hex("SERTIFIKAT"));
+
+    const builtin = await pageContent(await renderCertificatePdf(layout, data));
+    expect(builtin).toContain(hex("SERTIFIKAT"));
+  });
+
+  it("hides labels that are blank and applies custom colors", async () => {
+    const layout = defaultCertificateLayout(1);
+    layout.labels.recipientPrefix = { text: "  ", color: null };
+    layout.labels.eventPrefix = { text: "Telah mengikuti", color: "#ff0000" };
+    const content = await pageContent(await renderCertificatePdf(layout, data, { template: uploadTemplate("a4") }));
+    expect(content).not.toContain(hex("Diberikan kepada"));
+    expect(content).toContain(hex("Telah mengikuti"));
+    expect(content).toContain("1 0 0 RG");
+  });
+
+  it("keeps the default A4 template when none is given", async () => {
+    const pdf = await PDFDocument.load(await renderCertificatePdf(defaultCertificateLayout(1), data, { template: DEFAULT_TEMPLATE }));
+    expect(Math.round(pdf.getPage(0).getSize().height)).toBe(595);
   });
 });

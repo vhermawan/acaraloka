@@ -1,16 +1,30 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
+
 import { revalidatePath } from "next/cache";
 
 import { ISSUE_BLOCKER_MESSAGES } from "@/lib/certificate-issue";
+import {
+  BACKGROUND_CONTENT_TYPES,
+  validateBackgroundDimensions,
+  validateBackgroundFile,
+  type BackgroundContentType,
+} from "@/lib/certificate-background";
 import { certificateLayoutSchema } from "@/lib/certificate-layout";
 import { env } from "@/lib/env";
 import { revokeReasonSchema } from "@/lib/validation/certificate";
 import { signerSchema } from "@/lib/validation/signer";
 import { requireEventOwner } from "@/server/authz";
 import { scheduleEmailDrain } from "@/server/email-schedule";
-import { saveCertificateLayout } from "@/server/certificate-config";
+import {
+  clearCertificateBackground,
+  getOrCreateCertificateConfig,
+  saveCertificateLayout,
+  setCertificateBackground,
+} from "@/server/certificate-config";
 import { issueCertificates, revokeCertificate } from "@/server/certificates";
+import { CERTIFICATE_BACKGROUND_BUCKET, createSignedUploadUrl, removeObjects } from "@/server/storage";
 import { addSigner, regenerateSignerLink, removeSigner, unlockCertificate } from "@/server/signers";
 
 export async function saveLayout(eventId: string, layout: unknown): Promise<{ error?: string }> {
@@ -26,14 +40,69 @@ export async function saveLayout(eventId: string, layout: unknown): Promise<{ er
   return {};
 }
 
+const CLOSED_STATUSES = new Set(["CANCELLED", "DISABLED"]);
+
+const BACKGROUND_LOCKED_MESSAGE = "Desain sudah terkunci. Buka kunci dulu untuk mengubah gambar latar.";
+
+export async function createBackgroundUpload(
+  eventId: string,
+  file: { contentType: string; size: number; width: number; height: number },
+): Promise<{ uploadUrl: string; path: string } | { error: string }> {
+  const { event } = await requireEventOwner(eventId);
+  if (CLOSED_STATUSES.has(event.status)) return { error: "Acara ini sudah ditutup." };
+  const config = await getOrCreateCertificateConfig(event.id);
+  if (config.lockedAt) return { error: BACKGROUND_LOCKED_MESSAGE };
+
+  const invalid = validateBackgroundFile(file.contentType, file.size);
+  if (invalid) return { error: invalid };
+  const dimensions = validateBackgroundDimensions(file.width, file.height);
+  if (!dimensions.ok) return { error: dimensions.error };
+
+  const extension = BACKGROUND_CONTENT_TYPES[file.contentType as BackgroundContentType];
+  const path = `events/${event.id}/${randomBytes(8).toString("hex")}.${extension}`;
+  const uploadUrl = await createSignedUploadUrl(CERTIFICATE_BACKGROUND_BUCKET, path);
+  return { uploadUrl, path };
+}
+
+export async function applyBackground(
+  eventId: string,
+  path: string,
+  width: number,
+  height: number,
+): Promise<{ error?: string }> {
+  const { event } = await requireEventOwner(eventId);
+  if (CLOSED_STATUSES.has(event.status)) return { error: "Acara ini sudah ditutup." };
+  if (!path.startsWith(`events/${event.id}/`) || path.includes("..")) return { error: "Berkas gambar latar tidak valid." };
+  const dimensions = validateBackgroundDimensions(width, height);
+  if (!dimensions.ok) return { error: dimensions.error };
+
+  const result = await setCertificateBackground(event.id, { path, format: dimensions.format });
+  if (!result.ok) {
+    await removeObjects(CERTIFICATE_BACKGROUND_BUCKET, [path]).catch(() => undefined);
+    return { error: BACKGROUND_LOCKED_MESSAGE };
+  }
+
+  revalidatePath(`/organizer/events/${event.id}/certificate`);
+  return {};
+}
+
+export async function removeBackground(eventId: string): Promise<{ error?: string }> {
+  const { event } = await requireEventOwner(eventId);
+  if (CLOSED_STATUSES.has(event.status)) return { error: "Acara ini sudah ditutup." };
+
+  const result = await clearCertificateBackground(event.id);
+  if (!result.ok) return { error: BACKGROUND_LOCKED_MESSAGE };
+
+  revalidatePath(`/organizer/events/${event.id}/certificate`);
+  return {};
+}
+
 export type SignerFormState = {
   errors?: Partial<Record<"name" | "title" | "email", string[]>>;
   message?: string;
   values?: Record<string, string>;
   link?: { signerName: string; url: string; issuedAt: number; emailedTo?: string };
 };
-
-const CLOSED_STATUSES = new Set(["CANCELLED", "DISABLED"]);
 
 function signLink(token: string) {
   return new URL(`/sign/${token}`, env.APP_BASE_URL).toString();

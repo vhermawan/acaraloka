@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   certificateLayoutSchema,
   clampCoordinate,
+  LABEL_MAX_LENGTH,
   defaultCertificateLayout,
   parseCertificateLayout,
   signerSlots,
@@ -42,6 +43,38 @@ describe("certificate theme", () => {
     for (const theme of bad) {
       expect(certificateLayoutSchema.safeParse({ ...base, theme }).success).toBe(false);
     }
+  });
+});
+
+describe("labels and colors", () => {
+  it("fills default labels and null colors for layouts saved before they existed", () => {
+    const source = defaultCertificateLayout(2);
+    const legacy = JSON.parse(JSON.stringify(source)) as Record<string, Record<string, unknown>>;
+    delete legacy.labels;
+    for (const key of ["recipientName", "eventTitle", "eventDate", "certificateNumber"]) delete legacy[key].color;
+    const parsed = parseCertificateLayout(legacy);
+    expect(parsed).toEqual(source);
+    expect(parsed.labels.heading).toEqual({ text: "SERTIFIKAT", color: null });
+    expect(parsed.recipientName.color).toBeNull();
+  });
+
+  it("accepts blank labels and hex colors", () => {
+    const layout = defaultCertificateLayout();
+    layout.labels.recipientPrefix.text = "";
+    layout.recipientName.color = "#A1b2C3";
+    expect(certificateLayoutSchema.safeParse(layout).success).toBe(true);
+  });
+
+  it("rejects invalid colors and over-long labels", () => {
+    const badColor = defaultCertificateLayout();
+    badColor.eventDate.color = "red";
+    expect(certificateLayoutSchema.safeParse(badColor).success).toBe(false);
+    const shortHex = defaultCertificateLayout();
+    shortHex.labels.heading.color = "#fff";
+    expect(certificateLayoutSchema.safeParse(shortHex).success).toBe(false);
+    const long = defaultCertificateLayout();
+    long.labels.eventPrefix.text = "x".repeat(LABEL_MAX_LENGTH + 1);
+    expect(certificateLayoutSchema.safeParse(long).success).toBe(false);
   });
 });
 

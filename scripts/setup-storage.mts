@@ -24,6 +24,13 @@ const buckets = [
     file_size_limit: 300 * 1024,
     allowed_mime_types: ["image/png"],
   },
+  {
+    id: "certificate-backgrounds",
+    name: "certificate-backgrounds",
+    public: false,
+    file_size_limit: 3 * 1024 * 1024,
+    allowed_mime_types: ["image/jpeg", "image/png"],
+  },
 ];
 
 const headers = { Authorization: `Bearer ${key}`, apikey: key, "Content-Type": "application/json" };

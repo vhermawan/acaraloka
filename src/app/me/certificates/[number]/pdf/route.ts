@@ -12,7 +12,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/me/certi
   const certificate = await getUserCertificateRenderData(session.user.id, number);
   if (!certificate) notFound();
 
-  const pdf = await renderCertificatePdf(certificate.layout, certificate.data);
+  const pdf = await renderCertificatePdf(certificate.layout, certificate.data, { template: certificate.template });
   const filename = `sertifikat-${certificate.data.certificateNumber}.pdf`.replace(/[^A-Za-z0-9._-]/g, "_");
 
   return new Response(Buffer.from(pdf), {

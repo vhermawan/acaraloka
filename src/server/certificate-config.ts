@@ -11,8 +11,10 @@ import {
 } from "@/lib/certificate-layout";
 import { CERTIFICATE_NUMBER_PREFIX } from "@/lib/brand";
 import { env } from "@/lib/env";
-import type { CertificateRenderData } from "@/server/certificate-pdf";
+import { pageSizeFor, type PageFormatKey } from "@/lib/certificate-background";
+import type { CertificateRenderData, CertificateTemplate } from "@/server/certificate-pdf";
 import { prisma } from "@/server/db";
+import { CERTIFICATE_BACKGROUND_BUCKET, downloadObject, removeObjects } from "@/server/storage";
 
 export async function getOrCreateCertificateConfig(eventId: string, db: PrismaClient = prisma) {
   const existing = await db.certificateConfig.findUnique({ where: { eventId } });
@@ -48,6 +50,56 @@ export async function saveCertificateLayout(
     data: { layout: layout as Prisma.InputJsonValue },
   });
   return updated.count === 1;
+}
+
+export type BackgroundChange = { ok: true } | { ok: false; reason: "LOCKED" };
+
+export async function setCertificateBackground(
+  eventId: string,
+  input: { path: string; format: PageFormatKey },
+  db: PrismaClient = prisma,
+): Promise<BackgroundChange> {
+  const current = await getOrCreateCertificateConfig(eventId, db);
+  const { width, height } = pageSizeFor(input.format);
+  const updated = await db.certificateConfig.updateMany({
+    where: { eventId, lockedAt: null },
+    data: { templateSource: "UPLOAD", backgroundPath: input.path, pageWidth: width, pageHeight: height },
+  });
+  if (updated.count !== 1) return { ok: false, reason: "LOCKED" };
+  if (current.backgroundPath && current.backgroundPath !== input.path) {
+    await removeObjects(CERTIFICATE_BACKGROUND_BUCKET, [current.backgroundPath]).catch(() => undefined);
+  }
+  return { ok: true };
+}
+
+export async function clearCertificateBackground(eventId: string, db: PrismaClient = prisma): Promise<BackgroundChange> {
+  const current = await getOrCreateCertificateConfig(eventId, db);
+  const { width, height } = pageSizeFor("a4");
+  const updated = await db.certificateConfig.updateMany({
+    where: { eventId, lockedAt: null },
+    data: { templateSource: "BUILTIN", backgroundPath: null, pageWidth: width, pageHeight: height },
+  });
+  if (updated.count !== 1) return { ok: false, reason: "LOCKED" };
+  if (current.backgroundPath) {
+    await removeObjects(CERTIFICATE_BACKGROUND_BUCKET, [current.backgroundPath]).catch(() => undefined);
+  }
+  return { ok: true };
+}
+
+export async function loadCertificateTemplate(config: {
+  templateSource: string;
+  backgroundPath: string | null;
+  pageWidth: number;
+  pageHeight: number;
+}): Promise<CertificateTemplate> {
+  const background =
+    config.templateSource === "UPLOAD" && config.backgroundPath
+      ? {
+          path: config.backgroundPath,
+          bytes: await downloadObject(CERTIFICATE_BACKGROUND_BUCKET, config.backgroundPath),
+        }
+      : null;
+  return { pageWidth: config.pageWidth, pageHeight: config.pageHeight, background };
 }
 
 export function formatCertificateDate(date: Date, timezone: string): string {

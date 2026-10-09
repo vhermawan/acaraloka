@@ -4,6 +4,7 @@ import { env } from "@/lib/env";
 
 export const POSTER_BUCKET = "posters";
 export const SIGNATURE_BUCKET = "signatures";
+export const CERTIFICATE_BACKGROUND_BUCKET = "certificate-backgrounds";
 
 function storageConfig() {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {

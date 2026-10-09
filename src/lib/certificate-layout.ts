@@ -6,15 +6,29 @@ export const PAGE_HEIGHT = 595.28;
 export const MAX_SIGNERS = 3;
 export const NUDGE_STEP = 0.01;
 
+export const LABEL_MAX_LENGTH = 80;
+export const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+
 const coordinate = z.number().min(0).max(1);
 const align = z.enum(["left", "center", "right"]);
+const hexColor = z.string().regex(HEX_COLOR_PATTERN);
 
 const textElement = z.object({
   x: coordinate,
   y: coordinate,
   fontSize: z.number().int().min(8).max(72),
   align,
+  color: hexColor.nullable().default(null),
 });
+
+function labelElement(text: string) {
+  return z
+    .object({
+      text: z.string().max(LABEL_MAX_LENGTH).default(text),
+      color: hexColor.nullable().default(null),
+    })
+    .prefault({});
+}
 
 const signerBlock = z.object({
   x: coordinate,
@@ -86,8 +100,29 @@ const themeSchema = z.object({
     .prefault({}),
 });
 
+export const DEFAULT_LABEL_TEXTS = {
+  heading: "SERTIFIKAT",
+  recipientPrefix: "Diberikan kepada",
+  eventPrefix: "atas partisipasinya sebagai peserta dalam",
+} as const;
+
+export type LabelKey = keyof typeof DEFAULT_LABEL_TEXTS;
+
+export const LABEL_TITLES: Record<LabelKey, string> = {
+  heading: "Judul sertifikat",
+  recipientPrefix: "Teks di atas nama peserta",
+  eventPrefix: "Teks di atas nama acara",
+};
+
 export const certificateLayoutSchema = z.object({
   theme: themeSchema.prefault({}),
+  labels: z
+    .object({
+      heading: labelElement(DEFAULT_LABEL_TEXTS.heading),
+      recipientPrefix: labelElement(DEFAULT_LABEL_TEXTS.recipientPrefix),
+      eventPrefix: labelElement(DEFAULT_LABEL_TEXTS.eventPrefix),
+    })
+    .prefault({}),
   recipientName: textElement,
   certificateNumber: textElement,
   eventTitle: textElement,
@@ -99,6 +134,7 @@ export const certificateLayoutSchema = z.object({
 export type CertificateLayout = z.infer<typeof certificateLayoutSchema>;
 export type CertificateTheme = CertificateLayout["theme"];
 export type TextElementKey = "recipientName" | "certificateNumber" | "eventTitle" | "eventDate";
+export type CertificateLabels = CertificateLayout["labels"];
 export type TextAlign = z.infer<typeof align>;
 
 export const TEXT_ELEMENT_LABELS: Record<TextElementKey, string> = {
@@ -117,14 +153,23 @@ export function defaultCertificateTheme(): CertificateTheme {
   return { border: "classic", accent: "teal", fonts: { heading: "times", name: "times", body: "helvetica" } };
 }
 
+export function defaultCertificateLabels(): CertificateLabels {
+  return {
+    heading: { text: DEFAULT_LABEL_TEXTS.heading, color: null },
+    recipientPrefix: { text: DEFAULT_LABEL_TEXTS.recipientPrefix, color: null },
+    eventPrefix: { text: DEFAULT_LABEL_TEXTS.eventPrefix, color: null },
+  };
+}
+
 export function defaultCertificateLayout(signerCount = 1): CertificateLayout {
   const slots = signerSlots(signerCount);
   return {
     theme: defaultCertificateTheme(),
-    recipientName: { x: 0.5, y: 0.45, fontSize: 36, align: "center" },
-    eventTitle: { x: 0.5, y: 0.56, fontSize: 16, align: "center" },
-    eventDate: { x: 0.5, y: 0.61, fontSize: 12, align: "center" },
-    certificateNumber: { x: 0.5, y: 0.31, fontSize: 10, align: "center" },
+    labels: defaultCertificateLabels(),
+    recipientName: { x: 0.5, y: 0.45, fontSize: 36, align: "center", color: null },
+    eventTitle: { x: 0.5, y: 0.56, fontSize: 16, align: "center", color: null },
+    eventDate: { x: 0.5, y: 0.61, fontSize: 12, align: "center", color: null },
+    certificateNumber: { x: 0.5, y: 0.31, fontSize: 10, align: "center", color: null },
     signers: Array.from({ length: MAX_SIGNERS }, (_, index) => ({
       x: slots[index] ?? signerSlots(index + 1)[index],
       y: 0.8,

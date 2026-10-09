@@ -1,5 +1,5 @@
 import { requireEventOwner } from "@/server/authz";
-import { getOrCreateCertificateConfig, sampleRenderData } from "@/server/certificate-config";
+import { getOrCreateCertificateConfig, loadCertificateTemplate, sampleRenderData } from "@/server/certificate-config";
 import { renderCertificatePdf } from "@/server/certificate-pdf";
 import { loadSignerRenderData } from "@/server/signers";
 
@@ -13,6 +13,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/organize
 
   const pdf = await renderCertificatePdf(config.layout, sampleRenderData(event, organizer.orgName, signers), {
     watermark: "PRATINJAU",
+    template: await loadCertificateTemplate(config),
   });
 
   return new Response(Buffer.from(pdf), {

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { getOrCreateCertificateConfig, sampleRenderData } from "@/server/certificate-config";
+import { getOrCreateCertificateConfig, loadCertificateTemplate, sampleRenderData } from "@/server/certificate-config";
 import { renderCertificatePdf } from "@/server/certificate-pdf";
 import { canSign, findSignerByToken, loadSignerRenderData } from "@/server/signers";
 
@@ -16,7 +16,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/sign/[to
   const pdf = await renderCertificatePdf(
     config.layout,
     sampleRenderData(signer.event, signer.event.organizer.orgName, signers),
-    { watermark: "PRATINJAU" },
+    { watermark: "PRATINJAU", template: await loadCertificateTemplate(config) },
   );
 
   return new Response(Buffer.from(pdf), {
