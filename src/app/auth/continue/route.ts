@@ -22,7 +22,10 @@ export async function GET(request: NextRequest) {
   if (!session) redirect(loginPath);
 
   const { user } = session;
-  if (user.disabledAt) redirect(`${loginPath}?error=disabled`);
+  if (user.disabledAt) {
+    await auth.api.signOut({ headers: await headers() });
+    redirect(`${loginPath}?error=disabled`);
+  }
 
   const conflict = detectRoleConflict(parseRole(user.role), intent);
   if (conflict) {

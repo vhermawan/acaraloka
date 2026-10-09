@@ -95,5 +95,6 @@ describe("GET /auth/continue", () => {
     await expect(GET(request("intent=organizer"))).rejects.toThrow("REDIRECT:/organizer/login");
     mocks.getSession.mockResolvedValue(sessionFor({ disabledAt: new Date() }));
     await expect(GET(request("intent=participant"))).rejects.toThrow("REDIRECT:/login?error=disabled");
+    expect(mocks.signOut).toHaveBeenCalledTimes(1);
   });
 });

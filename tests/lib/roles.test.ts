@@ -81,6 +81,8 @@ describe("resolvePostLoginPath", () => {
   it("sends participants to the origin page or their tickets", () => {
     expect(resolvePostLoginPath("PARTICIPANT", undefined, true)).toBe("/me/tickets");
     expect(resolvePostLoginPath("PARTICIPANT", "/e/abc/register", true)).toBe("/e/abc/register");
+    expect(resolvePostLoginPath("PARTICIPANT", "/\t/evil.com", true)).toBe("/me/tickets");
+    expect(resolvePostLoginPath("ORGANIZER", "/organizer/\t/x", true)).toBe("/organizer");
     expect(resolvePostLoginPath("PARTICIPANT", "//evil.com", true)).toBe("/me/tickets");
     expect(resolvePostLoginPath("PARTICIPANT", "/organizer/events", true)).toBe("/me/tickets");
   });

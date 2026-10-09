@@ -1,3 +1,5 @@
+import { isSafeRedirectPath } from "@/lib/safe-redirect";
+
 export const USER_ROLES = ["PARTICIPANT", "ORGANIZER"] as const;
 
 export type UserRole = (typeof USER_ROLES)[number];
@@ -55,17 +57,13 @@ export function resolveNewUserRole(oauthState: Record<string, unknown> | null | 
 export function resolvePostLoginPath(role: UserRole, next: unknown, hasProfile: boolean) {
   const fallback = homePathFor(role);
   if (role === "ORGANIZER") {
-    const path = typeof next === "string" && isOrganizerPath(next) ? next : fallback;
+    const path = isSafeRedirectPath(next) && isOrganizerPath(next) ? next : fallback;
     return hasProfile ? path : `/organizer/register?next=${encodeURIComponent(path)}`;
   }
-  const path = typeof next === "string" && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : fallback;
+  const path = isSafeRedirectPath(next) ? next : fallback;
   return isOrganizerPath(path) ? fallback : path;
 }
 
 function isOrganizerPath(path: string) {
-  return (
-    (path === "/organizer" || path.startsWith("/organizer/") || path.startsWith("/organizer?")) &&
-    !path.startsWith("//") &&
-    !path.startsWith("/\\")
-  );
+  return path === "/organizer" || path.startsWith("/organizer/") || path.startsWith("/organizer?");
 }
