@@ -79,9 +79,9 @@ export default async function PublicEventPage({ params }: PageProps<"/e/[slug]">
             <dt className="text-muted-foreground">Selesai</dt>
             <dd>{formatEventDateTime(event.endAt, event.timezone)}</dd>
             <dt className="text-muted-foreground">Lokasi</dt>
-            <dd className="break-words">{event.venue}</dd>
+            <dd className="wrap-break-word">{event.venue}</dd>
           </dl>
-          <div className="text-pretty text-sm leading-relaxed whitespace-pre-line">{event.description}</div>
+          <div className="text-pretty text-sm/relaxed whitespace-pre-line">{event.description}</div>
         </article>
 
         <aside className="flex h-fit flex-col gap-4 rounded-lg border border-border p-4 lg:sticky lg:top-6">

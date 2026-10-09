@@ -12,7 +12,7 @@ export default async function NewEventPage() {
   await requireOrganizer();
 
   return (
-    <div className="flex max-w-[640px] flex-col gap-8">
+    <div className="flex max-w-160 flex-col gap-8">
       <header className="flex flex-col gap-1">
         <h1 className="text-balance text-2xl/8 font-bold tracking-tight">Buat acara</h1>
         <p className="text-sm text-muted-foreground">

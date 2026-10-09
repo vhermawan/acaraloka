@@ -167,7 +167,7 @@ function DateTimePicker({
           id={id}
           aria-invalid={invalid || undefined}
           aria-describedby={describedBy}
-          className="flex h-10 w-full min-w-0 items-center gap-2.5 rounded-lg border border-input bg-transparent px-3 text-left text-sm transition-colors outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-[popup-open]:border-ring dark:bg-input/30"
+          className="flex h-10 w-full min-w-0 items-center gap-2.5 rounded-lg border border-input bg-transparent px-3 text-left text-sm transition-colors outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-popup-open:border-ring dark:bg-input/30"
         >
           <CalendarDays className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
           <span className={cn("min-w-0 flex-1 truncate tabular-nums", !summary && "text-muted-foreground")}>
@@ -275,7 +275,7 @@ function DateTimePicker({
                       ref={timeListRef}
                       role="group"
                       aria-label="Jam"
-                      className="flex gap-1 overflow-x-auto px-3 pb-3 sm:h-[19rem] sm:flex-col sm:overflow-x-visible sm:overflow-y-auto"
+                      className="flex gap-1 overflow-x-auto px-3 pb-3 sm:h-76 sm:flex-col sm:overflow-x-visible sm:overflow-y-auto"
                     >
                       {slots.map((time) => {
                         const isSelected = selected?.time === time;

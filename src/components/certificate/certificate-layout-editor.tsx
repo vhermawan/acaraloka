@@ -222,7 +222,7 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
             </>
           ) : null}
           <p
-            className="pointer-events-none absolute left-1/2 top-[19%] -translate-x-1/2 -translate-y-1/2"
+            className="pointer-events-none absolute left-1/2 top-[19%] -translate-1/2"
             style={{ fontSize: `${38 * scale}cqw`, color: accent, ...headingFont }}
           >
             SERTIFIKAT
@@ -290,7 +290,7 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
             aria-label="Pilih QR verifikasi"
             aria-pressed={selection.kind === "qr"}
             className={cn(
-              "absolute -translate-x-1/2 -translate-y-1/2 bg-neutral-200 outline-offset-2",
+              "absolute -translate-1/2 bg-neutral-200 outline-offset-2",
               selection.kind === "qr" ? "outline-2 outline-primary" : "outline-1 outline-dashed outline-neutral-400",
             )}
             style={{

@@ -68,7 +68,7 @@ function EventGroup({ title, events }: { title: string; events: EventRow[] }) {
           <li key={event.id}>
             <Link
               href={`/organizer/events/${event.id}`}
-              className="group flex items-center gap-4 rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/30 hover:bg-primary/[0.03] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="group flex items-center gap-4 rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/30 hover:bg-primary/3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               <EventThumbnail posterPath={event.posterPath} />
               <div className="flex min-w-0 flex-1 flex-col items-start gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">

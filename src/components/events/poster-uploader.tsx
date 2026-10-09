@@ -56,7 +56,7 @@ function PosterUploader({ eventId, posterUrl, disabled }: PosterUploaderProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative flex aspect-[4/5] w-full max-w-60 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted lg:max-w-none">
+      <div className="relative flex aspect-4/5 w-full max-w-60 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted lg:max-w-none">
         {posterUrl ? (
           <Image
             src={posterUrl}

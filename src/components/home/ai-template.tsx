@@ -12,28 +12,28 @@ const TEMPLATES = [
 
 function AiTemplate() {
   return (
-    <section id="template" aria-labelledby="template-heading" className="scroll-mt-16 py-[72px] lg:py-[120px]">
-      <Container className="max-w-[75rem]">
+    <section id="template" aria-labelledby="template-heading" className="scroll-mt-16 py-18 lg:py-30">
+      <Container className="max-w-300">
         <div className="grid gap-10 rounded-xl bg-card p-6 ring-1 ring-primary sm:p-10 lg:grid-cols-2 lg:gap-12">
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex h-[22px] items-center rounded-full bg-primary/10 px-2.5 text-xs font-semibold text-primary">
+              <span className="inline-flex h-5.5 items-center rounded-full bg-primary/10 px-2.5 text-xs font-semibold text-primary">
                 Segera hadir
               </span>
               <span className="text-[13px] font-semibold text-muted-foreground">template sertifikat</span>
             </div>
             <h2
               id="template-heading"
-              className="text-[28px] leading-9 font-bold tracking-[-0.6px] text-balance text-foreground sm:text-[32px] sm:leading-10"
+              className="text-[28px]/9 font-bold tracking-[-0.6px] text-balance text-foreground sm:text-[32px]/10"
             >
               Tulis maunya, template sertifikat dibuatkan
             </h2>
-            <p className="text-[17px] leading-7 text-pretty text-muted-foreground">
+            <p className="text-[17px]/7 text-pretty text-muted-foreground">
               Jelaskan gaya acara kamu, lalu pilih salah satu dari tiga rancangan. Posisi nama dan tanda tangan tetap bisa kamu
               geser sendiri.
             </p>
             <div aria-hidden="true" className="flex flex-col gap-3 rounded-lg bg-card p-4 ring-1 ring-border">
-              <p className="text-[15px] leading-[26px] text-foreground">
+              <p className="text-[15px]/6.5 text-foreground">
                 Sertifikat formal untuk workshop kampus, warna hijau tua, ada tempat logo himpunan di kiri atas.
               </p>
               <div className="flex flex-wrap gap-2">

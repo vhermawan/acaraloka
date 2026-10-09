@@ -23,7 +23,7 @@ function PublishEventPanel({ eventId, checklist }: PublishEventPanelProps) {
   return (
     <section
       aria-labelledby="publish-heading"
-      className="flex flex-col gap-4 rounded-xl border border-primary/30 bg-primary/[0.03] p-5"
+      className="flex flex-col gap-4 rounded-xl border border-primary/30 bg-primary/3 p-5"
     >
       <div className="flex flex-col gap-1">
         <h2 id="publish-heading" className="text-lg/[26px] font-semibold">
@@ -37,9 +37,9 @@ function PublishEventPanel({ eventId, checklist }: PublishEventPanelProps) {
         {checklist.map((item) => (
           <li key={item.key} className="flex items-start gap-2.5">
             {item.met ? (
-              <CircleCheck className="mt-px size-[18px] shrink-0 text-success" strokeWidth={1.75} aria-hidden="true" />
+              <CircleCheck className="mt-px size-4.5 shrink-0 text-success" strokeWidth={1.75} aria-hidden="true" />
             ) : (
-              <Circle className="mt-px size-[18px] shrink-0 text-muted-foreground" strokeWidth={1.75} aria-hidden="true" />
+              <Circle className="mt-px size-4.5 shrink-0 text-muted-foreground" strokeWidth={1.75} aria-hidden="true" />
             )}
             <span className={cn(item.met ? "text-muted-foreground" : "text-foreground")}>
               <span className="sr-only">{item.met ? "Terpenuhi: " : "Belum terpenuhi: "}</span>

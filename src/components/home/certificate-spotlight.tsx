@@ -26,14 +26,14 @@ const CALLOUTS = [
 
 function CertificateMock() {
   return (
-    <div className="@container flex aspect-[840/594] w-full flex-col items-center justify-between bg-card p-[5.7cqw] ring-1 ring-border">
+    <div className="@container flex aspect-840/594 w-full flex-col items-center justify-between bg-card p-[5.7cqw] ring-1 ring-border">
       <div className="flex flex-col items-center gap-[1.4cqw]">
         <p className="pl-[1.2cqw] text-[1.9cqw] font-bold tracking-[1.2cqw] text-foreground">SERTIFIKAT</p>
         <span className="h-[0.25cqw] w-[7.6cqw] bg-primary" />
       </div>
       <div className="flex flex-col items-center gap-[1cqw] text-center">
         <p className="text-[1.8cqw] text-muted-foreground">diberikan kepada</p>
-        <p className={cn(certificateSerif.className, "text-[5.7cqw] leading-[1.25] font-semibold text-foreground")}>Rina Pratama</p>
+        <p className={cn(certificateSerif.className, "text-[5.7cqw] leading-tight font-semibold text-foreground")}>Rina Pratama</p>
         <p className="max-w-[62cqw] text-[1.8cqw] leading-[1.6] text-muted-foreground">
           atas partisipasinya sebagai Peserta dalam Workshop Desain UI Dasar, 12 Oktober 2026
         </p>
@@ -64,19 +64,19 @@ function CertificateMock() {
 
 function CertificateSpotlight() {
   return (
-    <section id="sertifikat" aria-labelledby="sertifikat-heading" className="scroll-mt-16 bg-muted py-[72px] lg:pt-[100px] lg:pb-[120px]">
-      <Container className="flex max-w-[75rem] flex-col gap-12">
+    <section id="sertifikat" aria-labelledby="sertifikat-heading" className="scroll-mt-16 bg-muted py-18 lg:pt-25 lg:pb-30">
+      <Container className="flex max-w-300 flex-col gap-12">
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-16">
           <SectionHeading id="sertifikat-heading" eyebrow="sertifikat" title="Sertifikat bertanda tangan, hanya untuk yang hadir" />
           <div className="flex flex-col gap-5">
-            <p className="text-[17px] leading-7 text-pretty text-neutral-600">
+            <p className="text-[17px]/7 text-pretty text-neutral-600">
               Nama peserta, nama acara, dan nomor sertifikat diisi dari data pendaftaran. Kamu tinggal memeriksa sekali, lalu
               terbitkan ke semua peserta yang check-in.
             </p>
             <ul className="flex flex-col gap-3">
               {CHECKS.map((item) => (
-                <li key={item} className="flex gap-3 text-[15px] leading-6 text-foreground">
-                  <Check className="mt-0.5 size-[18px] shrink-0 text-primary" strokeWidth={2} aria-hidden="true" />
+                <li key={item} className="flex gap-3 text-[15px]/6 text-foreground">
+                  <Check className="mt-0.5 size-4.5 shrink-0 text-primary" strokeWidth={2} aria-hidden="true" />
                   {item}
                 </li>
               ))}
@@ -84,13 +84,13 @@ function CertificateSpotlight() {
           </div>
         </div>
 
-        <div className="relative mx-auto w-full max-w-[840px]">
+        <div className="relative mx-auto w-full max-w-210">
           <CertificateMock />
           {CALLOUTS.map((callout) => (
             <p
               key={callout.label}
               className={cn(
-                "absolute hidden w-[150px] -translate-y-1/2 items-center gap-2.5 text-xs leading-[18px] text-neutral-600 xl:flex",
+                "absolute hidden w-37.5 -translate-y-1/2 items-center gap-2.5 text-xs/4.5 text-neutral-600 xl:flex",
                 callout.top,
                 callout.side === "left" ? "right-full mr-2.5 flex-row text-right" : "left-full ml-2.5 flex-row-reverse justify-end",
               )}
