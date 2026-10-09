@@ -28,15 +28,17 @@ Jika semua hitungan 0, tidak ada tindakan lain. Jika `acara` atau `pendaftaran` 
 
 ## Urutan rilis
 
-Kedua urutan aman, karena kolom `"isAdmin"` tidak dihapus:
+Kolom `"isAdmin"` tidak dihapus, jadi login peserta dan panitia aman di kedua urutan. Risiko selama jeda antara deploy dan migrasi:
 
-- Migrasi dulu, lalu deploy: kode lama tetap bisa membaca `"isAdmin"`. Satu-satunya efek, akun yang sudah ber-role `ADMIN` bisa gagal dibaca oleh client Prisma lama (enum tidak dikenal) selama jeda deploy. Akun peserta dan panitia tidak terpengaruh.
-- Deploy dulu, lalu migrasi: kode baru tidak memakai `"isAdmin"`. Sebelum backfill berjalan, belum ada akun ADMIN, jadi `/admin` memberi 404 untuk semua orang sampai migrasi selesai.
+- Deploy dulu, lalu migrasi (dianjurkan): kode baru tidak memakai `"isAdmin"`. Sebelum backfill berjalan belum ada akun ADMIN, jadi `/admin` memberi 404 untuk semua orang, dan pendaftaran ulang email yang belum terverifikasi bisa gagal karena nilai enum `ADMIN` belum ada di Postgres.
+- Migrasi dulu, lalu deploy: kode lama tetap bisa membaca `"isAdmin"`, tetapi akun yang sudah ber-role `ADMIN` bisa gagal dibaca oleh client Prisma lama (enum tidak dikenal) sampai kode baru live.
+
+Jalankan deploy dan migrasi berurutan dengan jeda sesingkat mungkin.
 
 Langkah yang disarankan:
 
 1. Jalankan SQL cek di atas.
-2. Terapkan migrasi dan deploy rilis ini.
+2. Deploy rilis ini, lalu segera jalankan workflow DB migrate ke production.
 3. Verifikasi: login admin di `/admin/login`, `/admin` terbuka, peserta dan panitia mendapat 404 di `/admin`, admin ditolak di `/login` dan `/organizer/login`.
 4. Rilis berikutnya (contract): migrasi `ALTER TABLE "user" DROP COLUMN "isAdmin"` dan hapus field dari `schema.prisma`. Dikerjakan sebagai todo terpisah, setelah langkah 3 terverifikasi.
 
