@@ -20,7 +20,7 @@ export default async function AdminPage() {
     {
       label: "Pengguna",
       value: number(stats.users.participants + stats.users.organizers),
-      hint: `${number(stats.users.participants)} peserta, ${number(stats.users.organizers)} panitia`,
+      hint: `${number(stats.users.participants)} peserta, ${number(stats.users.organizers)} panitia, termasuk nonaktif`,
     },
     {
       label: "Acara terbit",
@@ -45,9 +45,9 @@ export default async function AdminPage() {
       hint: `${usagePercent(stats.dbSizeBytes, stats.dbQuotaBytes)}% dari ${formatBytes(stats.dbQuotaBytes)} kuota gratis`,
     },
     {
-      label: "Email 24 jam",
+      label: "Email terpakai 24 jam",
       value: number(stats.emailsSent24h),
-      hint: `dari anggaran ${number(stats.emailBudget)}`,
+      hint: `terkirim dan sedang dikirim, dari anggaran ${number(stats.emailBudget)}`,
     },
   ];
 

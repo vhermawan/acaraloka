@@ -61,7 +61,8 @@ export async function getAdminStats(now = new Date(), db: PrismaClient = prisma)
              count(*) AS count
       FROM "user"
       WHERE role <> 'ADMIN'
-        AND "createdAt" AT TIME ZONE 'UTC' >= ${weekStart} AND "createdAt" AT TIME ZONE 'UTC' <= ${now}
+        AND "createdAt" >= (${weekStart}::timestamptz AT TIME ZONE 'UTC')
+        AND "createdAt" <= (${now}::timestamptz AT TIME ZONE 'UTC')
       GROUP BY 1`,
     db.$queryRaw<BucketRow[]>`
       SELECT to_char(date_trunc('week', published_at AT TIME ZONE 'Asia/Jakarta'), 'YYYY-MM-DD') AS bucket,

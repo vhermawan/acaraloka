@@ -45,12 +45,18 @@ export function BarChart({ title, description, unit, series, formatLabel, tickEv
                   </div>
                 ))}
               </div>
-              <div className="flex gap-0.5 text-[11px] text-muted-foreground">
-                {series.map((point, index) => (
-                  <div key={point.key} className="min-w-0 flex-1 overflow-visible whitespace-nowrap">
-                    {index % tickEvery === 0 ? formatLabel(point.key) : null}
-                  </div>
-                ))}
+              <div className="flex text-[11px] text-muted-foreground">
+                {series
+                  .filter((_, index) => index % tickEvery === 0)
+                  .map((point, tick) => (
+                    <div
+                      key={point.key}
+                      className="min-w-0 truncate pr-1"
+                      style={{ flex: `${Math.min(tickEvery, series.length - tick * tickEvery)} 1 0%` }}
+                    >
+                      {formatLabel(point.key)}
+                    </div>
+                  ))}
               </div>
             </div>
           </div>

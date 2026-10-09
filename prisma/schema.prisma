@@ -92,6 +92,7 @@ model Event {
   certificateConfig CertificateConfig?
 
   @@index([organizerId])
+  @@index([publishedAt])
   @@map("events")
 }
 
@@ -160,6 +161,7 @@ model Registration {
   @@index([userId])
   @@index([eventId, status])
   @@index([eventId, checkedInAt])
+  @@index([createdAt])
   @@map("registrations")
 }
 
@@ -296,6 +298,7 @@ model User {
   registrations    Registration[]
 
   @@unique([email])
+  @@index([createdAt])
   @@map("user")
 }
 
