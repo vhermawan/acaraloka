@@ -22,6 +22,12 @@ describe("sign-in errors", () => {
     expect("message" in failure && failure.message).toContain("Google");
   });
 
+  it("explains a disabled account", () => {
+    const failure = classifySignInError({ status: 403, code: "ACCOUNT_DISABLED" });
+    expect(failure).toMatchObject({ kind: "form" });
+    expect("message" in failure && failure.message).toContain("dinonaktifkan");
+  });
+
   it("explains rate limits for every form", () => {
     for (const classify of [classifySignInError, classifySignUpError, classifyResetError]) {
       expect(classify({ status: 429 })).toEqual({ kind: "rate-limited", message: AUTH_RATE_LIMIT_ERROR });

@@ -12,6 +12,9 @@ export type AuthFailure =
 export function classifySignInError(error: AuthClientError): AuthFailure {
   if (error?.status === 429) return { kind: "rate-limited", message: AUTH_RATE_LIMIT_ERROR };
   if (error?.code === "EMAIL_NOT_VERIFIED") return { kind: "unverified" };
+  if (error?.code === "ACCOUNT_DISABLED") {
+    return { kind: "form", message: "Akun ini dinonaktifkan. Hubungi admin jika menurutmu ini keliru." };
+  }
   if (error?.code === "INVALID_EMAIL_OR_PASSWORD") {
     return {
       kind: "form",
