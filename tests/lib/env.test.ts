@@ -12,6 +12,11 @@ const ENV_KEYS = [
   "GOOGLE_CLIENT_ID",
   "GOOGLE_CLIENT_SECRET",
   "ADMIN_EMAIL",
+  "EMAIL_ENABLED",
+  "RESEND_API_KEY",
+  "EMAIL_FROM",
+  "EMAIL_REPLY_TO",
+  "EMAIL_DAILY_BUDGET",
   "VERCEL_ENV",
   "VERCEL_URL",
 ] as const;
@@ -123,5 +128,45 @@ describe("getDatabaseUrl", () => {
     const { getDatabaseUrl } = await import("@/lib/env");
 
     expect(getDatabaseUrl()).toBe("postgresql://user:pass@localhost:5432/db");
+  });
+});
+
+describe("email env", () => {
+  it("mematikan email dan memakai anggaran 95 saat variabel kosong", async () => {
+    const { env, getEmailConfig } = await import("@/lib/env");
+
+    expect(env.EMAIL_ENABLED).toBe(false);
+    expect(env.EMAIL_DAILY_BUDGET).toBe(95);
+    expect(() => getEmailConfig()).toThrow(/EMAIL_ENABLED/);
+  });
+
+  it("melempar error saat EMAIL_ENABLED=true tanpa RESEND_API_KEY", async () => {
+    process.env.EMAIL_ENABLED = "true";
+    process.env.EMAIL_FROM = "Acaraloka <noreply@send.acaraloka.test>";
+
+    await expect(import("@/lib/env")).rejects.toThrow(/RESEND_API_KEY/);
+  });
+
+  it("menolak anggaran harian di atas batas Resend free", async () => {
+    process.env.EMAIL_DAILY_BUDGET = "500";
+
+    await expect(import("@/lib/env")).rejects.toThrow(/EMAIL_DAILY_BUDGET/);
+  });
+
+  it("mengembalikan konfigurasi saat email aktif", async () => {
+    process.env.EMAIL_ENABLED = "true";
+    process.env.RESEND_API_KEY = "re_test";
+    process.env.EMAIL_FROM = "Acaraloka <noreply@send.acaraloka.test>";
+    process.env.EMAIL_REPLY_TO = "halo@acaraloka.test";
+    process.env.EMAIL_DAILY_BUDGET = "50";
+
+    const { getEmailConfig } = await import("@/lib/env");
+
+    expect(getEmailConfig()).toEqual({
+      apiKey: "re_test",
+      from: "Acaraloka <noreply@send.acaraloka.test>",
+      replyTo: "halo@acaraloka.test",
+      dailyBudget: 50,
+    });
   });
 });

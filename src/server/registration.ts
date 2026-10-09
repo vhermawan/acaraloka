@@ -1,9 +1,11 @@
 import "server-only";
 
 import { Prisma, type PrismaClient } from "@/generated/prisma/client";
+import { ticketConfirmedEmail } from "@/lib/email-notifications";
 import { generateTicketCode } from "@/lib/ticket-code";
 import type { RegistrationAnswer } from "@/lib/validation/registration";
 import { prisma } from "@/server/db";
+import { enqueueEmails } from "@/server/email-outbox";
 
 export type CreateRegistrationInput = {
   eventId: string;
@@ -36,7 +38,10 @@ export async function createRegistration(
 ): Promise<CreateRegistrationResult> {
   try {
     const registration = await db.$transaction(async (tx) => {
-      const event = await tx.event.findUnique({ where: { id: input.eventId }, select: { status: true, endAt: true } });
+      const event = await tx.event.findUnique({
+        where: { id: input.eventId },
+        select: { status: true, endAt: true, title: true, startAt: true, timezone: true, venue: true },
+      });
       if (!event || event.status !== "PUBLISHED" || event.endAt <= now) throw new RegistrationRejected("CLOSED");
 
       const existing = await tx.registration.findFirst({
@@ -54,7 +59,7 @@ export async function createRegistration(
       `;
       if (reserved === 0) throw new RegistrationRejected("SOLD_OUT");
 
-      return tx.registration.create({
+      const created = await tx.registration.create({
         data: {
           eventId: input.eventId,
           ticketTypeId: input.ticketTypeId,
@@ -68,8 +73,10 @@ export async function createRegistration(
           status: "CONFIRMED",
           ticketCode: generateTicketCode(),
         },
-        select: { id: true },
+        select: { id: true, name: true, email: true },
       });
+      await enqueueEmails(tx, [ticketConfirmedEmail(created, event)]);
+      return created;
     });
     return { ok: true, registrationId: registration.id };
   } catch (error) {

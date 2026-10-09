@@ -1,0 +1,53 @@
+name: DB migrate
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Database tujuan
+        type: choice
+        options:
+          - staging
+          - production
+        required: true
+      dry_run:
+        description: Hanya tampilkan migrasi yang belum diterapkan
+        type: boolean
+        default: true
+
+concurrency:
+  group: db-migrate-${{ inputs.target }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target }}
+    timeout-minutes: 15
+    env:
+      DIRECT_URL: ${{ secrets.DIRECT_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check DIRECT_URL
+        run: |
+          if [ -z "$DIRECT_URL" ]; then
+            echo "::error::Secret DIRECT_URL belum diisi di environment ${{ inputs.target }}."
+            exit 1
+          fi
+      - name: Pending migrations
+        run: pnpm exec prisma migrate status --config prisma7.config.ts || true
+      - name: Apply migrations
+        if: ${{ !inputs.dry_run }}
+        run: pnpm exec prisma migrate deploy --config prisma7.config.ts
+      - name: Verify
+        if: ${{ !inputs.dry_run }}
+        run: pnpm exec prisma migrate status --config prisma7.config.ts

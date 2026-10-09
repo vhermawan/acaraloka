@@ -8,6 +8,7 @@ import { env } from "@/lib/env";
 import { revokeReasonSchema } from "@/lib/validation/certificate";
 import { signerSchema } from "@/lib/validation/signer";
 import { requireEventOwner } from "@/server/authz";
+import { scheduleEmailDrain } from "@/server/email-schedule";
 import { saveCertificateLayout } from "@/server/certificate-config";
 import { issueCertificates, revokeCertificate } from "@/server/certificates";
 import { addSigner, regenerateSignerLink, removeSigner, unlockCertificate } from "@/server/signers";
@@ -29,7 +30,7 @@ export type SignerFormState = {
   errors?: Partial<Record<"name" | "title" | "email", string[]>>;
   message?: string;
   values?: Record<string, string>;
-  link?: { signerName: string; url: string; issuedAt: number };
+  link?: { signerName: string; url: string; issuedAt: number; emailedTo?: string };
 };
 
 const CLOSED_STATUSES = new Set(["CANCELLED", "DISABLED"]);
@@ -65,8 +66,16 @@ export async function createSigner(eventId: string, _prev: SignerFormState, form
     };
   }
 
+  if (result.emailed) scheduleEmailDrain();
   revalidateCertificate(event.id);
-  return { link: { signerName: parsed.data.name, url: signLink(result.token), issuedAt: Date.now() } };
+  return {
+    link: {
+      signerName: parsed.data.name,
+      url: signLink(result.token),
+      issuedAt: Date.now(),
+      emailedTo: result.emailed ? parsed.data.email : undefined,
+    },
+  };
 }
 
 export async function regenerateLink(
@@ -80,6 +89,18 @@ export async function regenerateLink(
 
   revalidateCertificate(event.id);
   return { url: signLink(token) };
+}
+
+export async function emailSignerLink(eventId: string, signerId: string): Promise<{ error?: string }> {
+  const { user, event } = await requireEventOwner(eventId);
+  if (!env.EMAIL_ENABLED) return { error: "Pengiriman email belum aktif. Bagikan tautan secara manual." };
+  if (CLOSED_STATUSES.has(event.status)) return { error: "Acara ini sudah ditutup." };
+  const token = await regenerateSignerLink({ eventId: event.id, signerId, actorId: user.id, sendEmail: true });
+  if (!token) return { error: "Penandatangan ini sudah tanda tangan, undangan tidak bisa dikirim ulang." };
+
+  scheduleEmailDrain();
+  revalidateCertificate(event.id);
+  return {};
 }
 
 export async function deleteSigner(eventId: string, signerId: string): Promise<{ error?: string }> {
@@ -116,6 +137,7 @@ export async function issueEventCertificates(eventId: string): Promise<{ error?:
     return { error: result.reason === "NOT_FOUND" ? "Acara tidak ditemukan." : ISSUE_BLOCKER_MESSAGES[result.reason] };
   }
 
+  if (result.issued > 0) scheduleEmailDrain();
   revalidateCertificate(event.id);
   return { issued: result.issued };
 }

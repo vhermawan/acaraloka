@@ -1,7 +1,9 @@
 import "server-only";
 
 import type { PrismaClient } from "@/generated/prisma/client";
+import { eventCancelledEmail } from "@/lib/email-notifications";
 import { prisma } from "@/server/db";
+import { enqueueEmails } from "@/server/email-outbox";
 
 export type CancelRegistrationResult = { ok: true } | { ok: false; reason: "NOT_CANCELLABLE" };
 
@@ -37,9 +39,27 @@ export async function cancelEvent(
   db: PrismaClient = prisma,
   now = new Date(),
 ): Promise<boolean> {
-  const updated = await db.event.updateMany({
-    where: { id: input.eventId, status: "PUBLISHED", startAt: { gt: now } },
-    data: { status: "CANCELLED", cancelledAt: now, cancelReason: input.reason },
+  return db.$transaction(async (tx) => {
+    const updated = await tx.event.updateMany({
+      where: { id: input.eventId, status: "PUBLISHED", startAt: { gt: now } },
+      data: { status: "CANCELLED", cancelledAt: now, cancelReason: input.reason },
+    });
+    if (updated.count !== 1) return false;
+
+    const event = await tx.event.findUniqueOrThrow({
+      where: { id: input.eventId },
+      select: {
+        id: true,
+        title: true,
+        startAt: true,
+        timezone: true,
+        registrations: { where: { status: "CONFIRMED" }, select: { id: true, name: true, email: true } },
+      },
+    });
+    await enqueueEmails(
+      tx,
+      event.registrations.map((registration) => eventCancelledEmail(registration, { ...event, reason: input.reason })),
+    );
+    return true;
   });
-  return updated.count === 1;
 }

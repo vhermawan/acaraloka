@@ -4,9 +4,12 @@ import { randomBytes } from "node:crypto";
 
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { MAX_SIGNERS, parseCertificateLayout, spreadSigners } from "@/lib/certificate-layout";
+import { signerInviteEmail } from "@/lib/email-notifications";
+import { env } from "@/lib/env";
 import { SIGNER_LINK_TTL_MS, signerLinkState } from "@/lib/validation/signer";
 import { getOrCreateCertificateConfig } from "@/server/certificate-config";
 import { prisma } from "@/server/db";
+import { enqueueEmails } from "@/server/email-outbox";
 import { generateSignerToken, hashSignerToken } from "@/server/signer-token";
 import { SIGNATURE_BUCKET, downloadObject, removeObjects, uploadObject } from "@/server/storage";
 
@@ -36,12 +39,28 @@ async function respreadSigners(tx: Prisma.TransactionClient, eventId: string, co
   await tx.certificateConfig.update({ where: { eventId }, data: { layout: layout as Prisma.InputJsonValue } });
 }
 
+async function enqueueSignerInvite(
+  tx: Prisma.TransactionClient,
+  eventId: string,
+  signer: { name: string; email: string; token: string; tokenHash: string; tokenExpiresAt: Date },
+): Promise<boolean> {
+  if (!env.EMAIL_ENABLED) return false;
+  const event = await tx.event.findUniqueOrThrow({
+    where: { id: eventId },
+    select: { title: true, timezone: true, organizer: { select: { orgName: true } } },
+  });
+  const queued = await enqueueEmails(tx, [
+    signerInviteEmail(signer, { title: event.title, timezone: event.timezone, organizerName: event.organizer.orgName }),
+  ]);
+  return queued > 0;
+}
+
 async function isLocked(eventId: string, db: PrismaClient) {
   const config = await db.certificateConfig.findUnique({ where: { eventId }, select: { lockedAt: true } });
   return !!config?.lockedAt;
 }
 
-export type AddSignerResult = { ok: true; token: string } | { ok: false; reason: "LOCKED" | "FULL" };
+export type AddSignerResult = { ok: true; token: string; emailed: boolean } | { ok: false; reason: "LOCKED" | "FULL" };
 
 export async function addSigner(
   input: { eventId: string; name: string; title: string; email: string },
@@ -66,12 +85,13 @@ export async function addSigner(
       },
     });
     await respreadSigners(tx, input.eventId, count + 1);
-    return { ok: true, token: link.token } as const;
+    const emailed = await enqueueSignerInvite(tx, input.eventId, { name: input.name, email: input.email, ...link });
+    return { ok: true, token: link.token, emailed } as const;
   });
 }
 
 export async function regenerateSignerLink(
-  input: { eventId: string; signerId: string; actorId: string },
+  input: { eventId: string; signerId: string; actorId: string; sendEmail?: boolean },
   db: PrismaClient = prisma,
   now = new Date(),
 ): Promise<string | null> {
@@ -85,12 +105,16 @@ export async function regenerateSignerLink(
     await tx.auditLog.create({
       data: {
         actorId: input.actorId,
-        action: "signer.link_regenerated",
+        action: input.sendEmail ? "signer.link_emailed" : "signer.link_regenerated",
         entityType: "Signer",
         entityId: input.signerId,
         meta: { eventId: input.eventId },
       },
     });
+    if (input.sendEmail) {
+      const signer = await tx.signer.findUniqueOrThrow({ where: { id: input.signerId }, select: { name: true, email: true } });
+      await enqueueSignerInvite(tx, input.eventId, { ...signer, ...link });
+    }
     return link.token;
   });
 }

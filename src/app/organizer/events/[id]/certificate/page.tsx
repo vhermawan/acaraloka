@@ -8,6 +8,7 @@ import { IssuePanel } from "@/components/certificate/issue-panel";
 import { SignerPanel } from "@/components/certificate/signer-panel";
 import { UnlockDesignButton } from "@/components/certificate/unlock-design-button";
 import { issueBlocker } from "@/lib/certificate-issue";
+import { env } from "@/lib/env";
 import { signerLinkState } from "@/lib/validation/signer";
 import { requireEventOwner } from "@/server/authz";
 import { getOrCreateCertificateConfig } from "@/server/certificate-config";
@@ -107,7 +108,13 @@ export default async function CertificatePage({ params }: PageProps<"/organizer/
         status={signerStatus}
         description="1 sampai 3 orang. Setiap penandatangan membuka tautan, melihat pratinjau, lalu menggambar tanda tangan di HP-nya."
       >
-        <SignerPanel eventId={event.id} signers={signerRows} locked={locked} closed={closed} />
+        <SignerPanel
+          eventId={event.id}
+          signers={signerRows}
+          locked={locked}
+          closed={closed}
+          emailEnabled={env.EMAIL_ENABLED}
+        />
       </CertificateStep>
 
       <CertificateStep

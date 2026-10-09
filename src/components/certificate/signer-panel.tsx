@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   createSigner,
   deleteSigner,
+  emailSignerLink,
   regenerateLink,
   type SignerFormState,
 } from "@/app/organizer/events/[id]/certificate/actions";
@@ -37,7 +38,9 @@ function toErrors(messages?: string[]) {
   return messages?.map((message) => ({ message }));
 }
 
-function ShareLink({ signerName, url, onClose }: { signerName: string; url: string; onClose: () => void }) {
+type ShareLinkProps = { signerName: string; url: string; emailedTo?: string; onClose: () => void };
+
+function ShareLink({ signerName, url, emailedTo, onClose }: ShareLinkProps) {
   const message = `Halo ${signerName}, mohon tanda tangani sertifikat acara kami lewat tautan ini: ${url}`;
 
   async function copy() {
@@ -56,6 +59,11 @@ function ShareLink({ signerName, url, onClose }: { signerName: string; url: stri
         <p className="text-sm text-muted-foreground">
           Tautan ini hanya tampil sekali dan berlaku 14 hari. Kalau hilang, buat ulang tautan.
         </p>
+        {emailedTo ? (
+          <p className="text-sm text-muted-foreground">
+            Undangan berisi tautan yang sama juga dikirim ke <span className="break-all font-medium text-foreground">{emailedTo}</span>.
+          </p>
+        ) : null}
       </div>
       <label className="sr-only" htmlFor="signer-link">
         Tautan tanda tangan
@@ -86,15 +94,18 @@ type SignerPanelProps = {
   signers: SignerRow[];
   locked: boolean;
   closed: boolean;
+  emailEnabled: boolean;
 };
 
-function SignerPanel({ eventId, signers, locked, closed }: SignerPanelProps) {
+function SignerPanel({ eventId, signers, locked, closed, emailEnabled }: SignerPanelProps) {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, pending] = useActionState<SignerFormState, FormData>(
     createSigner.bind(null, eventId),
     {},
   );
-  const [regenerated, setRegenerated] = useState<{ signerName: string; url: string; issuedAt: number } | null>(null);
+  const [regenerated, setRegenerated] = useState<{ signerName: string; url: string; issuedAt: number; emailedTo?: string } | null>(
+    null,
+  );
   const [dismissedAt, setDismissedAt] = useState(0);
   const [rowPending, startRow] = useTransition();
   const errors = state.errors ?? {};
@@ -121,10 +132,29 @@ function SignerPanel({ eventId, signers, locked, closed }: SignerPanelProps) {
     });
   }
 
+  function handleEmail(signer: SignerRow) {
+    startRow(async () => {
+      const result = await emailSignerLink(eventId, signer.id);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      setDismissedAt(Date.now());
+      toast.success(`Undangan dikirim ke ${signer.email}. Tautan sebelumnya tidak berlaku lagi.`);
+    });
+  }
+
   return (
     <div className="flex flex-col gap-4">
 
-      {shared ? <ShareLink signerName={shared.signerName} url={shared.url} onClose={() => setDismissedAt(Date.now())} /> : null}
+      {shared ? (
+        <ShareLink
+          signerName={shared.signerName}
+          url={shared.url}
+          emailedTo={shared.emailedTo}
+          onClose={() => setDismissedAt(Date.now())}
+        />
+      ) : null}
 
       {signers.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
@@ -147,7 +177,19 @@ function SignerPanel({ eventId, signers, locked, closed }: SignerPanelProps) {
                 ) : null}
               </div>
               {signer.state !== "SIGNED" && !closed ? (
-                <div className="flex shrink-0 gap-2">
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  {emailEnabled ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-11 px-3"
+                      disabled={rowPending}
+                      onClick={() => handleEmail(signer)}
+                    >
+                      Kirim via email
+                    </Button>
+                  ) : null}
                   <Button
                     type="button"
                     variant="outline"
@@ -221,7 +263,7 @@ function SignerPanel({ eventId, signers, locked, closed }: SignerPanelProps) {
             </Field>
           </div>
           <Button type="submit" className="h-10 w-fit px-4" disabled={pending}>
-            {pending ? "Menambahkan..." : "Tambah dan buat tautan"}
+            {pending ? "Menambahkan..." : emailEnabled ? "Tambah dan kirim undangan" : "Tambah dan buat tautan"}
           </Button>
         </form>
       ) : null}
