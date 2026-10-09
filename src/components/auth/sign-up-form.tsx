@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
+import { PasswordInput } from "@/components/auth/password-input";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -112,10 +113,9 @@ function SignUpForm({ role, next }: SignUpFormProps) {
         </Field>
         <Field data-invalid={!!errors.password}>
           <FieldLabel htmlFor={FIELD_IDS.password}>Password</FieldLabel>
-          <Input
+          <PasswordInput
             id={FIELD_IDS.password}
             name="password"
-            type="password"
             autoComplete="new-password"
             required
             aria-invalid={!!errors.password}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
+import { PasswordInput } from "@/components/auth/password-input";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -89,10 +90,9 @@ function SignInForm({ role, next }: SignInFormProps) {
               Lupa password?
             </Link>
           </div>
-          <Input
+          <PasswordInput
             id="signin-password"
             name="password"
-            type="password"
             autoComplete="current-password"
             required
             aria-invalid={!!errors.password}

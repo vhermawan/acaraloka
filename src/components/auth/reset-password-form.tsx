@@ -4,9 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
+import { PasswordInput } from "@/components/auth/password-input";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@/lib/auth-config";
 import { classifyResetError } from "@/lib/auth-errors";
@@ -55,10 +55,9 @@ function ResetPasswordForm({ token, role }: ResetPasswordFormProps) {
         {formError ? <AuthAlert>{formError}</AuthAlert> : null}
         <Field data-invalid={!!passwordError}>
           <FieldLabel htmlFor="reset-password">Password baru</FieldLabel>
-          <Input
+          <PasswordInput
             id="reset-password"
             name="password"
-            type="password"
             autoComplete="new-password"
             required
             aria-invalid={!!passwordError}
