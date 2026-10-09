@@ -7,6 +7,7 @@ import { buildRegistrationSchema } from "@/lib/validation/registration";
 import { canRegisterFreeTicket, requireUser } from "@/server/authz";
 import { getPublicEvent } from "@/server/public-event";
 import { scheduleEmailDrain } from "@/server/email-schedule";
+import { setFlash } from "@/server/flash";
 import { createRegistration } from "@/server/registration";
 import { getRegistrationFields } from "@/server/registration-form";
 
@@ -51,5 +52,6 @@ export async function registerForEvent(slug: string, _prev: RegisterState, formD
 
   scheduleEmailDrain();
   revalidatePath(`/e/${slug}`);
+  await setFlash("registration-created");
   redirect(`/me/tickets/${result.registrationId}`);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useMemo } from "react";
 
 import type { RegisterState } from "@/app/e/[slug]/register/actions";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
-import { answerKey, type RegistrationField } from "@/lib/validation/registration";
+import { useActionForm } from "@/hooks/use-action-form";
+import { answerKey, buildRegistrationSchema, type RegistrationField } from "@/lib/validation/registration";
 
 type TicketOption = { id: string; name: string; left: number };
 
@@ -26,18 +27,34 @@ type RegistrationFormProps = {
   defaults: { name: string; email: string; phone: string };
 };
 
-function toErrors(messages?: string[]) {
-  return messages?.map((message) => ({ message }));
-}
-
 function RegistrationForm({ action, tickets, fields, defaults }: RegistrationFormProps) {
   const [state, formAction, pending] = useActionState(action, {});
-  const values: Record<string, string> = { ...defaults, ...state.values };
-  const errors = state.errors ?? {};
-  const firstAvailable = tickets.find((ticket) => ticket.left > 0)?.id ?? "";
+  const schema = useMemo(
+    () =>
+      buildRegistrationSchema(
+        fields,
+        tickets.map((ticket) => ticket.id),
+      ),
+    [fields, tickets],
+  );
+  const {
+    form: {
+      register,
+      formState: { errors },
+    },
+    onSubmit,
+  } = useActionForm(schema, {
+    defaultValues: {
+      ticketTypeId: tickets.find((ticket) => ticket.left > 0)?.id ?? "",
+      ...defaults,
+      ...Object.fromEntries(fields.map((field) => [answerKey(field.id), ""])),
+    },
+    dispatch: formAction,
+    serverErrors: state.errors,
+  });
 
   return (
-    <form action={formAction} noValidate>
+    <form onSubmit={onSubmit} noValidate>
       <FieldGroup>
         {state.message ? (
           <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
@@ -56,11 +73,10 @@ function RegistrationForm({ action, tickets, fields, defaults }: RegistrationFor
                 <span className="flex items-center gap-2">
                   <input
                     type="radio"
-                    name="ticketTypeId"
                     value={ticket.id}
                     disabled={ticket.left === 0}
-                    defaultChecked={(values.ticketTypeId ?? firstAvailable) === ticket.id}
                     className="size-4 accent-primary"
+                    {...register("ticketTypeId")}
                   />
                   {ticket.name}
                 </span>
@@ -70,77 +86,74 @@ function RegistrationForm({ action, tickets, fields, defaults }: RegistrationFor
               </label>
             ))}
           </div>
-          <FieldError errors={toErrors(errors.ticketTypeId)} />
+          <FieldError errors={[errors.ticketTypeId]} />
         </FieldSet>
 
         <Field data-invalid={!!errors.name}>
           <FieldLabel htmlFor="name">Nama lengkap</FieldLabel>
-          <Input id="name" name="name" required autoComplete="name" defaultValue={values.name} aria-invalid={!!errors.name} />
+          <Input
+            id="name"
+            autoComplete="name"
+            placeholder="Nama lengkap untuk e-tiket dan sertifikat"
+            aria-invalid={!!errors.name}
+            {...register("name")}
+          />
           <FieldDescription>Dipakai di e-tiket dan sertifikat.</FieldDescription>
-          <FieldError errors={toErrors(errors.name)} />
+          <FieldError errors={[errors.name]} />
         </Field>
         <Field data-invalid={!!errors.email}>
           <FieldLabel htmlFor="email">Email</FieldLabel>
           <Input
             id="email"
-            name="email"
             type="email"
-            required
             autoComplete="email"
-            defaultValue={values.email}
+            placeholder="nama@email.com"
             aria-invalid={!!errors.email}
+            {...register("email")}
           />
-          <FieldError errors={toErrors(errors.email)} />
+          <FieldError errors={[errors.email]} />
         </Field>
         <Field data-invalid={!!errors.phone}>
           <FieldLabel htmlFor="phone">Nomor HP</FieldLabel>
           <Input
             id="phone"
-            name="phone"
             type="tel"
             inputMode="tel"
-            required
             autoComplete="tel"
             placeholder="081234567890"
-            defaultValue={values.phone}
             aria-invalid={!!errors.phone}
+            {...register("phone")}
           />
-          <FieldError errors={toErrors(errors.phone)} />
+          <FieldError errors={[errors.phone]} />
         </Field>
 
         {fields.map((field) => {
           const key = answerKey(field.id);
-          const fieldErrors = errors[key];
+          const fieldError = errors[key];
           const label = `${field.label}${field.required ? "" : " (opsional)"}`;
 
           if (field.type === "SINGLE_CHOICE") {
             return (
-              <FieldSet key={field.id} data-invalid={!!fieldErrors}>
+              <FieldSet key={field.id} data-invalid={!!fieldError}>
                 <FieldLegend variant="label">{label}</FieldLegend>
                 <div className="flex flex-col gap-2">
                   {field.options.map((option) => (
                     <label key={option} className="flex items-center gap-2 text-sm">
-                      <input
-                        type="radio"
-                        name={key}
-                        value={option}
-                        defaultChecked={values[key] === option}
-                        className="size-4 accent-primary"
-                      />
+                      <input type="radio" value={option} className="size-4 accent-primary" {...register(key)} />
                       {option}
                     </label>
                   ))}
                 </div>
-                <FieldError errors={toErrors(fieldErrors)} />
+                <FieldError errors={[fieldError]} />
               </FieldSet>
             );
           }
 
           return (
-            <Field key={field.id} data-invalid={!!fieldErrors}>
+            <Field key={field.id} data-invalid={!!fieldError}>
               <FieldLabel htmlFor={key}>{label}</FieldLabel>
               {field.type === "DROPDOWN" ? (
-                <NativeSelect id={key} name={key} defaultValue={values[key] ?? ""} aria-invalid={!!fieldErrors}>
+                <NativeSelect id={key} aria-invalid={!!fieldError} {...register(key)}>
                   <option value="">Pilih</option>
                   {field.options.map((option) => (
                     <option key={option} value={option}>
@@ -149,22 +162,22 @@ function RegistrationForm({ action, tickets, fields, defaults }: RegistrationFor
                   ))}
                 </NativeSelect>
               ) : (
-                <Input id={key} name={key} defaultValue={values[key]} aria-invalid={!!fieldErrors} />
+                <Input id={key} placeholder="Tulis jawabanmu" aria-invalid={!!fieldError} {...register(key)} />
               )}
-              <FieldError errors={toErrors(fieldErrors)} />
+              <FieldError errors={[fieldError]} />
             </Field>
           );
         })}
 
         <Field data-invalid={!!errors.consent}>
           <label className="flex items-start gap-2 text-sm">
-            <input type="checkbox" name="consent" className="mt-0.5 size-4 shrink-0 accent-primary" />
+            <input type="checkbox" value="on" className="mt-0.5 size-4 shrink-0 accent-primary" {...register("consent")} />
             <span>
               Saya setuju data di atas dibagikan ke panitia acara ini untuk keperluan pendaftaran, check-in, dan
               sertifikat.
             </span>
           </label>
-          <FieldError errors={toErrors(errors.consent)} />
+          <FieldError errors={[errors.consent]} />
         </Field>
 
         <Button type="submit" size="lg" disabled={pending}>

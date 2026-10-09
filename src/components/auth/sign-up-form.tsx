@@ -1,8 +1,11 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import type { z } from "zod";
 
 import { AuthAlert } from "@/components/auth/auth-alert";
 import { PasswordInput } from "@/components/auth/password-input";
@@ -10,53 +13,36 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
-import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@/lib/auth-config";
-import { classifySignUpError, isValidEmail, normalizeEmail } from "@/lib/auth-errors";
+import { MIN_PASSWORD_LENGTH } from "@/lib/auth-config";
+import { classifySignUpError } from "@/lib/auth-errors";
 import { checkEmailPath, continuePath, type UserRole } from "@/lib/roles";
+import { signUpSchema } from "@/lib/validation/auth";
 
 type SignUpFormProps = {
   role: UserRole;
   next: string;
 };
 
-type Errors = { name?: string; email?: string; password?: string; terms?: string; form?: string };
-
 const FIELD_IDS = { name: "signup-name", email: "signup-email", password: "signup-password", terms: "signup-terms" };
 
 function SignUpForm({ role, next }: SignUpFormProps) {
   const router = useRouter();
-  const [pending, setPending] = useState(false);
-  const [errors, setErrors] = useState<Errors>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<z.input<typeof signUpSchema>, unknown, z.output<typeof signUpSchema>>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: { name: "", email: "", password: "", terms: false },
+    mode: "onTouched",
+  });
+  const pending = isSubmitting || leaving;
 
-  function fail(form: HTMLFormElement, found: Errors) {
-    setErrors(found);
-    const first = (["name", "email", "password", "terms"] as const).find((field) => found[field]);
-    if (first) form.querySelector<HTMLInputElement>(`#${FIELD_IDS[first]}`)?.focus();
-  }
-
-  async function handleSubmit(event: React.SyntheticEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    const name = String(data.get("name") ?? "").trim();
-    const email = normalizeEmail(String(data.get("email") ?? ""));
-    const password = String(data.get("password") ?? "");
-    const accepted = data.get("terms") === "on";
-
-    const found: Errors = {};
-    if (!name) found.name = "Masukkan nama lengkapmu.";
-    if (!isValidEmail(email)) found.email = "Masukkan email yang valid.";
-    if (password.length < MIN_PASSWORD_LENGTH || password.length > MAX_PASSWORD_LENGTH) {
-      found.password = `Password harus ${MIN_PASSWORD_LENGTH} sampai ${MAX_PASSWORD_LENGTH} karakter.`;
-    }
-    if (!accepted) found.terms = "Setujui Syarat Layanan dan Kebijakan Privasi untuk mendaftar.";
-    if (Object.keys(found).length > 0) {
-      fail(form, found);
-      return;
-    }
-
-    setErrors({});
-    setPending(true);
+  const onSubmit = handleSubmit(async ({ name, email, password }) => {
+    setFormError(null);
     const body = {
       name,
       email,
@@ -67,73 +53,73 @@ function SignUpForm({ role, next }: SignUpFormProps) {
     };
     const { error } = await authClient.signUp.email(body);
     if (!error) {
+      setLeaving(true);
       router.push(checkEmailPath(role, next, email));
       return;
     }
 
-    setPending(false);
     const failure = classifySignUpError(error);
-    if (failure.kind === "field") fail(form, { [failure.field]: failure.message });
-    else setErrors({ form: failure.message });
-  }
+    if (failure.kind === "field") setError(failure.field, { type: "server", message: failure.message }, { shouldFocus: true });
+    else setFormError(failure.message);
+  });
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
+    <form onSubmit={onSubmit} noValidate>
       <FieldGroup>
-        {errors.form ? <AuthAlert>{errors.form}</AuthAlert> : null}
+        {formError ? <AuthAlert>{formError}</AuthAlert> : null}
         <Field data-invalid={!!errors.name}>
           <FieldLabel htmlFor={FIELD_IDS.name}>Nama lengkap</FieldLabel>
           <Input
             id={FIELD_IDS.name}
-            name="name"
             autoComplete="name"
-            required
+            placeholder="Nama sesuai identitas"
             aria-invalid={!!errors.name}
             aria-describedby={errors.name ? "signup-name-error" : undefined}
             className="h-10"
+            {...register("name")}
           />
-          {errors.name ? <FieldError id="signup-name-error">{errors.name}</FieldError> : null}
+          <FieldError id="signup-name-error" errors={[errors.name]} />
         </Field>
         <Field data-invalid={!!errors.email}>
           <FieldLabel htmlFor={FIELD_IDS.email}>Email</FieldLabel>
           <Input
             id={FIELD_IDS.email}
-            name="email"
             type="email"
             inputMode="email"
             autoComplete="email"
             autoCapitalize="none"
             spellCheck={false}
-            required
+            placeholder="nama@email.com"
             aria-invalid={!!errors.email}
             aria-describedby={errors.email ? "signup-email-error" : undefined}
             className="h-10"
+            {...register("email")}
           />
-          {errors.email ? <FieldError id="signup-email-error">{errors.email}</FieldError> : null}
+          <FieldError id="signup-email-error" errors={[errors.email]} />
         </Field>
         <Field data-invalid={!!errors.password}>
           <FieldLabel htmlFor={FIELD_IDS.password}>Password</FieldLabel>
           <PasswordInput
             id={FIELD_IDS.password}
-            name="password"
             autoComplete="new-password"
-            required
+            placeholder="Buat password"
             aria-invalid={!!errors.password}
             aria-describedby={errors.password ? "signup-password-error" : "signup-password-hint"}
             className="h-10"
+            {...register("password")}
           />
           <FieldDescription id="signup-password-hint">Minimal {MIN_PASSWORD_LENGTH} karakter.</FieldDescription>
-          {errors.password ? <FieldError id="signup-password-error">{errors.password}</FieldError> : null}
+          <FieldError id="signup-password-error" errors={[errors.password]} />
         </Field>
         <Field data-invalid={!!errors.terms}>
           <div className="flex items-start gap-2.5">
             <input
               id={FIELD_IDS.terms}
-              name="terms"
               type="checkbox"
               aria-invalid={!!errors.terms}
               aria-describedby={errors.terms ? "signup-terms-error" : undefined}
               className="mt-0.5 size-4 shrink-0 accent-primary"
+              {...register("terms")}
             />
             <label htmlFor={FIELD_IDS.terms} className="text-sm/5 text-muted-foreground">
               Saya setuju dengan{" "}
@@ -157,7 +143,7 @@ function SignUpForm({ role, next }: SignUpFormProps) {
               .
             </label>
           </div>
-          {errors.terms ? <FieldError id="signup-terms-error">{errors.terms}</FieldError> : null}
+          <FieldError id="signup-terms-error" errors={[errors.terms]} />
         </Field>
         <Button type="submit" size="lg" className="h-11 w-full" disabled={pending}>
           {pending ? "Memproses..." : "Daftar"}

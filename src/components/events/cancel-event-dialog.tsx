@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useMemo } from "react";
 
 import type { CancelEventState } from "@/app/organizer/events/actions";
 import { Button } from "@/components/ui/button";
@@ -17,25 +17,34 @@ import {
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useActionForm } from "@/hooks/use-action-form";
+import { cancelEventSchema } from "@/lib/validation/cancellation";
 
 type CancelEventDialogProps = {
   title: string;
   action: (state: CancelEventState, formData: FormData) => Promise<CancelEventState>;
 };
 
-function toErrors(messages?: string[]) {
-  return messages?.map((message) => ({ message }));
-}
-
 function CancelEventDialog({ title, action }: CancelEventDialogProps) {
   const [state, formAction, pending] = useActionState(action, {});
-  const errors = state.errors ?? {};
+  const schema = useMemo(() => cancelEventSchema(title), [title]);
+  const {
+    form: {
+      register,
+      formState: { errors },
+    },
+    onSubmit,
+  } = useActionForm(schema, {
+    defaultValues: { reason: "", confirmTitle: "" },
+    dispatch: formAction,
+    serverErrors: state.errors,
+  });
 
   return (
     <Dialog>
       <DialogTrigger render={<Button variant="outline" className="h-10 border-destructive/40 px-4 text-destructive hover:bg-destructive/5 hover:text-destructive" />}>Batalkan acara</DialogTrigger>
       <DialogContent className="sm:max-w-md">
-        <form action={formAction} noValidate className="flex flex-col gap-4">
+        <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>Batalkan acara?</DialogTitle>
             <DialogDescription>
@@ -53,12 +62,12 @@ function CancelEventDialog({ title, action }: CancelEventDialogProps) {
               <FieldLabel htmlFor="cancel-reason">Alasan pembatalan</FieldLabel>
               <Textarea
                 id="cancel-reason"
-                name="reason"
                 rows={3}
-                defaultValue={state.values?.reason}
+                placeholder="Contoh: Pembicara berhalangan dan acara belum bisa dijadwalkan ulang."
                 aria-invalid={!!errors.reason}
+                {...register("reason")}
               />
-              <FieldError errors={toErrors(errors.reason)} />
+              <FieldError errors={[errors.reason]} />
             </Field>
             <Field data-invalid={!!errors.confirmTitle}>
               <FieldLabel htmlFor="cancel-confirm">
@@ -66,12 +75,12 @@ function CancelEventDialog({ title, action }: CancelEventDialogProps) {
               </FieldLabel>
               <Input
                 id="cancel-confirm"
-                name="confirmTitle"
                 autoComplete="off"
-                defaultValue={state.values?.confirmTitle}
+                placeholder={title}
                 aria-invalid={!!errors.confirmTitle}
+                {...register("confirmTitle")}
               />
-              <FieldError errors={toErrors(errors.confirmTitle)} />
+              <FieldError errors={[errors.confirmTitle]} />
             </Field>
           </FieldGroup>
           <DialogFooter>

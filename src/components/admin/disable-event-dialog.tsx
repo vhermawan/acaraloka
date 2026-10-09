@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 
 import type { DisableEventState } from "@/app/admin/events/actions";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
+import { useActionForm } from "@/hooks/use-action-form";
+import { disableReasonFormSchema } from "@/lib/validation/event-disable";
 
 type DisableEventDialogProps = {
   eventId: string;
@@ -33,13 +35,30 @@ function DisableEventDialog({ eventId, title, action }: DisableEventDialogProps)
     },
     {},
   );
+  const serverErrors = useMemo(() => ({ reason: state.error ? [state.error] : undefined }), [state.error]);
+  const {
+    form: {
+      register,
+      reset,
+      formState: { errors },
+    },
+    onSubmit,
+  } = useActionForm(disableReasonFormSchema, {
+    defaultValues: { reason: "" },
+    dispatch: formAction,
+    serverErrors,
+  });
+
+  useEffect(() => {
+    if (state.done) reset();
+  }, [state, reset]);
   const inputId = `disable-reason-${eventId}`;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button variant="destructive" size="sm" />}>Nonaktifkan</DialogTrigger>
       <DialogContent className="sm:max-w-md">
-        <form action={formAction} noValidate className="flex flex-col gap-4">
+        <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>Nonaktifkan acara?</DialogTitle>
             <DialogDescription>
@@ -47,16 +66,16 @@ function DisableEventDialog({ eventId, title, action }: DisableEventDialogProps)
               yang sudah terbit tetap berlaku. Panitia melihat alasan di dashboard acara.
             </DialogDescription>
           </DialogHeader>
-          <Field data-invalid={!!state.error}>
+          <Field data-invalid={!!errors.reason}>
             <FieldLabel htmlFor={inputId}>Alasan penonaktifan</FieldLabel>
             <Textarea
               id={inputId}
-              name="reason"
               rows={3}
-              defaultValue={state.values?.reason}
-              aria-invalid={!!state.error}
+              placeholder="Contoh: Isi acara melanggar Syarat Layanan."
+              aria-invalid={!!errors.reason}
+              {...register("reason")}
             />
-            <FieldError errors={state.error ? [{ message: state.error }] : undefined} />
+            <FieldError errors={[errors.reason]} />
           </Field>
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline" />}>Tidak jadi</DialogClose>

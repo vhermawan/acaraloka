@@ -15,6 +15,7 @@ import {
 } from "@/lib/validation/event";
 import { requireEventOwner, requireOrganizer } from "@/server/authz";
 import { cancelEvent } from "@/server/cancellation";
+import { setFlash } from "@/server/flash";
 import { scheduleEmailDrain } from "@/server/email-schedule";
 import { prisma } from "@/server/db";
 import { POSTER_BUCKET, createSignedUploadUrl, removeObjects } from "@/server/storage";
@@ -46,6 +47,7 @@ export async function createEvent(_prev: EventFormState, formData: FormData): Pr
   });
 
   revalidatePath("/organizer", "layout");
+  await setFlash("event-created");
   redirect(`/organizer/events/${event.id}`);
 }
 

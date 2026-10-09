@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect } from "react";
 import { toast } from "sonner";
 import { cn } from "cn";
 
@@ -8,6 +8,8 @@ import type { TicketFormState } from "@/app/organizer/events/[id]/tickets/action
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { useActionForm } from "@/hooks/use-action-form";
+import { ticketTypeSchema } from "@/lib/validation/ticket";
 
 type TicketTypeFormProps = {
   action: (state: TicketFormState, formData: FormData) => Promise<TicketFormState>;
@@ -22,10 +24,6 @@ type TicketTypeFormProps = {
   children?: React.ReactNode;
 };
 
-function toErrors(messages?: string[]) {
-  return messages?.map((message) => ({ message }));
-}
-
 function TicketTypeForm({
   action,
   idPrefix,
@@ -38,20 +36,29 @@ function TicketTypeForm({
   submitVariant = "outline",
   children,
 }: TicketTypeFormProps) {
-  const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, pending] = useActionState(action, {});
-  const values = { ...defaultValues, ...state.values };
-  const errors = state.errors ?? {};
+  const {
+    form: {
+      register,
+      reset,
+      formState: { errors },
+    },
+    onSubmit,
+  } = useActionForm(ticketTypeSchema, {
+    defaultValues,
+    dispatch: formAction,
+    serverErrors: state.errors,
+  });
   const labelClass = cn(hideLabelsOnDesktop && "sm:sr-only");
 
   useEffect(() => {
     if (!state.savedAt) return;
     toast.success(successMessage);
-    if (resetOnSuccess) formRef.current?.reset();
-  }, [state.savedAt, successMessage, resetOnSuccess]);
+    if (resetOnSuccess) reset();
+  }, [state.savedAt, successMessage, resetOnSuccess, reset]);
 
   return (
-    <form ref={formRef} action={formAction} noValidate className="flex flex-col gap-3">
+    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
       {state.message ? (
         <p role="alert" className="text-sm text-destructive">
           {state.message}
@@ -71,15 +78,13 @@ function TicketTypeForm({
           </FieldLabel>
           <Input
             id={`${idPrefix}-name`}
-            name="name"
-            required
-            placeholder="Umum"
-            defaultValue={values.name}
+            placeholder="Contoh: Umum atau Mahasiswa"
             disabled={disabled}
             aria-invalid={!!errors.name}
             className="h-10"
+            {...register("name")}
           />
-          <FieldError errors={toErrors(errors.name)} />
+          <FieldError errors={[errors.name]} />
         </Field>
         <Field data-invalid={!!errors.quota}>
           <FieldLabel htmlFor={`${idPrefix}-quota`} className={labelClass}>
@@ -87,17 +92,16 @@ function TicketTypeForm({
           </FieldLabel>
           <Input
             id={`${idPrefix}-quota`}
-            name="quota"
             type="number"
             inputMode="numeric"
             min={1}
-            required
-            defaultValue={values.quota}
+            placeholder="100"
             disabled={disabled}
             aria-invalid={!!errors.quota}
             className="h-10 tabular-nums"
+            {...register("quota")}
           />
-          <FieldError errors={toErrors(errors.quota)} />
+          <FieldError errors={[errors.quota]} />
         </Field>
         <div className="flex items-center gap-1">
           <Button type="submit" variant={submitVariant} disabled={disabled || pending} className="h-10 px-4">
