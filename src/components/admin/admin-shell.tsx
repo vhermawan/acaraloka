@@ -20,7 +20,7 @@ type AdminNavEntry = {
 const ADMIN_NAV: AdminNavEntry[] = [
   { href: "/admin", label: "Ringkasan", icon: LayoutDashboard, ready: true },
   { href: "/admin/users", label: "Pengguna", icon: Users, ready: true },
-  { href: "/admin/organizers", label: "Panitia", icon: Building2, ready: false },
+  { href: "/admin/organizers", label: "Panitia", icon: Building2, ready: true },
   { href: "/admin/events", label: "Acara", icon: CalendarDays, ready: true },
   { href: "/admin/email", label: "Email", icon: Mail, ready: false },
   { href: "/admin/logs", label: "Log error", icon: TriangleAlert, ready: true },

@@ -22,6 +22,8 @@ const DISABLE_ERRORS = {
 function revalidateUser(userId: string) {
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${userId}`);
+  revalidatePath("/admin/organizers");
+  revalidatePath(`/admin/organizers/${userId}`);
 }
 
 export async function disableUserAction(
