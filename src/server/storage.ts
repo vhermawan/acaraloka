@@ -13,13 +13,17 @@ function storageConfig() {
   return { baseUrl: `${env.SUPABASE_URL.replace(/\/$/, "")}/storage/v1`, key: env.SUPABASE_SERVICE_ROLE_KEY };
 }
 
+export function encodeObjectPath(path: string): string {
+  return path.split("/").map(encodeURIComponent).join("/");
+}
+
 function authHeaders(key: string) {
   return { Authorization: `Bearer ${key}`, apikey: key };
 }
 
 export async function createSignedUploadUrl(bucket: string, path: string): Promise<string> {
   const { baseUrl, key } = storageConfig();
-  const response = await fetch(`${baseUrl}/object/upload/sign/${bucket}/${path}`, {
+  const response = await fetch(`${baseUrl}/object/upload/sign/${bucket}/${encodeObjectPath(path)}`, {
     method: "POST",
     headers: authHeaders(key),
   });
@@ -42,12 +46,12 @@ export async function removeObjects(bucket: string, paths: string[]): Promise<vo
 
 export function publicObjectUrl(bucket: string, path: string): string {
   const { baseUrl } = storageConfig();
-  return `${baseUrl}/object/public/${bucket}/${path}`;
+  return `${baseUrl}/object/public/${bucket}/${encodeObjectPath(path)}`;
 }
 
 export async function uploadObject(bucket: string, path: string, body: Uint8Array, contentType: string): Promise<void> {
   const { baseUrl, key } = storageConfig();
-  const response = await fetch(`${baseUrl}/object/${bucket}/${path}`, {
+  const response = await fetch(`${baseUrl}/object/${bucket}/${encodeObjectPath(path)}`, {
     method: "POST",
     headers: { ...authHeaders(key), "Content-Type": contentType },
     body: Buffer.from(body),
@@ -59,7 +63,7 @@ export async function uploadObject(bucket: string, path: string, body: Uint8Arra
 
 export async function downloadObject(bucket: string, path: string): Promise<Uint8Array> {
   const { baseUrl, key } = storageConfig();
-  const response = await fetch(`${baseUrl}/object/${bucket}/${path}`, { headers: authHeaders(key), cache: "no-store" });
+  const response = await fetch(`${baseUrl}/object/${bucket}/${encodeObjectPath(path)}`, { headers: authHeaders(key), cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Gagal mengunduh berkas (${response.status}): ${await response.text()}`);
   }

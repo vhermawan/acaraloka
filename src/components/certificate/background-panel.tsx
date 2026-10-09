@@ -64,7 +64,7 @@ function BackgroundPanel({ eventId, hasBackground, locked, closed }: BackgroundP
       const response = await fetch(signed.uploadUrl, { method: "PUT", body, headers: { "x-upsert": "false" } });
       if (!response.ok) throw new Error("Upload gambar latar gagal. Coba lagi.");
 
-      const result = await applyBackground(eventId, signed.path, prepared.width, prepared.height);
+      const result = await applyBackground(eventId, signed.path);
       if (result.error) throw new Error(result.error);
 
       toast.success("Gambar latar disimpan.");

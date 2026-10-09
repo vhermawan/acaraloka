@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { getSession } from "@/lib/session";
+import { BackgroundUnavailableError, backgroundUnavailableResponse } from "@/server/certificate-background-error";
 import { renderCertificatePdf } from "@/server/certificate-pdf";
 import { getUserCertificateRenderData } from "@/server/certificates";
 
@@ -9,7 +10,13 @@ export async function GET(_request: Request, { params }: RouteContext<"/me/certi
   const session = await getSession();
   if (!session || session.user.disabledAt || session.user.role !== "PARTICIPANT") notFound();
 
-  const certificate = await getUserCertificateRenderData(session.user.id, number);
+  let certificate: Awaited<ReturnType<typeof getUserCertificateRenderData>>;
+  try {
+    certificate = await getUserCertificateRenderData(session.user.id, number);
+  } catch (error) {
+    if (error instanceof BackgroundUnavailableError) return backgroundUnavailableResponse();
+    throw error;
+  }
   if (!certificate) notFound();
 
   const pdf = await renderCertificatePdf(certificate.layout, certificate.data, { template: certificate.template });

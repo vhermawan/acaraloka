@@ -11,7 +11,19 @@ import {
 } from "@/lib/certificate-layout";
 import { CERTIFICATE_NUMBER_PREFIX } from "@/lib/brand";
 import { env } from "@/lib/env";
-import { pageSizeFor, type PageFormatKey } from "@/lib/certificate-background";
+import { PDFDocument } from "pdf-lib";
+
+import {
+  BACKGROUND_MAX_BYTES,
+  backgroundFormat,
+  hasBackgroundSignature,
+  isBackgroundPath,
+  isBackgroundPathFor,
+  pageSizeFor,
+  validateBackgroundDimensions,
+  type PageFormatKey,
+} from "@/lib/certificate-background";
+import { BackgroundUnavailableError } from "@/server/certificate-background-error";
 import type { CertificateRenderData, CertificateTemplate } from "@/server/certificate-pdf";
 import { prisma } from "@/server/db";
 import { CERTIFICATE_BACKGROUND_BUCKET, downloadObject, removeObjects } from "@/server/storage";
@@ -59,29 +71,85 @@ export async function setCertificateBackground(
   input: { path: string; format: PageFormatKey },
   db: PrismaClient = prisma,
 ): Promise<BackgroundChange> {
-  const current = await getOrCreateCertificateConfig(eventId, db);
+  await getOrCreateCertificateConfig(eventId, db);
   const { width, height } = pageSizeFor(input.format);
-  const updated = await db.certificateConfig.updateMany({
-    where: { eventId, lockedAt: null },
-    data: { templateSource: "UPLOAD", backgroundPath: input.path, pageWidth: width, pageHeight: height },
+  const result = await db.$transaction(async (tx) => {
+    const current = await tx.certificateConfig.findUnique({ where: { eventId }, select: { backgroundPath: true } });
+    const updated = await tx.certificateConfig.updateMany({
+      where: { eventId, lockedAt: null },
+      data: { templateSource: "UPLOAD", backgroundPath: input.path, pageWidth: width, pageHeight: height },
+    });
+    return { updated: updated.count === 1, previous: current?.backgroundPath ?? null };
   });
-  if (updated.count !== 1) return { ok: false, reason: "LOCKED" };
-  if (current.backgroundPath && current.backgroundPath !== input.path) {
-    await removeObjects(CERTIFICATE_BACKGROUND_BUCKET, [current.backgroundPath]).catch(() => undefined);
+  if (!result.updated) return { ok: false, reason: "LOCKED" };
+  if (result.previous && result.previous !== input.path) {
+    await removeObjects(CERTIFICATE_BACKGROUND_BUCKET, [result.previous]).catch(() => undefined);
   }
   return { ok: true };
 }
 
 export async function clearCertificateBackground(eventId: string, db: PrismaClient = prisma): Promise<BackgroundChange> {
-  const current = await getOrCreateCertificateConfig(eventId, db);
+  await getOrCreateCertificateConfig(eventId, db);
   const { width, height } = pageSizeFor("a4");
-  const updated = await db.certificateConfig.updateMany({
-    where: { eventId, lockedAt: null },
-    data: { templateSource: "BUILTIN", backgroundPath: null, pageWidth: width, pageHeight: height },
+  const result = await db.$transaction(async (tx) => {
+    const current = await tx.certificateConfig.findUnique({ where: { eventId }, select: { backgroundPath: true } });
+    const updated = await tx.certificateConfig.updateMany({
+      where: { eventId, lockedAt: null },
+      data: { templateSource: "BUILTIN", backgroundPath: null, pageWidth: width, pageHeight: height },
+    });
+    return { updated: updated.count === 1, previous: current?.backgroundPath ?? null };
   });
-  if (updated.count !== 1) return { ok: false, reason: "LOCKED" };
-  if (current.backgroundPath) {
-    await removeObjects(CERTIFICATE_BACKGROUND_BUCKET, [current.backgroundPath]).catch(() => undefined);
+  if (!result.updated) return { ok: false, reason: "LOCKED" };
+  if (result.previous) {
+    await removeObjects(CERTIFICATE_BACKGROUND_BUCKET, [result.previous]).catch(() => undefined);
+  }
+  return { ok: true };
+}
+
+export type BackgroundApplyResult = { ok: true } | { ok: false; reason: "LOCKED" | "INVALID"; error: string };
+
+export const BACKGROUND_LOCKED_MESSAGE = "Desain sudah terkunci. Buka kunci dulu untuk mengubah gambar latar.";
+
+export async function applyCertificateBackground(
+  eventId: string,
+  path: string,
+  db: PrismaClient = prisma,
+): Promise<BackgroundApplyResult> {
+  const reject = async (error: string): Promise<BackgroundApplyResult> => {
+    if (isBackgroundPathFor(eventId, path)) {
+      await removeObjects(CERTIFICATE_BACKGROUND_BUCKET, [path]).catch(() => undefined);
+    }
+    return { ok: false, reason: "INVALID", error };
+  };
+
+  if (!isBackgroundPathFor(eventId, path)) return { ok: false, reason: "INVALID", error: "Berkas gambar latar tidak valid." };
+  const extension = backgroundFormat(path);
+
+  let bytes: Uint8Array;
+  try {
+    bytes = await downloadObject(CERTIFICATE_BACKGROUND_BUCKET, path);
+  } catch {
+    return { ok: false, reason: "INVALID", error: "Gambar latar belum terunggah. Coba unggah lagi." };
+  }
+  if (bytes.byteLength === 0 || bytes.byteLength > BACKGROUND_MAX_BYTES) return reject("Ukuran gambar latar maksimal 3 MB.");
+  if (!hasBackgroundSignature(bytes, extension)) return reject("Isi berkas bukan gambar PNG atau JPG yang valid.");
+
+  let size: { width: number; height: number };
+  try {
+    const probe = await PDFDocument.create();
+    const image = extension === "png" ? await probe.embedPng(bytes) : await probe.embedJpg(bytes);
+    size = { width: image.width, height: image.height };
+  } catch {
+    return reject("Gambar tidak bisa dibaca. Coba berkas PNG atau JPG lain.");
+  }
+
+  const dimensions = validateBackgroundDimensions(size.width, size.height);
+  if (!dimensions.ok) return reject(dimensions.error);
+
+  const result = await setCertificateBackground(eventId, { path, format: dimensions.format }, db);
+  if (!result.ok) {
+    await removeObjects(CERTIFICATE_BACKGROUND_BUCKET, [path]).catch(() => undefined);
+    return { ok: false, reason: "LOCKED", error: BACKGROUND_LOCKED_MESSAGE };
   }
   return { ok: true };
 }
@@ -92,14 +160,15 @@ export async function loadCertificateTemplate(config: {
   pageWidth: number;
   pageHeight: number;
 }): Promise<CertificateTemplate> {
-  const background =
-    config.templateSource === "UPLOAD" && config.backgroundPath
-      ? {
-          path: config.backgroundPath,
-          bytes: await downloadObject(CERTIFICATE_BACKGROUND_BUCKET, config.backgroundPath),
-        }
-      : null;
-  return { pageWidth: config.pageWidth, pageHeight: config.pageHeight, background };
+  if (config.templateSource !== "UPLOAD" || !config.backgroundPath) {
+    return { pageWidth: config.pageWidth, pageHeight: config.pageHeight, background: null };
+  }
+  const path = config.backgroundPath;
+  if (!isBackgroundPath(path)) throw new BackgroundUnavailableError();
+  const bytes = await downloadObject(CERTIFICATE_BACKGROUND_BUCKET, path).catch(() => {
+    throw new BackgroundUnavailableError();
+  });
+  return { pageWidth: config.pageWidth, pageHeight: config.pageHeight, background: { path, bytes } };
 }
 
 export function formatCertificateDate(date: Date, timezone: string): string {

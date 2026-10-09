@@ -59,3 +59,21 @@ export function validateBackgroundDimensions(width: number, height: number): Bac
 export function backgroundFormat(path: string): "jpg" | "png" {
   return path.toLowerCase().endsWith(".png") ? "png" : "jpg";
 }
+
+const BACKGROUND_PATH_PATTERN = /^events\/([A-Za-z0-9_-]+)\/[0-9a-f]{16}\.(jpg|png)$/;
+
+export function isBackgroundPathFor(eventId: string, path: string): boolean {
+  const match = BACKGROUND_PATH_PATTERN.exec(path);
+  return match !== null && match[1] === eventId;
+}
+
+export function isBackgroundPath(path: string): boolean {
+  return BACKGROUND_PATH_PATTERN.test(path);
+}
+
+export function hasBackgroundSignature(bytes: Uint8Array, extension: "jpg" | "png"): boolean {
+  if (extension === "png") {
+    return [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((value, index) => bytes[index] === value);
+  }
+  return [0xff, 0xd8, 0xff].every((value, index) => bytes[index] === value);
+}

@@ -18,13 +18,14 @@ import { signerSchema } from "@/lib/validation/signer";
 import { requireEventOwner } from "@/server/authz";
 import { scheduleEmailDrain } from "@/server/email-schedule";
 import {
+  BACKGROUND_LOCKED_MESSAGE,
+  applyCertificateBackground,
   clearCertificateBackground,
   getOrCreateCertificateConfig,
   saveCertificateLayout,
-  setCertificateBackground,
 } from "@/server/certificate-config";
 import { issueCertificates, revokeCertificate } from "@/server/certificates";
-import { CERTIFICATE_BACKGROUND_BUCKET, createSignedUploadUrl, removeObjects } from "@/server/storage";
+import { CERTIFICATE_BACKGROUND_BUCKET, createSignedUploadUrl } from "@/server/storage";
 import { addSigner, regenerateSignerLink, removeSigner, unlockCertificate } from "@/server/signers";
 
 export async function saveLayout(eventId: string, layout: unknown): Promise<{ error?: string }> {
@@ -41,8 +42,6 @@ export async function saveLayout(eventId: string, layout: unknown): Promise<{ er
 }
 
 const CLOSED_STATUSES = new Set(["CANCELLED", "DISABLED"]);
-
-const BACKGROUND_LOCKED_MESSAGE = "Desain sudah terkunci. Buka kunci dulu untuk mengubah gambar latar.";
 
 export async function createBackgroundUpload(
   eventId: string,
@@ -64,23 +63,12 @@ export async function createBackgroundUpload(
   return { uploadUrl, path };
 }
 
-export async function applyBackground(
-  eventId: string,
-  path: string,
-  width: number,
-  height: number,
-): Promise<{ error?: string }> {
+export async function applyBackground(eventId: string, path: string): Promise<{ error?: string }> {
   const { event } = await requireEventOwner(eventId);
   if (CLOSED_STATUSES.has(event.status)) return { error: "Acara ini sudah ditutup." };
-  if (!path.startsWith(`events/${event.id}/`) || path.includes("..")) return { error: "Berkas gambar latar tidak valid." };
-  const dimensions = validateBackgroundDimensions(width, height);
-  if (!dimensions.ok) return { error: dimensions.error };
 
-  const result = await setCertificateBackground(event.id, { path, format: dimensions.format });
-  if (!result.ok) {
-    await removeObjects(CERTIFICATE_BACKGROUND_BUCKET, [path]).catch(() => undefined);
-    return { error: BACKGROUND_LOCKED_MESSAGE };
-  }
+  const result = await applyCertificateBackground(event.id, path);
+  if (!result.ok) return { error: result.error };
 
   revalidatePath(`/organizer/events/${event.id}/certificate`);
   return {};
