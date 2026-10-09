@@ -21,7 +21,7 @@ export default async function JoinOrganizerPage() {
 
   return (
     <div className="flex min-h-dvh flex-col items-center bg-sidebar px-4 py-10 sm:justify-center sm:py-16">
-      <div className="flex w-full max-w-[440px] flex-col gap-6">
+      <div className="flex w-full max-w-110 flex-col gap-6">
         <Link
           href="/"
           className="w-fit self-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"

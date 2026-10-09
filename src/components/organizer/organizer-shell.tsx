@@ -69,7 +69,7 @@ function NavItem({
         active
           ? "bg-primary/8 font-medium text-primary before:absolute before:inset-y-2 before:w-0.5 before:rounded-full before:bg-accent-amber"
           : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground",
-        active && (nested ? "before:-left-[9px]" : "before:left-0"),
+        active && (nested ? "before:-left-2.25" : "before:left-0"),
       )}
     >
       <Icon className="size-5 shrink-0" strokeWidth={1.5} aria-hidden="true" />
@@ -124,7 +124,7 @@ function EventMenu({
 }) {
   const titleId = useId();
   return (
-    <div role="group" aria-labelledby={titleId} className="ml-[22px] flex flex-col gap-0.5 border-l border-sidebar-border pl-2">
+    <div role="group" aria-labelledby={titleId} className="ml-5.5 flex flex-col gap-0.5 border-l border-sidebar-border pl-2">
       <p id={titleId} className="line-clamp-2 px-3 pt-1 pb-1.5 text-xs/4 font-semibold text-foreground">
         {title}
       </p>
@@ -246,8 +246,8 @@ function OrganizerShell({ children, ...props }: ShellProps & { children: React.R
         </DialogPrimitive.Root>
       </header>
 
-      <div className="min-w-0 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        <div className="mx-auto w-full max-w-[1040px]">{children}</div>
+      <div className="min-w-0 px-4 py-6 sm:px-6 lg:p-8">
+        <div className="mx-auto w-full max-w-260">{children}</div>
       </div>
     </div>
   );

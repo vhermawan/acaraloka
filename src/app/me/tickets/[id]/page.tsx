@@ -82,7 +82,7 @@ export default async function TicketDetailPage({ params }: PageProps<"/me/ticket
           <dt className="text-muted-foreground">Mulai</dt>
           <dd>{formatEventDateTime(event.startAt, event.timezone)}</dd>
           <dt className="text-muted-foreground">Lokasi</dt>
-          <dd className="break-words">{event.venue}</dd>
+          <dd className="wrap-break-word">{event.venue}</dd>
         </dl>
       </article>
 

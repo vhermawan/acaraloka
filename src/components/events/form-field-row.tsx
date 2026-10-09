@@ -45,8 +45,8 @@ function FormFieldRow({
           {number}
         </span>
         <div className="flex min-w-[min(14rem,calc(100%-2.5rem))] flex-1 flex-col gap-0.5">
-          <span className="text-sm font-semibold break-words">{label}</span>
-          <span className="text-xs break-words text-muted-foreground">{meta}</span>
+          <span className="text-sm font-semibold wrap-break-word">{label}</span>
+          <span className="text-xs wrap-break-word text-muted-foreground">{meta}</span>
         </div>
         {editable ? (
           <div className="-ml-2 flex items-center gap-0.5 pl-10 sm:ml-0 sm:pl-0">

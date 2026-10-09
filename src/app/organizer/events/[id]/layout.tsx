@@ -18,7 +18,7 @@ export default async function EventLayout({ children, params }: LayoutProps<"/or
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
-              <h1 className="text-2xl/8 font-bold tracking-tight text-balance break-words">{event.title}</h1>
+              <h1 className="text-2xl/8 font-bold tracking-tight text-balance wrap-break-word">{event.title}</h1>
               <EventStatusBadge status={event.status} />
             </div>
             {event.status === "PUBLISHED" ? (
@@ -35,7 +35,7 @@ export default async function EventLayout({ children, params }: LayoutProps<"/or
               </Button>
             ) : null}
           </div>
-          <p className="text-sm break-words text-muted-foreground">
+          <p className="text-sm wrap-break-word text-muted-foreground">
             <span className="tabular-nums">{formatEventSchedule(event.startAt, event.timezone)}</span>
             <span aria-hidden="true"> · </span>
             {event.venue}
@@ -47,7 +47,7 @@ export default async function EventLayout({ children, params }: LayoutProps<"/or
           <TriangleAlert className="mt-0.5 size-5 shrink-0 text-destructive" strokeWidth={1.5} aria-hidden="true" />
           <div className="min-w-0">
             <p className="font-medium text-destructive">Acara ini dinonaktifkan admin</p>
-            <p className="mt-1 break-words">{event.disabledReason ?? "Tidak ada alasan yang dicatat."}</p>
+            <p className="mt-1 wrap-break-word">{event.disabledReason ?? "Tidak ada alasan yang dicatat."}</p>
             <p className="mt-2 text-muted-foreground">
               Halaman publik, pendaftaran, check-in, dan penerbitan sertifikat ditutup. Sertifikat yang sudah terbit
               tetap berlaku. Hubungi admin di {LEGAL_OPERATOR.email} untuk mengaktifkan kembali.

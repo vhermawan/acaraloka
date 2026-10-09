@@ -38,9 +38,9 @@ function SiteFooter() {
 
   return (
     <footer data-slot="site-footer" className="border-t border-border bg-background">
-      <Container className="flex max-w-[75rem] flex-col gap-12 pt-16 pb-10">
+      <Container className="flex max-w-300 flex-col gap-12 pt-16 pb-10">
         <div className="grid gap-10 md:grid-cols-[1fr_auto] md:gap-20">
-          <div className="flex max-w-[300px] flex-col gap-2.5">
+          <div className="flex max-w-75 flex-col gap-2.5">
             <Image
               src="/logo/acaraloka-horizontal.svg"
               alt={APP_NAME}
@@ -48,8 +48,8 @@ function SiteFooter() {
               height={96}
               className="-ml-2 h-12 w-auto self-start"
             />
-            <p className="text-sm leading-[22px] text-muted-foreground">Pendaftaran, check-in, dan sertifikat acara dalam satu tempat.</p>
-            <address className="flex flex-col text-sm not-italic leading-[22px] text-muted-foreground">
+            <p className="text-sm/5.5 text-muted-foreground">Pendaftaran, check-in, dan sertifikat acara dalam satu tempat.</p>
+            <address className="flex flex-col text-sm/5.5 not-italic text-muted-foreground">
               <a href={`mailto:${LEGAL_OPERATOR.email}`} className="w-fit hover:text-foreground">
                 {LEGAL_OPERATOR.email}
               </a>

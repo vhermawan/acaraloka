@@ -24,7 +24,7 @@ async function SiteHeader() {
       data-slot="site-header"
       className="sticky top-0 z-40 border-b border-border bg-background"
     >
-      <Container className="relative flex h-16 max-w-[75rem] items-center gap-4 lg:h-[72px]">
+      <Container className="relative flex h-16 max-w-300 items-center gap-4 lg:h-18">
         <Link
           href="/"
           className="-ml-2 shrink-0 rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -61,7 +61,7 @@ async function SiteHeader() {
             <Button
               nativeButton={false}
               render={<Link href={CREATE_EVENT_HREF} />}
-              className="hidden h-10 px-[18px] text-[15px] sm:inline-flex"
+              className="hidden h-10 px-4.5 text-[15px] sm:inline-flex"
             >
               Buat acara gratis
             </Button>

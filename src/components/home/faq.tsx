@@ -32,8 +32,8 @@ const QUESTIONS = [
 
 function Faq() {
   return (
-    <section id="faq" aria-labelledby="faq-heading" className="scroll-mt-16 py-[72px] lg:py-[120px]">
-      <Container className="grid max-w-[75rem] gap-10 lg:grid-cols-[380px_1fr] lg:gap-20">
+    <section id="faq" aria-labelledby="faq-heading" className="scroll-mt-16 py-18 lg:py-30">
+      <Container className="grid max-w-300 gap-10 lg:grid-cols-[380px_1fr] lg:gap-20">
         <SectionHeading id="faq-heading" eyebrow="pertanyaan" title="Yang sering ditanya panitia" />
         <div className="border-t border-border lg:border-t-0">
           {QUESTIONS.map((item, index) => (
@@ -41,11 +41,11 @@ function Faq() {
               <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 py-5 text-base font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
                 {item.question}
                 <ChevronDown
-                  className="size-[18px] shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+                  className="size-4.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
                   aria-hidden="true"
                 />
               </summary>
-              <p className="pb-6 text-base leading-[26px] text-pretty text-muted-foreground">{item.answer}</p>
+              <p className="pb-6 text-base/6.5 text-pretty text-muted-foreground">{item.answer}</p>
             </details>
           ))}
         </div>

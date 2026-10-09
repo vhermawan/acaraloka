@@ -106,7 +106,7 @@ export default async function ParticipantsPage({
                 <li key={row.id} className="flex flex-col gap-3 rounded-xl border border-border p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 flex-col gap-0.5">
-                      <p className="font-semibold break-words">{row.name}</p>
+                      <p className="font-semibold wrap-break-word">{row.name}</p>
                       <p className="text-sm break-all text-muted-foreground">{row.email}</p>
                       <p className="text-sm text-muted-foreground">{row.ticketType.name}</p>
                     </div>

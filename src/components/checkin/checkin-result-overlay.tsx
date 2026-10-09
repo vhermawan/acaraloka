@@ -72,7 +72,7 @@ function CheckInResultOverlay({ result, formatTime, onDismiss, onUndo, undoPendi
         </p>
         {participant ? (
           <div className="flex flex-col gap-1">
-            <p className="text-2xl font-medium break-words">{participant.name}</p>
+            <p className="text-2xl font-medium wrap-break-word">{participant.name}</p>
             <p className="text-lg opacity-90">{participant.ticketTypeName}</p>
             {!valid && participant.checkedInAt ? (
               <p className="text-lg tabular-nums">Masuk pukul {formatTime(participant.checkedInAt)}</p>

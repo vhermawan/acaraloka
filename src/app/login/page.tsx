@@ -45,7 +45,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-sidebar p-4 sm:p-8">
-      <div className="grid w-full max-w-5xl gap-3 rounded-2xl border border-border bg-card p-3 md:min-h-[36rem] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="grid w-full max-w-5xl gap-3 rounded-2xl border border-border bg-card p-3 md:min-h-144 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <LoginShowcase />
         <section
           aria-labelledby="login-heading"

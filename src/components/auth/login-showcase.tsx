@@ -15,7 +15,7 @@ function LoginShowcase() {
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute -top-28 -left-20 size-96 rounded-full bg-white/70 dark:bg-white/5" />
         <div className="absolute top-[12%] -right-14 size-52 rounded-full bg-[radial-gradient(circle_at_30%_30%,#b7e0de,#7cc7c4_45%,#0f5257)] opacity-90" />
-        <div className="absolute -bottom-40 -right-24 size-[26rem] rounded-full border-[44px] border-[#0f5257]/10 dark:border-[#7cc7c4]/10" />
+        <div className="absolute -bottom-40 -right-24 size-104 rounded-full border-44 border-[#0f5257]/10 dark:border-[#7cc7c4]/10" />
         <div className="absolute top-[9%] right-40 size-3 rounded-full bg-accent-amber" />
       </div>
 
