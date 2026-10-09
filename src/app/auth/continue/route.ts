@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   const loginPath = loginPathFor(intent);
 
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) redirect(loginPath);
+  if (!session) redirect(request.nextUrl.searchParams.has("error") ? `${loginPath}?error=verify-expired` : loginPath);
 
   const { user } = session;
   if (user.disabledAt) {

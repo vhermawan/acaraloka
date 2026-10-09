@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
-import { intentParam, type UserRole } from "@/lib/roles";
+import { continuePath, loginPathFor, type UserRole } from "@/lib/roles";
 
 type GoogleSignInButtonProps = {
   role: UserRole;
@@ -32,7 +32,8 @@ function GoogleSignInButton({ role, next, label, selectAccount = false }: Google
     setPending(true);
     const { error } = await authClient.signIn.social({
       provider: "google",
-      callbackURL: `/auth/continue?intent=${intentParam(role)}&next=${encodeURIComponent(next)}`,
+      callbackURL: continuePath(role, next),
+      errorCallbackURL: loginPathFor(role),
       additionalData: { intent: role },
       additionalParams: selectAccount ? { prompt: "select_account" } : undefined,
     });

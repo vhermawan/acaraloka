@@ -1,6 +1,6 @@
 import type { EmailMessage } from "@/lib/email-templates";
 
-export const EMAIL_PRIORITY = { TRANSACTIONAL: 1, BULK: 2 } as const;
+export const EMAIL_PRIORITY = { AUTH: 0, TRANSACTIONAL: 1, BULK: 2 } as const;
 
 export type OutboxItem = EmailMessage & { to: string; dedupeKey: string; priority: number };
 

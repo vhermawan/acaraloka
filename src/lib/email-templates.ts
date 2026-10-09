@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { RESET_TTL_SECONDS, VERIFICATION_TTL_SECONDS } from "@/lib/auth-config";
 import { APP_NAME } from "@/lib/brand";
 
 const path = z.string().regex(/^\/(?![/\\])/);
@@ -30,6 +31,20 @@ export const emailPayloadSchemas = {
     name: z.string(),
     eventTitle: z.string(),
     certificatesPath: path,
+  }),
+  "verify-email": z.object({
+    name: z.string(),
+    verifyPath: path,
+  }),
+  "reset-password": z.object({
+    name: z.string(),
+    resetPath: path,
+  }),
+  "account-exists": z.object({
+    name: z.string(),
+    reason: z.enum(["signup", "reset"]),
+    method: z.enum(["google", "password"]),
+    loginPath: path,
   }),
 };
 
@@ -70,6 +85,10 @@ type EmailContent = {
 
 const COLORS = { brand: "#0F5257", ink: "#10202A", muted: "#4A5A62", line: "#E2E8E8", page: "#F4F6F6" };
 const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+
+function formatDuration(seconds: number): string {
+  return seconds % 3600 === 0 ? `${seconds / 3600} jam` : `${Math.round(seconds / 60)} menit`;
+}
 
 function renderHtml(content: EmailContent, host: string): string {
   const paragraphs = content.paragraphs
@@ -158,6 +177,50 @@ function buildContent(message: EmailMessage, link: (path: string) => string): Em
         paragraphs: [`Halo ${name}, sertifikat kehadiranmu di ${eventTitle} sudah bisa diunduh.`],
         action: { label: "Unduh sertifikat", url: link(certificatesPath) },
         note: "Sertifikat bisa diunduh kapan saja dari menu Sertifikat Saya.",
+      };
+    }
+    case "verify-email": {
+      const { name, verifyPath } = message.payload;
+      return {
+        subject: `Verifikasi email akun ${APP_NAME}`,
+        heading: "Verifikasi email kamu",
+        paragraphs: [
+          `Halo ${name}, terima kasih sudah mendaftar di ${APP_NAME}.`,
+          "Klik tombol di bawah untuk memverifikasi email dan mengaktifkan akunmu.",
+        ],
+        action: { label: "Verifikasi email", url: link(verifyPath) },
+        note: `Tautan berlaku ${formatDuration(VERIFICATION_TTL_SECONDS)}. Kalau kamu tidak merasa mendaftar, abaikan email ini.`,
+      };
+    }
+    case "reset-password": {
+      const { name, resetPath } = message.payload;
+      return {
+        subject: `Atur ulang password ${APP_NAME}`,
+        heading: "Atur ulang password",
+        paragraphs: [
+          `Halo ${name}, kami menerima permintaan untuk mengatur ulang password akun ${APP_NAME}-mu.`,
+          "Klik tombol di bawah untuk memilih password baru.",
+        ],
+        action: { label: "Atur password baru", url: link(resetPath) },
+        note: `Tautan berlaku ${formatDuration(RESET_TTL_SECONDS)} dan hanya bisa dipakai sekali. Kalau bukan kamu yang meminta, abaikan email ini; passwordmu tidak berubah.`,
+      };
+    }
+    case "account-exists": {
+      const { name, reason, method, loginPath } = message.payload;
+      const intro =
+        reason === "signup"
+          ? `Halo ${name}, seseorang mencoba mendaftar di ${APP_NAME} dengan email ini, padahal akunmu sudah ada.`
+          : `Halo ${name}, kami menerima permintaan atur ulang password untuk email ini, tetapi akunmu masuk lewat Google dan tidak memakai password.`;
+      const guide =
+        method === "google"
+          ? 'Masuk dengan tombol "Masuk dengan Google" di halaman masuk.'
+          : 'Masuk dengan email dan passwordmu, atau lewat Google. Kalau lupa password, pakai tautan "Lupa password" di halaman masuk.';
+      return {
+        subject: `Kamu sudah punya akun ${APP_NAME}`,
+        heading: "Akunmu sudah terdaftar",
+        paragraphs: [intro, guide],
+        action: { label: "Buka halaman masuk", url: link(loginPath) },
+        note: "Kalau bukan kamu yang melakukannya, abaikan email ini. Akunmu aman.",
       };
     }
   }

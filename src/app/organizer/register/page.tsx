@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { AuthFrame } from "@/components/auth/auth-frame";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { OrganizerRegisterForm } from "@/components/organizer/organizer-register-form";
+import { parseAuthNotice } from "@/lib/auth-notice";
 import { parseRole, parseRoleConflict, resolvePostLoginPath } from "@/lib/roles";
 import { getSession } from "@/lib/session";
 import { requireUser } from "@/server/authz";
@@ -51,6 +52,7 @@ export default async function OrganizerRegisterPage({ searchParams }: PageProps<
       next={nextPath}
       conflict={sessionRole === "PARTICIPANT" ? "role-participant" : parseRoleConflict(error)}
       disabled={error === "disabled"}
+      notice={parseAuthNotice(error)}
     />
   );
 }
