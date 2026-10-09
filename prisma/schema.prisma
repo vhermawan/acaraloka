@@ -170,6 +170,7 @@ model CertificateConfig {
   eventId        String                    @unique @map("event_id")
   templateSource CertificateTemplateSource @default(BUILTIN) @map("template_source")
   builtinKey     String                    @map("builtin_key")
+  backgroundPath String?                   @map("background_path")
   pageWidth      Float                     @map("page_width")
   pageHeight     Float                     @map("page_height")
   layout         Json

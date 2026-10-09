@@ -5,8 +5,8 @@ import { issueBlocker, type IssueBlocker } from "@/lib/certificate-issue";
 import { certificateIssuedEmail } from "@/lib/email-notifications";
 import { buildCertificateNumber } from "@/lib/certificate-number";
 import type { CertificateLayout } from "@/lib/certificate-layout";
-import { formatCertificateDate, getOrCreateCertificateConfig, verifyUrl } from "@/server/certificate-config";
-import type { CertificateRenderData } from "@/server/certificate-pdf";
+import { formatCertificateDate, getOrCreateCertificateConfig, loadCertificateTemplate, verifyUrl } from "@/server/certificate-config";
+import type { CertificateRenderData, CertificateTemplate } from "@/server/certificate-pdf";
 import { prisma } from "@/server/db";
 import { enqueueEmails } from "@/server/email-outbox";
 import { loadSignerRenderData } from "@/server/signers";
@@ -140,7 +140,7 @@ export async function getUserCertificateRenderData(
   userId: string,
   number: string,
   db: PrismaClient = prisma,
-): Promise<{ data: CertificateRenderData; layout: CertificateLayout } | null> {
+): Promise<{ data: CertificateRenderData; layout: CertificateLayout; template: CertificateTemplate } | null> {
   const certificate = await db.certificate.findFirst({
     where: { number, revokedAt: null, registration: { userId } },
     select: {
@@ -158,6 +158,7 @@ export async function getUserCertificateRenderData(
   ]);
   return {
     layout: config.layout,
+    template: await loadCertificateTemplate(config),
     data: {
       recipientName: certificate.recipientName,
       certificateNumber: certificate.number,

@@ -111,6 +111,12 @@ const ownerActions: Call[] = [
   ["undoParticipantCheckIn", () => checkinActions.undoParticipantCheckIn("e1", "r1")],
   ["searchParticipants", () => checkinActions.searchParticipants("e1", "budi")],
   ["saveLayout", () => certificateActions.saveLayout("e1", {})],
+  [
+    "createBackgroundUpload",
+    () => certificateActions.createBackgroundUpload("e1", { contentType: "image/png", size: 10, width: 2480, height: 1754 }),
+  ],
+  ["applyBackground", () => certificateActions.applyBackground("e1", "events/e1/0123456789abcdef.png")],
+  ["removeBackground", () => certificateActions.removeBackground("e1")],
   ["createSigner", () => certificateActions.createSigner("e1", {}, form())],
   ["regenerateLink", () => certificateActions.regenerateLink("e1", "s1")],
   ["emailSignerLink", () => certificateActions.emailSignerLink("e1", "s1")],

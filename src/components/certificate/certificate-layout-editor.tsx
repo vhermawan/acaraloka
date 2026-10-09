@@ -16,9 +16,9 @@ import {
   FONT_FAMILIES,
   FONT_ROLE_LABELS,
   FONT_ROLE_OPTIONS,
+  LABEL_MAX_LENGTH,
+  LABEL_TITLES,
   NUDGE_STEP,
-  PAGE_HEIGHT,
-  PAGE_WIDTH,
   TEXT_ELEMENT_LABELS,
   clampCoordinate,
   defaultCertificateLayout,
@@ -28,14 +28,24 @@ import {
   type CertificateLayout,
   type FontKey,
   type FontRole,
+  type LabelKey,
   type TextAlign,
   type TextElementKey,
 } from "@/lib/certificate-layout";
 import { cn } from "cn";
 
-type Selection = { kind: "text"; key: TextElementKey } | { kind: "signer"; index: number } | { kind: "qr" };
+type Selection =
+  | { kind: "text"; key: TextElementKey }
+  | { kind: "signer"; index: number }
+  | { kind: "qr" }
+  | { kind: "heading" };
 
 const TEXT_KEYS: TextElementKey[] = ["recipientName", "eventTitle", "eventDate", "certificateNumber"];
+
+const LABEL_KEYS: LabelKey[] = ["heading", "recipientPrefix", "eventPrefix"];
+
+const INK_HEX = "#1c1c1f";
+const MUTED_HEX = "#616166";
 
 const FONT_ROLES = Object.keys(FONT_ROLE_LABELS) as FontRole[];
 
@@ -57,6 +67,35 @@ const tabClass =
   "flex h-9 items-center justify-center rounded-md text-sm font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-[active]:text-foreground";
 
 const optionActive = "border-primary bg-primary/8 text-primary hover:bg-primary/10 hover:text-primary";
+
+function ColorField({
+  label,
+  value,
+  fallback,
+  onChange,
+}: {
+  label: string;
+  value: string | null;
+  fallback: string;
+  onChange: (value: string | null) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <label className="flex items-center gap-2 text-sm font-medium">
+        {label}
+        <input
+          type="color"
+          value={value ?? fallback}
+          onChange={(event) => onChange(event.target.value)}
+          className="h-9 w-12 cursor-pointer rounded-md border border-border bg-transparent p-0.5"
+        />
+      </label>
+      <Button type="button" variant="ghost" className="h-9 px-3" disabled={value === null} onClick={() => onChange(null)}>
+        Bawaan
+      </Button>
+    </div>
+  );
+}
 
 function Stepper({
   label,
@@ -106,6 +145,7 @@ function sameSelection(a: Selection, b: Selection) {
 
 function selectionLabel(selection: Selection) {
   if (selection.kind === "text") return TEXT_ELEMENT_LABELS[selection.key];
+  if (selection.kind === "heading") return "Judul";
   if (selection.kind === "signer") return `Penandatangan ${selection.index + 1}`;
   return "QR verifikasi";
 }
@@ -115,25 +155,42 @@ type CertificateLayoutEditorProps = {
   initialLayout: CertificateLayout;
   signers: { name: string; title: string }[];
   locked: boolean;
+  pageWidth: number;
+  pageHeight: number;
+  backgroundUrl: string | null;
 };
 
-function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: CertificateLayoutEditorProps) {
+function CertificateLayoutEditor({
+  eventId,
+  initialLayout,
+  signers,
+  locked,
+  pageWidth,
+  pageHeight,
+  backgroundUrl,
+}: CertificateLayoutEditorProps) {
   const [layout, setLayout] = useState(initialLayout);
   const [savedLayout, setSavedLayout] = useState(initialLayout);
   const [selection, setSelection] = useState<Selection>({ kind: "text", key: "recipientName" });
   const [pending, startTransition] = useTransition();
   const signerCount = Math.max(1, signers.length);
   const dirty = JSON.stringify(layout) !== JSON.stringify(savedLayout);
-  const scale = 100 / PAGE_WIDTH;
+  const scale = 100 / pageWidth;
+  const customBackground = backgroundUrl !== null;
   const { theme } = layout;
   const accent = ACCENT_COLORS[theme.accent].hex;
   const headingFont = fontStyle(theme.fonts.heading, "bold");
   const nameFont = fontStyle(theme.fonts.name, "bold");
+  const headingRegularFont = fontStyle(theme.fonts.heading, "regular");
   const bodyFont = fontStyle(theme.fonts.body, "regular");
   const bodyBoldFont = fontStyle(theme.fonts.body, "bold");
 
   function updateTheme(patch: Partial<Pick<CertificateLayout["theme"], "border" | "accent">>) {
     setLayout((current) => ({ ...current, theme: { ...current.theme, ...patch } }));
+  }
+
+  function updateLabel(key: LabelKey, patch: Partial<CertificateLayout["labels"][LabelKey]>) {
+    setLayout((current) => ({ ...current, labels: { ...current.labels, [key]: { ...current.labels[key], ...patch } } }));
   }
 
   function updateFont(role: FontRole, key: FontKey) {
@@ -146,12 +203,23 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
   const selected =
     selection.kind === "text"
       ? layout[selection.key]
-      : selection.kind === "signer"
-        ? layout.signers[selection.index]
-        : layout.verifyQr;
+      : selection.kind === "heading"
+        ? layout.heading
+        : selection.kind === "signer"
+          ? layout.signers[selection.index]
+          : layout.verifyQr;
 
-  function update(patch: Partial<{ x: number; y: number; fontSize: number; align: TextAlign; size: number }>) {
+  function update(patch: Partial<{ x: number; y: number; fontSize: number; align: TextAlign; size: number; color: string | null }>) {
     setLayout((current) => {
+      if (selection.kind === "heading") {
+        const { color, ...rest } = patch;
+        if (color === undefined) return { ...current, heading: { ...current.heading, ...rest } };
+        return {
+          ...current,
+          heading: { ...current.heading, ...rest },
+          labels: { ...current.labels, heading: { ...current.labels.heading, color } },
+        };
+      }
       if (selection.kind === "text") {
         return { ...current, [selection.key]: { ...current[selection.key], ...patch } };
       }
@@ -184,26 +252,40 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
     ...Array.from({ length: signerCount }, (_, index) => ({ kind: "signer", index }) as const),
     { kind: "qr" },
   ];
+  const showHeadingElement = customBackground && layout.heading.visible;
+  if (showHeadingElement) elementButtons.unshift({ kind: "heading" });
+
+  function toggleHeading(visible: boolean) {
+    setLayout((current) => ({ ...current, heading: { ...current.heading, visible } }));
+    if (!visible && selection.kind === "heading") setSelection({ kind: "text", key: "recipientName" });
+    if (visible) setSelection({ kind: "heading" });
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-8">
       <div className="flex flex-col gap-3">
         <div
           className="relative w-full overflow-hidden rounded-md border border-border bg-white text-neutral-900 shadow-sm"
-          style={{ aspectRatio: `${PAGE_WIDTH} / ${PAGE_HEIGHT}`, containerType: "inline-size" }}
+          style={{
+            aspectRatio: `${pageWidth} / ${pageHeight}`,
+            containerType: "inline-size",
+            ...(backgroundUrl
+              ? { backgroundImage: `url("${backgroundUrl}")`, backgroundSize: "100% 100%", backgroundRepeat: "no-repeat" }
+              : {}),
+          }}
           aria-label="Sketsa posisi sertifikat"
           role="group"
         >
-          {theme.border === "classic" ? (
+          {!customBackground && theme.border === "classic" ? (
             <>
               <div className="pointer-events-none absolute inset-[2.85%] border-[3px]" style={{ borderColor: accent }} />
               <div className="pointer-events-none absolute inset-[4%] border" style={{ borderColor: accent }} />
             </>
           ) : null}
-          {theme.border === "thin" ? (
+          {!customBackground && theme.border === "thin" ? (
             <div className="pointer-events-none absolute inset-[3.3%] border" style={{ borderColor: accent }} />
           ) : null}
-          {theme.border === "corners" ? (
+          {!customBackground && theme.border === "corners" ? (
             <>
               {(
                 [
@@ -221,16 +303,69 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
               ))}
             </>
           ) : null}
-          <p
-            className="pointer-events-none absolute left-1/2 top-[19%] -translate-1/2"
-            style={{ fontSize: `${38 * scale}cqw`, color: accent, ...headingFont }}
-          >
-            SERTIFIKAT
-          </p>
-          <span
-            className="pointer-events-none absolute left-1/2 top-[23.4%] h-px w-[14.3%] -translate-x-1/2"
-            style={{ backgroundColor: accent }}
-          />
+          {!customBackground && layout.labels.heading.text.trim() ? (
+            <>
+              <p
+                className="pointer-events-none absolute left-1/2 top-[19%] -translate-1/2 whitespace-nowrap"
+                style={{ fontSize: `${38 * scale}cqw`, color: layout.labels.heading.color ?? accent, ...headingFont }}
+              >
+                {layout.labels.heading.text}
+              </p>
+              <span
+                className="pointer-events-none absolute left-1/2 top-[23.4%] h-px w-[14.3%] -translate-x-1/2"
+                style={{ backgroundColor: layout.labels.heading.color ?? accent }}
+              />
+            </>
+          ) : null}
+          {showHeadingElement && layout.labels.heading.text.trim() ? (
+            <button
+              type="button"
+              onClick={() => setSelection({ kind: "heading" })}
+              aria-label="Pilih judul"
+              aria-pressed={selection.kind === "heading"}
+              className={cn(
+                "absolute whitespace-nowrap rounded-sm px-1 leading-tight outline-offset-2",
+                selection.kind === "heading" ? "outline-2 outline-primary" : "outline-1 outline-dashed outline-neutral-400",
+              )}
+              style={{
+                left: `${layout.heading.x * 100}%`,
+                top: `${layout.heading.y * 100}%`,
+                transform: TRANSLATE[layout.heading.align],
+                fontSize: `${layout.heading.fontSize * scale}cqw`,
+                color: layout.labels.heading.color ?? accent,
+                ...headingFont,
+              }}
+            >
+              {layout.labels.heading.text}
+            </button>
+          ) : null}
+          {(
+            [
+              ["recipientName", "recipientPrefix", 12],
+              ["eventTitle", "eventPrefix", 11],
+            ] as const
+          ).map(([elementKey, labelKey, size]) => {
+            const element = layout[elementKey];
+            const label = layout.labels[labelKey];
+            if (!label.text.trim()) return null;
+            const offset = (element.fontSize * (elementKey === "recipientName" ? 0.9 : 1) + 6) * scale;
+            return (
+              <p
+                key={labelKey}
+                className="pointer-events-none absolute whitespace-nowrap leading-tight"
+                style={{
+                  left: `${element.x * 100}%`,
+                  top: `calc(${element.y * 100}% - ${offset}cqw)`,
+                  transform: TRANSLATE[element.align],
+                  fontSize: `${size * scale}cqw`,
+                  color: label.color ?? MUTED_HEX,
+                  ...headingRegularFont,
+                }}
+              >
+                {label.text}
+              </p>
+            );
+          })}
           {TEXT_KEYS.map((key) => {
             const element = layout[key];
             const active = selection.kind === "text" && selection.key === key;
@@ -250,6 +385,7 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
                   top: `${element.y * 100}%`,
                   transform: TRANSLATE[element.align],
                   fontSize: `${element.fontSize * scale}cqw`,
+                  color: element.color ?? (key === "recipientName" || key === "eventTitle" ? INK_HEX : MUTED_HEX),
                   ...(key === "recipientName" ? nameFont : key === "eventTitle" ? bodyBoldFont : bodyFont),
                 }}
               >
@@ -332,6 +468,8 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
           <Tabs.Panel value="appearance" className="outline-none">
             <fieldset className="flex flex-col gap-5" disabled={locked}>
               <legend className="sr-only">Tampilan</legend>
+              {customBackground ? null : (
+              <>
               <div className="flex flex-col gap-2">
                 <span id="theme-border-label" className="text-sm font-medium">
                   Border
@@ -377,6 +515,9 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
                 </div>
               </div>
 
+              </>
+              )}
+
               {FONT_ROLES.map((role) => (
                 <label key={role} className="flex flex-col gap-1.5 text-sm font-medium">
                   Font {FONT_ROLE_LABELS[role].toLowerCase()}
@@ -393,12 +534,49 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
                   </NativeSelect>
                 </label>
               ))}
+
+              <div className="flex flex-col gap-4 border-t border-border pt-4">
+                <span className="text-sm font-medium">Teks pendamping</span>
+                {LABEL_KEYS.filter((key) => key !== "heading" || !customBackground || layout.heading.visible).map((key) => (
+                  <div key={key} className="flex flex-col gap-2">
+                    <label className="flex flex-col gap-1.5 text-sm">
+                      {LABEL_TITLES[key]}
+                      <input
+                        type="text"
+                        value={layout.labels[key].text}
+                        maxLength={LABEL_MAX_LENGTH}
+                        placeholder="Kosongkan untuk menyembunyikan"
+                        onChange={(event) => updateLabel(key, { text: event.target.value })}
+                        className="h-10 rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      />
+                    </label>
+                    <ColorField
+                      label="Warna"
+                      value={layout.labels[key].color}
+                      fallback={key === "heading" ? accent : MUTED_HEX}
+                      onChange={(color) => updateLabel(key, { color })}
+                    />
+                  </div>
+                ))}
+              </div>
             </fieldset>
           </Tabs.Panel>
 
           <Tabs.Panel value="layout" className="outline-none">
             <fieldset className="flex flex-col gap-5" disabled={locked}>
               <legend className="sr-only">Tata letak</legend>
+              {customBackground ? (
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <input
+                    type="checkbox"
+                    checked={layout.heading.visible}
+                    onChange={(event) => toggleHeading(event.target.checked)}
+                    className="size-4"
+                  />
+                  Tampilkan judul
+                </label>
+              ) : null}
+
               <div className="flex flex-col gap-2">
                 <span id="element-label" className="text-sm font-medium">
                   Elemen
@@ -466,14 +644,29 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
                 />
               ) : null}
 
-              {selection.kind === "text" ? (
+              {selection.kind === "text" || selection.kind === "heading" ? (
+                <ColorField
+                  label="Warna teks"
+                  value={selection.kind === "heading" ? layout.labels.heading.color : layout[selection.key].color}
+                  fallback={
+                    selection.kind === "heading"
+                      ? accent
+                      : selection.key === "recipientName" || selection.key === "eventTitle"
+                        ? INK_HEX
+                        : MUTED_HEX
+                  }
+                  onChange={(color) => update({ color })}
+                />
+              ) : null}
+
+              {selection.kind === "text" || selection.kind === "heading" ? (
                 <div className="flex flex-col gap-2">
                   <span id="align-label" className="text-sm font-medium">
                     Perataan
                   </span>
                   <div role="group" aria-labelledby="align-label" className="grid grid-cols-3 gap-2">
                     {(Object.entries(ALIGN_LABELS) as [TextAlign, string][]).map(([value, label]) => {
-                      const active = layout[selection.key].align === value;
+                      const active = (selection.kind === "heading" ? layout.heading : layout[selection.key]).align === value;
                       return (
                         <Button
                           key={value}
@@ -499,7 +692,7 @@ function CertificateLayoutEditor({ eventId, initialLayout, signers, locked }: Ce
                   type="button"
                   variant="ghost"
                   className="h-10 px-3"
-                  onClick={() => setLayout((current) => ({ ...defaultCertificateLayout(signerCount), theme: current.theme }))}
+                  onClick={() => setLayout((current) => ({ ...defaultCertificateLayout(signerCount), theme: current.theme, labels: current.labels, heading: { ...defaultCertificateLayout(signerCount).heading, visible: current.heading.visible } }))}
                 >
                   Kembalikan posisi awal
                 </Button>
