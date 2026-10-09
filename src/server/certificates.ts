@@ -2,11 +2,13 @@ import "server-only";
 
 import type { PrismaClient } from "@/generated/prisma/client";
 import { issueBlocker, type IssueBlocker } from "@/lib/certificate-issue";
+import { certificateIssuedEmail } from "@/lib/email-notifications";
 import { buildCertificateNumber } from "@/lib/certificate-number";
 import type { CertificateLayout } from "@/lib/certificate-layout";
 import { formatCertificateDate, getOrCreateCertificateConfig, verifyUrl } from "@/server/certificate-config";
 import type { CertificateRenderData } from "@/server/certificate-pdf";
 import { prisma } from "@/server/db";
+import { enqueueEmails } from "@/server/email-outbox";
 import { loadSignerRenderData } from "@/server/signers";
 
 export type IssueResult =
@@ -24,7 +26,7 @@ export async function issueCertificates(
       SELECT "id" FROM "certificate_configs" WHERE "event_id" = ${eventId} FOR UPDATE`;
     const event = await tx.event.findUnique({
       where: { id: eventId },
-      select: { status: true, startAt: true, signers: { select: { status: true } } },
+      select: { status: true, title: true, startAt: true, signers: { select: { status: true } } },
     });
     if (!event) return { ok: false, reason: "NOT_FOUND" } as const;
     if (locked.length === 0) return { ok: false, reason: "NOT_LOCKED" } as const;
@@ -44,7 +46,7 @@ export async function issueCertificates(
     const pending = await tx.registration.findMany({
       where: { eventId, status: "CONFIRMED", checkedInAt: { not: null }, certificate: { is: null } },
       orderBy: [{ checkedInAt: "asc" }, { id: "asc" }],
-      select: { id: true, name: true },
+      select: { id: true, name: true, email: true },
     });
     if (pending.length === 0) return { ok: true, issued: 0, firstIssue: false } as const;
 
@@ -66,6 +68,10 @@ export async function issueCertificates(
       };
     });
     await tx.certificate.createMany({ data: rows });
+    await enqueueEmails(
+      tx,
+      pending.map((registration) => certificateIssuedEmail(registration, event)),
+    );
 
     const firstIssue = config.firstIssuedAt === null;
     if (firstIssue) await tx.certificateConfig.update({ where: { eventId }, data: { firstIssuedAt: now } });

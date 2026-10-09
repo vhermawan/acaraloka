@@ -15,6 +15,7 @@ import {
 } from "@/lib/validation/event";
 import { requireEventOwner, requireOrganizer } from "@/server/authz";
 import { cancelEvent } from "@/server/cancellation";
+import { scheduleEmailDrain } from "@/server/email-schedule";
 import { prisma } from "@/server/db";
 import { POSTER_BUCKET, createSignedUploadUrl, removeObjects } from "@/server/storage";
 
@@ -146,6 +147,7 @@ export async function cancelEventAction(
   const cancelled = await cancelEvent({ eventId: event.id, reason: parsed.data.reason });
   if (!cancelled) return { message: "Hanya acara terbit yang belum dimulai yang bisa dibatalkan.", values };
 
+  scheduleEmailDrain();
   revalidatePath(`/organizer/events/${event.id}`, "layout");
   revalidatePath(`/e/${event.slug}`);
   revalidatePath("/me/tickets", "layout");

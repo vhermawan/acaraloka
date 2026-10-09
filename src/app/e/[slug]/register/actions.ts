@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { buildRegistrationSchema } from "@/lib/validation/registration";
 import { canRegisterFreeTicket, requireUser } from "@/server/authz";
 import { getPublicEvent } from "@/server/public-event";
+import { scheduleEmailDrain } from "@/server/email-schedule";
 import { createRegistration } from "@/server/registration";
 import { getRegistrationFields } from "@/server/registration-form";
 
@@ -45,6 +46,7 @@ export async function registerForEvent(slug: string, _prev: RegisterState, formD
   const result = await createRegistration({ ...parsed.data, eventId: event.id, userId: user.id });
   if (!result.ok) return { message: REJECTION_MESSAGES[result.reason], values };
 
+  scheduleEmailDrain();
   revalidatePath(`/e/${slug}`);
   redirect(`/me/tickets/${result.registrationId}`);
 }

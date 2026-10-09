@@ -51,6 +51,15 @@ const envSchema = z.object({
   ADMIN_EMAIL: z.string().email().optional(),
 
   CLOUDFLARE_ANALYTICS_TOKEN: z.string().min(1).optional(),
+
+  EMAIL_ENABLED: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+  RESEND_API_KEY: z.string().min(1).optional(),
+  EMAIL_FROM: z.string().min(3).optional(),
+  EMAIL_REPLY_TO: z.string().email().optional(),
+  EMAIL_DAILY_BUDGET: z.coerce.number().int().min(1).max(100).default(95),
 });
 
 function loadEnv() {
@@ -69,6 +78,11 @@ function loadEnv() {
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     ADMIN_EMAIL: process.env.ADMIN_EMAIL,
     CLOUDFLARE_ANALYTICS_TOKEN: process.env.CLOUDFLARE_ANALYTICS_TOKEN || undefined,
+    EMAIL_ENABLED: process.env.EMAIL_ENABLED?.trim() || undefined,
+    RESEND_API_KEY: process.env.RESEND_API_KEY || undefined,
+    EMAIL_FROM: process.env.EMAIL_FROM?.trim() || undefined,
+    EMAIL_REPLY_TO: process.env.EMAIL_REPLY_TO?.trim() || undefined,
+    EMAIL_DAILY_BUDGET: process.env.EMAIL_DAILY_BUDGET?.trim() || undefined,
   });
 
   if (!parsed.success) {
@@ -82,6 +96,12 @@ function loadEnv() {
     throw new Error(
       "APP_BASE_URL harus memakai https:// saat NODE_ENV=production, karena URL ini dicetak " +
         "sebagai QR sertifikat permanen. Ganti ke URL https, atau perbaiki konfigurasi deploy.",
+    );
+  }
+
+  if (parsed.data.EMAIL_ENABLED && (!parsed.data.RESEND_API_KEY || !parsed.data.EMAIL_FROM)) {
+    throw new Error(
+      "EMAIL_ENABLED=true butuh RESEND_API_KEY dan EMAIL_FROM. Isi keduanya, atau set EMAIL_ENABLED=false.",
     );
   }
 
@@ -114,4 +134,14 @@ export function getAuthConfig() {
     googleClientId: GOOGLE_CLIENT_ID,
     googleClientSecret: GOOGLE_CLIENT_SECRET,
   };
+}
+
+export function getEmailConfig() {
+  const { EMAIL_ENABLED, RESEND_API_KEY, EMAIL_FROM, EMAIL_REPLY_TO, EMAIL_DAILY_BUDGET } = env;
+
+  if (!EMAIL_ENABLED || !RESEND_API_KEY || !EMAIL_FROM) {
+    throw new Error("Email belum aktif. Set EMAIL_ENABLED=true beserta RESEND_API_KEY dan EMAIL_FROM.");
+  }
+
+  return { apiKey: RESEND_API_KEY, from: EMAIL_FROM, replyTo: EMAIL_REPLY_TO, dailyBudget: EMAIL_DAILY_BUDGET };
 }

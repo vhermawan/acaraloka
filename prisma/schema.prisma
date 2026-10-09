@@ -36,6 +36,13 @@ enum SignerStatus {
   DECLINED
 }
 
+enum EmailStatus {
+  PENDING
+  SENDING
+  SENT
+  FAILED
+}
+
 model OrganizerProfile {
   userId       String   @id @map("user_id")
   orgName      String   @map("org_name")
@@ -239,6 +246,28 @@ model ErrorLog {
   lastSeenAt  DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(3)
 
   @@map("error_logs")
+}
+
+model EmailOutbox {
+  id                String      @id @default(cuid())
+  to                String
+  template          String
+  payload           Json?
+  priority          Int
+  status            EmailStatus @default(PENDING)
+  attempts          Int         @default(0)
+  sendAfter         DateTime    @default(now()) @map("send_after") @db.Timestamptz(3)
+  claimedAt         DateTime?   @map("claimed_at") @db.Timestamptz(3)
+  sentAt            DateTime?   @map("sent_at") @db.Timestamptz(3)
+  providerMessageId String?     @map("provider_message_id")
+  lastError         String?     @map("last_error")
+  dedupeKey         String      @unique @map("dedupe_key")
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status, sendAfter])
+  @@index([sentAt])
+  @@map("email_outbox")
 }
 
 model User {
