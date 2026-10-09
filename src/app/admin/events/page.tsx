@@ -32,7 +32,7 @@ export default async function AdminEventsPage({ searchParams }: PageProps<"/admi
   const query = parseQuery(q);
   const page = parsePage(pageParam);
   const organizerId = parseOrganizerFilter(organizerParam);
-  const result = await listAdminEvents(query, page, undefined, organizerId);
+  const result = await listAdminEvents(query, page, organizerId);
 
   function pageHref(target: number) {
     const search = new URLSearchParams();

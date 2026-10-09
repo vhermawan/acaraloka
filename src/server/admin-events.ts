@@ -7,8 +7,8 @@ import { prisma } from "@/server/db";
 export async function listAdminEvents(
   query: string,
   page: number,
-  db: PrismaClient = prisma,
   organizerId: string | null = null,
+  db: PrismaClient = prisma,
 ) {
   const where: Prisma.EventWhereInput = {
     ...(organizerId ? { organizerId } : {}),

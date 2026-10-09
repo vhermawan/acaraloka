@@ -29,37 +29,41 @@ function searchCondition(query: string) {
   )`;
 }
 
-function selectOrganizers(where: Prisma.Sql, orderBy: Prisma.Sql, limit: number, offset: number) {
+const AGGREGATE_SORTS: ReadonlySet<OrganizerSort> = new Set(["events", "registrants", "active"]);
+
+function selectOrganizers(scope: Prisma.Sql, orderBy: Prisma.Sql, limit: number, offset: number) {
   return Prisma.sql`
-    WITH event_stats AS (
+    WITH scope AS (${scope}),
+    event_stats AS (
       SELECT
         organizer_id,
         count(*) FILTER (WHERE status = 'DRAFT') AS draft_count,
         count(*) FILTER (WHERE status = 'PUBLISHED') AS published_count,
         count(*) FILTER (WHERE status = 'CANCELLED') AS cancelled_count,
         count(*) FILTER (WHERE status = 'DISABLED') AS disabled_count,
-        count(*) AS event_total,
-        max(updated_at) AS last_event_at
+        count(*) AS event_total
       FROM events
+      WHERE organizer_id IN (SELECT user_id FROM scope)
       GROUP BY organizer_id
     ),
     registrant_stats AS (
       SELECT e.organizer_id, count(*) AS registrant_count
       FROM registrations r
       JOIN events e ON e.id = r.event_id
-      WHERE r.status = 'CONFIRMED'
+      WHERE r.status = 'CONFIRMED' AND e.organizer_id IN (SELECT user_id FROM scope)
       GROUP BY e.organizer_id
     ),
     certificate_stats AS (
       SELECT e.organizer_id, count(*) AS certificate_count
       FROM certificates c
       JOIN events e ON e.id = c.event_id
-      WHERE c.revoked_at IS NULL
+      WHERE c.revoked_at IS NULL AND e.organizer_id IN (SELECT user_id FROM scope)
       GROUP BY e.organizer_id
     ),
     session_stats AS (
       SELECT "userId" AS user_id, max("updatedAt" AT TIME ZONE 'UTC') AS last_session_at
       FROM session
+      WHERE "userId" IN (SELECT user_id FROM scope)
       GROUP BY "userId"
     )
     SELECT
@@ -78,16 +82,39 @@ function selectOrganizers(where: Prisma.Sql, orderBy: Prisma.Sql, limit: number,
       coalesce(es.event_total, 0) AS event_total,
       coalesce(rs.registrant_count, 0) AS registrant_count,
       coalesce(cs.certificate_count, 0) AS certificate_count,
-      greatest(ss.last_session_at, es.last_event_at) AS last_active_at
-    FROM organizer_profiles p
+      ss.last_session_at AS last_active_at
+    FROM scope
+    JOIN organizer_profiles p ON p.user_id = scope.user_id
     JOIN "user" u ON u.id = p.user_id
     LEFT JOIN event_stats es ON es.organizer_id = p.user_id
     LEFT JOIN registrant_stats rs ON rs.organizer_id = p.user_id
     LEFT JOIN certificate_stats cs ON cs.organizer_id = p.user_id
     LEFT JOIN session_stats ss ON ss.user_id = p.user_id
-    WHERE ${where}
     ORDER BY ${orderBy}
     LIMIT ${limit} OFFSET ${offset}`;
+}
+
+function matchingOrganizers(where: Prisma.Sql) {
+  return Prisma.sql`
+    SELECT p.user_id
+    FROM organizer_profiles p
+    JOIN "user" u ON u.id = p.user_id
+    WHERE ${where}`;
+}
+
+function pagedOrganizers(where: Prisma.Sql, orderBy: Prisma.Sql, limit: number, offset: number) {
+  return Prisma.sql`${matchingOrganizers(where)}
+    ORDER BY ${orderBy}
+    LIMIT ${limit} OFFSET ${offset}`;
+}
+
+function organizerPage(where: Prisma.Sql, sort: OrganizerSort, page: number) {
+  const orderBy = ORDER_BY[sort];
+  const offset = (page - 1) * ADMIN_ORGANIZERS_PAGE_SIZE;
+  if (AGGREGATE_SORTS.has(sort)) {
+    return selectOrganizers(matchingOrganizers(where), orderBy, ADMIN_ORGANIZERS_PAGE_SIZE, offset);
+  }
+  return selectOrganizers(pagedOrganizers(where, orderBy, ADMIN_ORGANIZERS_PAGE_SIZE, offset), orderBy, ADMIN_ORGANIZERS_PAGE_SIZE, 0);
 }
 
 export async function listAdminOrganizers(filters: AdminOrganizerFilters, page: number, db: PrismaClient = prisma) {
@@ -98,9 +125,7 @@ export async function listAdminOrganizers(filters: AdminOrganizerFilters, page: 
       FROM organizer_profiles p
       JOIN "user" u ON u.id = p.user_id
       WHERE ${where}`,
-    db.$queryRaw<OrganizerAggregateRow[]>(
-      selectOrganizers(where, ORDER_BY[filters.sort], ADMIN_ORGANIZERS_PAGE_SIZE, (page - 1) * ADMIN_ORGANIZERS_PAGE_SIZE),
-    ),
+    db.$queryRaw<OrganizerAggregateRow[]>(organizerPage(where, filters.sort, page)),
   ]);
   const total = Number(totals[0]?.total ?? 0);
 
@@ -113,7 +138,7 @@ export async function listAdminOrganizers(filters: AdminOrganizerFilters, page: 
 
 export async function getAdminOrganizerDetail(id: string, db: PrismaClient = prisma) {
   const [rows, events, eventTotal] = await Promise.all([
-    db.$queryRaw<OrganizerAggregateRow[]>(selectOrganizers(Prisma.sql`p.user_id = ${id}`, ORDER_BY.newest, 1, 0)),
+    db.$queryRaw<OrganizerAggregateRow[]>(selectOrganizers(matchingOrganizers(Prisma.sql`p.user_id = ${id}`), ORDER_BY.newest, 1, 0)),
     db.event.findMany({
       where: { organizerId: id },
       orderBy: [{ startAt: "desc" }, { id: "asc" }],

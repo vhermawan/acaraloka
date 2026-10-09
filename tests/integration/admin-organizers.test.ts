@@ -107,7 +107,7 @@ beforeAll(async () => {
   const published1 = await createEvent(alfa, "PUBLISHED");
   const published2 = await createEvent(alfa, "PUBLISHED");
   const cancelled = await createEvent(alfa, "CANCELLED");
-  await createEvent(alfa, "DISABLED");
+  const disabled = await createEvent(alfa, "DISABLED");
 
   const first = await register(published1, participant);
   const second = await register(published1, participant2);
@@ -116,6 +116,8 @@ beforeAll(async () => {
   await register(cancelled, participant2);
   await certify(published1.id, first.id, 1);
   await certify(published1.id, second.id, 2, true);
+  const disabledRegistration = await register(disabled, participant);
+  await certify(disabled.id, disabledRegistration.id, 1);
 
   const bravoEvent = await createEvent(bravo, "PUBLISHED");
   await register(bravoEvent, participant);
@@ -138,7 +140,7 @@ afterAll(async () => {
 });
 
 describe("listAdminOrganizers aggregates", () => {
-  it("counts events per status, confirmed registrants, active certificates, and last activity", async () => {
+  it("counts events per status, confirmed registrants, unrevoked certificates including disabled events, and last session activity", async () => {
     const result = await listAdminOrganizers(coreFilters("name"), 1, db);
     expect(result.total).toBe(3);
     expect(result.rows.map((row) => row.id)).toEqual([alfa, bravo, charlie]);
@@ -150,13 +152,13 @@ describe("listAdminOrganizers aggregates", () => {
       contactPhone: "0811",
       eventCounts: { draft: 1, published: 2, cancelled: 1, disabled: 1 },
       eventTotal: 5,
-      registrantCount: 4,
-      certificateCount: 1,
+      registrantCount: 5,
+      certificateCount: 2,
       disabledAt: null,
     });
     expect(a.lastActiveAt?.getTime()).toBe(now - 5 * DAY);
     expect(b).toMatchObject({ eventTotal: 1, registrantCount: 1, certificateCount: 0, contactEmail: null });
-    expect(b.lastActiveAt?.getTime()).toBe(now - 20 * DAY);
+    expect(b.lastActiveAt).toBeNull();
     expect(c).toMatchObject({ eventTotal: 0, registrantCount: 0, certificateCount: 0 });
     expect(c.lastActiveAt?.getTime()).toBe(now - DAY);
   });
@@ -221,11 +223,11 @@ describe("listAdminOrganizers pagination", () => {
 describe("getAdminOrganizerDetail", () => {
   it("returns the profile aggregates and the organizer's events", async () => {
     const detail = await getAdminOrganizerDetail(alfa, db);
-    expect(detail?.organizer).toMatchObject({ id: alfa, eventTotal: 5, registrantCount: 4, certificateCount: 1 });
+    expect(detail?.organizer).toMatchObject({ id: alfa, eventTotal: 5, registrantCount: 5, certificateCount: 2 });
     expect(detail?.eventTotal).toBe(5);
     expect(detail?.events).toHaveLength(5);
     expect(detail?.events.every((event) => eventIds.includes(event.id))).toBe(true);
-    expect(detail?.events.reduce((sum, event) => sum + event.activeRegistrations, 0)).toBe(4);
+    expect(detail?.events.reduce((sum, event) => sum + event.activeRegistrations, 0)).toBe(5);
   });
 
   it("returns null for unknown ids and users without an organizer profile", async () => {
@@ -240,23 +242,23 @@ describe("getAdminOrganizerDetail", () => {
 
 describe("listAdminEvents organizer filter", () => {
   it("limits events to one organizer and exposes its name", async () => {
-    const result = await listAdminEvents("", 1, db, alfa);
+    const result = await listAdminEvents("", 1, alfa, db);
     expect(result.total).toBe(5);
     expect(result.organizer).toEqual({ id: alfa, orgName: `Alfa ${core}` });
     expect(result.rows.every((row) => row.organizer.orgName === `Alfa ${core}`)).toBe(true);
   });
 
   it("combines with the text query", async () => {
-    const result = await listAdminEvents(`${runId} 1`, 1, db, alfa);
+    const result = await listAdminEvents(`${runId} 1`, 1, alfa, db);
     expect(result.rows.every((row) => row.title.includes(`${runId} 1`))).toBe(true);
-    expect((await listAdminEvents(`${runId}-nope`, 1, db, alfa)).rows).toEqual([]);
+    expect((await listAdminEvents(`${runId}-nope`, 1, alfa, db)).rows).toEqual([]);
   });
 
   it("returns nothing for an unknown organizer and keeps old behaviour without one", async () => {
-    const unknown = await listAdminEvents("", 1, db, `${runId}-ghost`);
+    const unknown = await listAdminEvents("", 1, `${runId}-ghost`, db);
     expect(unknown.total).toBe(0);
     expect(unknown.organizer).toEqual({ id: `${runId}-ghost`, orgName: null });
-    const all = await listAdminEvents(runId, 1, db);
+    const all = await listAdminEvents(runId, 1, null, db);
     expect(all.organizer).toBeNull();
     expect(all.total).toBe(eventIds.length);
   });
