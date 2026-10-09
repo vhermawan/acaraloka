@@ -1,6 +1,6 @@
 import "server-only";
 
-import { AUTH_EMAILS_PER_ADDRESS_PER_HOUR } from "@/lib/auth-config";
+import { AUTH_EMAILS_PER_ADDRESS_PER_HOUR, DEFAULT_AUTH_EMAILS_PER_ADDRESS_PER_HOUR } from "@/lib/auth-config";
 import {
   accountExistsEmail,
   resetPasswordEmail,
@@ -11,6 +11,7 @@ import { loginPathFor, parseRole } from "@/lib/roles";
 import { prisma } from "@/server/db";
 import { enqueueEmails } from "@/server/email-outbox";
 import { scheduleEmailDrain } from "@/server/email-schedule";
+import { recordError } from "@/server/error-log";
 
 type AuthUser = { id: string; name: string; email: string; role?: unknown };
 
@@ -18,7 +19,16 @@ async function queue(item: OutboxItem) {
   const recent = await prisma.emailOutbox.count({
     where: { to: item.to, template: item.template, createdAt: { gt: new Date(Date.now() - 60 * 60 * 1000) } },
   });
-  if (recent >= AUTH_EMAILS_PER_ADDRESS_PER_HOUR) return;
+  const cap = AUTH_EMAILS_PER_ADDRESS_PER_HOUR[item.template] ?? DEFAULT_AUTH_EMAILS_PER_ADDRESS_PER_HOUR;
+  if (recent >= cap) {
+    await recordError({
+      source: "email.auth-cap",
+      level: "warn",
+      error: new Error(`Auth email dropped: per-address hourly cap reached for ${item.template}`),
+      context: { template: item.template },
+    });
+    return;
+  }
   await enqueueEmails(prisma, [item]);
   scheduleEmailDrain({ urgent: true });
 }

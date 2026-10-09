@@ -309,13 +309,16 @@ describe("email and password auth", () => {
   it("caps verification and reset emails per address per hour", async () => {
     const email = nextEmail("batas");
     await signUp(email, "PARTICIPANT");
-    for (let attempt = 0; attempt < 8; attempt += 1) {
+    for (let attempt = 0; attempt < 18; attempt += 1) {
       for (const row of await outboxFor(email)) {
         await db.emailOutbox.update({ where: { id: row.id }, data: { dedupeKey: `${runId}:cap:${attempt}:${row.id}` } });
       }
       await signIn(email);
     }
-    expect(await outboxFor(email, "verify-email")).toHaveLength(5);
+    expect(await outboxFor(email, "verify-email")).toHaveLength(15);
+    const dropped = await db.errorLog.findFirst({ where: { source: "email.auth-cap" } });
+    expect(dropped?.level).toBe("warn");
+    expect(JSON.stringify(dropped)).not.toContain(email);
   });
 
   it("resets the password once, revokes the old one and verifies the mailbox", async () => {
