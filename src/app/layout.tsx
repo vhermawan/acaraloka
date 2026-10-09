@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { CloudflareAnalytics } from "@/components/analytics/cloudflare-analytics";
+import { FlashToast } from "@/components/layout/flash-toast";
 import { SiteChrome } from "@/components/layout/site-chrome";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <SiteFooter />
         </SiteChrome>
         <Toaster />
+        <FlashToast />
         <CloudflareAnalytics />
       </body>
     </html>

@@ -6,6 +6,7 @@ import { ROLE_CONFLICT_MESSAGES, resolvePostLoginPath } from "@/lib/roles";
 import { organizerProfileSchema } from "@/lib/validation/organizer";
 import { requireUser } from "@/server/authz";
 import { prisma } from "@/server/db";
+import { setFlash } from "@/server/flash";
 
 export type OrganizerRegisterState = {
   errors?: Partial<Record<"orgName" | "contactPhone" | "contactEmail", string[]>>;
@@ -38,5 +39,6 @@ export async function registerOrganizer(
     update: {},
   });
 
+  await setFlash("organizer-created");
   redirect(resolvePostLoginPath("ORGANIZER", formData.get("next"), true));
 }

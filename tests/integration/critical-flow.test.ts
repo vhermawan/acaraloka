@@ -6,6 +6,7 @@ const state = vi.hoisted(() => ({ userId: "", role: "PARTICIPANT" as "PARTICIPAN
 const files = vi.hoisted(() => new Map<string, Uint8Array>());
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("@/server/flash", () => ({ setFlash: vi.fn() }));
 vi.mock("next/headers", () => ({ headers: async () => new Headers({ "user-agent": "vitest" }) }));
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => {

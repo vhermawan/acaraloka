@@ -124,7 +124,13 @@ function SignerPanel({ eventId, signers, locked, closed, emailEnabled }: SignerP
   const shared = latest && latest.issuedAt > dismissedAt ? latest : null;
 
   useEffect(() => {
-    if (state.link) reset();
+    if (!state.link) return;
+    reset();
+    toast.success(
+      state.link.emailedTo
+        ? `${state.link.signerName} ditambahkan. Undangan dikirim ke ${state.link.emailedTo}.`
+        : `${state.link.signerName} ditambahkan. Bagikan tautan tanda tangannya.`,
+    );
   }, [state.link, reset]);
 
   function handleRegenerate(signer: SignerRow) {
