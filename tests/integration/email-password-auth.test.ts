@@ -121,24 +121,21 @@ describe("email and password auth", () => {
     expect((await signIn(email, "salah-salah-1")).status).toBe(401);
   });
 
-  it("assigns the role from the signup page and ignores client-supplied privileged fields", async () => {
+  it("assigns the role from the signup page and rejects client-supplied privileged fields", async () => {
     const organizer = nextEmail("panitia");
     await signUp(organizer, "ORGANIZER");
     expect((await db.user.findUniqueOrThrow({ where: { email: organizer } })).role).toBe("ORGANIZER");
 
     const sneaky = nextEmail("nakal");
-    await signUp(sneaky, "PARTICIPANT", {
+    const rejected = await signUp(sneaky, "PARTICIPANT", {
       role: "ORGANIZER",
       isAdmin: true,
       termsVersion: "1999-01-01",
       disabledAt: new Date().toISOString(),
     });
-    expect(await db.user.findUniqueOrThrow({ where: { email: sneaky } })).toMatchObject({
-      role: "PARTICIPANT",
-      isAdmin: false,
-      termsVersion: TERMS_VERSION,
-      disabledAt: null,
-    });
+    expect(rejected.status).toBe(400);
+    expect(rejected.json?.code).toBe("FIELD_NOT_ALLOWED");
+    expect(await db.user.findUnique({ where: { email: sneaky } })).toBeNull();
   });
 
   it("requires accepting the terms and an 8 character password", async () => {
@@ -163,6 +160,47 @@ describe("email and password auth", () => {
     const session = await auth.api.getSession({ headers: new Headers({ cookie: login.cookie!.split(";")[0] }) });
     expect(detectRoleConflict(parseRole(session!.user.role), "PARTICIPANT")).toBe("role-organizer");
     expect(detectRoleConflict(parseRole(session!.user.role), "ORGANIZER")).toBeNull();
+  });
+
+  it("ignores server-owned fields sent to update-user", async () => {
+    const email = nextEmail("kunci");
+    await signUp(email, "PARTICIPANT");
+    await verify(email);
+    const login = await signIn(email);
+    const cookie = login.cookie!.split(";")[0];
+    const disabledAt = new Date("2030-01-01T00:00:00Z");
+    await db.user.update({ where: { email }, data: { disabledAt } });
+    const before = await db.user.findUniqueOrThrow({ where: { email } });
+
+    const forbidden: Json[] = [
+      { termsVersion: "1999-01-01" },
+      { termsAcceptedAt: new Date("1999-01-01").toISOString() },
+      { phone: "081200000000" },
+      { role: "ORGANIZER" },
+      { isAdmin: true },
+    ];
+    for (const body of forbidden) {
+      const res = await call("/update-user", { headers: { cookie }, body: { name: "Nama Baru", ...body } });
+      expect(res.status).toBe(400);
+      expect(res.json?.code).toBe("FIELD_NOT_ALLOWED");
+    }
+
+    const cleared = await call("/update-user", { headers: { cookie }, body: { name: "Nama Baru", disabledAt: null } });
+    expect(cleared.status).toBe(200);
+    const after = await db.user.findUniqueOrThrow({ where: { email } });
+    expect(after.disabledAt).toEqual(disabledAt);
+    expect(after.name).toBe("Nama Baru");
+    expect({ ...after, name: null, updatedAt: null }).toEqual({ ...before, name: null, updatedAt: null });
+  });
+
+  it("lets the server rewrite terms acceptance directly", async () => {
+    const email = nextEmail("setuju");
+    await signUp(email, "PARTICIPANT");
+    await db.user.update({ where: { email }, data: { termsVersion: "1999-01-01", termsAcceptedAt: null } });
+    await db.user.update({ where: { email }, data: { termsVersion: TERMS_VERSION, termsAcceptedAt: new Date() } });
+    const user = await db.user.findUniqueOrThrow({ where: { email } });
+    expect(user.termsVersion).toBe(TERMS_VERSION);
+    expect(user.termsAcceptedAt).toBeInstanceOf(Date);
   });
 
   it("does not reveal existing emails on signup and mails the owner instead", async () => {
