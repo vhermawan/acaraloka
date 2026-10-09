@@ -33,7 +33,6 @@ function sessionFor(overrides: Record<string, unknown> = {}) {
     user: {
       id: "u1",
       emailVerified: true,
-      isAdmin: false,
       role: "ORGANIZER",
       disabledAt: null,
       termsVersion: TERMS_VERSION,
@@ -87,6 +86,11 @@ describe("requireParticipant", () => {
     await expect(requireParticipant()).rejects.toThrow("REDIRECT:/organizer");
   });
 
+  it("sends admin accounts to the admin panel", async () => {
+    mocks.getSession.mockResolvedValue(sessionFor({ role: "ADMIN" }));
+    await expect(requireParticipant()).rejects.toThrow("REDIRECT:/admin");
+  });
+
   it("returns the user for participant accounts", async () => {
     mocks.getSession.mockResolvedValue(sessionFor({ role: "PARTICIPANT" }));
     await expect(requireParticipant()).resolves.toMatchObject({ id: "u1" });
@@ -107,6 +111,12 @@ describe("requireOrganizer", () => {
   it("rejects participant accounts with a role conflict", async () => {
     mocks.getSession.mockResolvedValue(sessionFor({ role: "PARTICIPANT" }));
     await expect(requireOrganizer()).rejects.toThrow("REDIRECT:/organizer/login?error=role-participant");
+    expect(mocks.findOrganizer).not.toHaveBeenCalled();
+  });
+
+  it("rejects admin accounts with a generic role conflict", async () => {
+    mocks.getSession.mockResolvedValue(sessionFor({ role: "ADMIN" }));
+    await expect(requireOrganizer()).rejects.toThrow("REDIRECT:/organizer/login?error=role-admin");
     expect(mocks.findOrganizer).not.toHaveBeenCalled();
   });
 
@@ -146,13 +156,23 @@ describe("requireEventOwner", () => {
 });
 
 describe("requireAdmin", () => {
-  it("404s for non-admin", async () => {
-    mocks.getSession.mockResolvedValue(sessionFor({ isAdmin: false }));
+  it.each(["PARTICIPANT", "ORGANIZER"])("404s for %s accounts, even without accepted terms", async (role) => {
+    mocks.getSession.mockResolvedValue(sessionFor({ role, termsAcceptedAt: null, termsVersion: null }));
     await expect(requireAdmin()).rejects.toThrow("NOT_FOUND");
   });
 
+  it("sends anonymous visitors to the admin login", async () => {
+    mocks.getSession.mockResolvedValue(null);
+    await expect(requireAdmin()).rejects.toThrow("REDIRECT:/admin/login");
+  });
+
+  it("keeps disabled admins out", async () => {
+    mocks.getSession.mockResolvedValue(sessionFor({ role: "ADMIN", disabledAt: new Date() }));
+    await expect(requireAdmin()).rejects.toThrow("REDIRECT:/admin/login?error=disabled");
+  });
+
   it("returns admin user", async () => {
-    mocks.getSession.mockResolvedValue(sessionFor({ isAdmin: true }));
+    mocks.getSession.mockResolvedValue(sessionFor({ role: "ADMIN" }));
     await expect(requireAdmin()).resolves.toMatchObject({ id: "u1" });
   });
 });

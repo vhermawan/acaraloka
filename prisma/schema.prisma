@@ -39,6 +39,7 @@ enum SignerStatus {
 enum UserRole {
   PARTICIPANT
   ORGANIZER
+  ADMIN
 }
 
 enum EmailStatus {

@@ -7,7 +7,7 @@ import { getUserCertificateRenderData } from "@/server/certificates";
 export async function GET(_request: Request, { params }: RouteContext<"/me/certificates/[number]/pdf">) {
   const { number } = await params;
   const session = await getSession();
-  if (!session || session.user.disabledAt || session.user.role === "ORGANIZER") notFound();
+  if (!session || session.user.disabledAt || session.user.role !== "PARTICIPANT") notFound();
 
   const certificate = await getUserCertificateRenderData(session.user.id, number);
   if (!certificate) notFound();

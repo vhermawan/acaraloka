@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     intent === "ORGANIZER"
       ? await prisma.organizerProfile.findUnique({ where: { userId: user.id }, select: { userId: true } })
       : null;
-  const destination = resolvePostLoginPath(intent, next, intent === "PARTICIPANT" || !!profile);
+  const destination = resolvePostLoginPath(intent, next, intent !== "ORGANIZER" || !!profile);
 
   if (!hasAcceptedCurrentTerms(user)) redirect(`/legal/accept?next=${encodeURIComponent(destination)}`);
   redirect(destination);

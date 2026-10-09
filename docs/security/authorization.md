@@ -9,15 +9,15 @@ Semua guard ada di `src/server/authz.ts`.
 | Guard | Arti | Kalau gagal |
 | --- | --- | --- |
 | `requireUser` | Sesi ada, akun tidak dinonaktifkan, syarat dan ketentuan versi terbaru sudah disetujui | redirect ke login, `?error=disabled`, atau `/legal/accept` |
-| `requireParticipant` | `requireUser` + peran bukan ORGANIZER | akun panitia diarahkan ke `/organizer` |
-| `requireOrganizer` | `requireUser` (login panitia) + peran ORGANIZER + `OrganizerProfile` ada | peserta ke `/organizer/login?error=role-participant`, tanpa profil ke `/organizer/register` |
+| `requireParticipant` | `requireUser` + peran PARTICIPANT | akun panitia diarahkan ke `/organizer`, akun admin ke `/admin` |
+| `requireOrganizer` | `requireUser` (login panitia) + peran ORGANIZER + `OrganizerProfile` ada | peserta ke `/organizer/login?error=role-participant`, admin ke `/organizer/login?error=role-admin` (pesan generik), tanpa profil ke `/organizer/register` |
 | `requireEventOwner(eventId)` | `requireOrganizer` + `event.organizerId === user.id` | `notFound()` (event orang lain tidak bisa dibedakan dari event yang tidak ada) |
-| `requireAdmin` | `requireUser` + `user.isAdmin === true` | `notFound()` |
+| `requireAdmin` | sesi dengan peran ADMIN, lalu `requireUser` (akun aktif, syarat disetujui). Peran dicek lebih dulu, jadi peserta dan panitia selalu mendapat 404 tanpa redirect apa pun | peserta/panitia: `notFound()`; tanpa sesi: redirect `/admin/login`; admin dinonaktifkan: `/admin/login?error=disabled` |
 | Token | Token penandatangan di URL, hanya hash yang disimpan, ada masa berlaku dan sekali pakai | pesan "tautan tidak berlaku" atau 404 |
 | `CRON_SECRET` | Header `Authorization: Bearer <secret>`, dibandingkan dengan `timingSafeEqual` | 401, tanpa menjalankan pekerjaan |
 | Publik | Tanpa login, hanya data yang memang boleh dilihat umum | - |
 
-Lapisan tambahan: `src/proxy.ts` mengarahkan permintaan tanpa cookie sesi di `/me`, `/organizer`, `/admin` ke halaman login. Itu hanya pagar kasar. Otorisasi sebenarnya selalu dicek ulang oleh guard di server. `src/app/organizer/layout.tsx` hanya merender shell dan tidak menjadi guard.
+Lapisan tambahan: `src/proxy.ts` mengarahkan permintaan tanpa cookie sesi di `/me` ke `/login`, `/organizer` ke `/organizer/login`, dan `/admin` ke `/admin/login` (kecuali `/admin/login` sendiri). Itu hanya pagar kasar. Otorisasi sebenarnya selalu dicek ulang oleh guard di server. `src/app/organizer/layout.tsx` dan `src/app/admin/layout.tsx` hanya merender shell dan tidak menjadi guard.
 
 ## Aturan IDOR
 
@@ -61,13 +61,13 @@ Singkatan kolom test (berlaku untuk semua tabel): A = `tests/server/action-autho
 | 25 | `unlockDesign` | `src/app/organizer/events/[id]/certificate/actions.ts` | `requireEventOwner` | tolak bila DISABLED; tolak setelah sertifikat terbit | A, `tests/integration/signers.test.ts`, `tests/integration/certificates.test.ts` |
 | 26 | `issueEventCertificates` | `src/app/organizer/events/[id]/certificate/actions.ts` | `requireEventOwner` | blocker CLOSED untuk CANCELLED/DISABLED; harus sudah mulai, terkunci, semua TTD | A, I, F, `tests/integration/certificates.test.ts`, `tests/integration/admin-events.test.ts` |
 | 27 | `revokeEventCertificate` | `src/app/organizer/events/[id]/certificate/actions.ts` | `requireEventOwner` | `{id, eventId}`; alasan wajib. Sengaja tetap boleh pada event DISABLED/CANCELLED karena pencabutan adalah tindakan koreksi | A, I, F, `tests/server/certificate-revoke-action.test.ts`, `tests/integration/certificates.test.ts` |
-| 28 | `registerOrganizer` | `src/app/organizer/register/actions.ts` | `requireUser` (login panitia) | peran harus ORGANIZER; profil di-upsert untuk `user.id` sesi | A |
+| 28 | `registerOrganizer` | `src/app/organizer/register/actions.ts` | `requireUser` (login panitia) | peran harus ORGANIZER (peserta dan admin ditolak); profil di-upsert untuk `user.id` sesi | A |
 | 29 | `disableEventAction` | `src/app/admin/events/actions.ts` | `requireAdmin` | tolak bila sudah DISABLED; audit log | A, `tests/server/admin-events-actions.test.ts`, `tests/integration/admin-events.test.ts` |
 | 30 | `enableEventAction` | `src/app/admin/events/actions.ts` | `requireAdmin` | hanya bila DISABLED; audit log | A, `tests/server/admin-events-actions.test.ts`, `tests/integration/admin-events.test.ts` |
 | 31 | `cancelMyRegistration` | `src/app/me/tickets/[id]/actions.ts` | `requireParticipant` | pendaftaran dicari dengan `{id, userId}`; event PUBLISHED dan belum selesai; belum check-in | A, I, `tests/integration/cancellation.test.ts` |
 | 32 | `renameMyRegistration` | `src/app/me/tickets/[id]/actions.ts` | `requireParticipant` | `{id, userId}`; tolak setelah sertifikat terbit | A, I, `tests/integration/certificates.test.ts` |
 | 33 | `acceptTerms` | `src/app/legal/accept/actions.ts` | sesi saja (`getSession`) | hanya mengubah baris `user.id` sesi; tujuan redirect lewat `safeRedirectPath` | A, `tests/lib/safe-redirect.test.ts` |
-| 34 | `registerForEvent` | `src/app/e/[slug]/register/actions.ts` | `requireUser` | akun ORGANIZER ditolak; email harus terverifikasi; event PUBLISHED dan belum selesai; tiket harus milik event; satu pendaftaran aktif per akun | A, F, `tests/server/register-action.test.ts`, `tests/integration/registration.test.ts` |
+| 34 | `registerForEvent` | `src/app/e/[slug]/register/actions.ts` | `requireUser` | hanya akun PARTICIPANT (ORGANIZER dan ADMIN ditolak); email harus terverifikasi; event PUBLISHED dan belum selesai; tiket harus milik event; satu pendaftaran aktif per akun | A, F, `tests/server/register-action.test.ts`, `tests/integration/registration.test.ts` |
 | 35 | `submitSignature` | `src/app/sign/[token]/actions.ts` | Token | tautan aktif (belum kedaluwarsa, belum dipakai, PENDING), event bukan CANCELLED/DISABLED; persetujuan wajib; PNG divalidasi | B, F, `tests/integration/signers.test.ts` |
 | 36 | `declineSigning` | `src/app/sign/[token]/actions.ts` | Token | sama seperti di atas; alasan wajib | B, `tests/integration/signers.test.ts` |
 
@@ -76,11 +76,11 @@ Singkatan kolom test (berlaku untuk semua tabel): A = `tests/server/action-autho
 | No | Route | Berkas | Guard | Cek tambahan | Test |
 | --- | --- | --- | --- | --- | --- |
 | 1 | `GET /api/cron/daily` | `src/app/api/cron/daily/route.ts` | `CRON_SECRET` | 401 bila secret kosong atau header salah | B, `tests/lib/cron-auth.test.ts` |
-| 2 | `GET /me/certificates/[number]/pdf` | `src/app/me/certificates/[number]/pdf/route.ts` | sesi + peran bukan ORGANIZER + akun aktif | sertifikat dicari dengan `{number, registration.userId}` dan belum dicabut; tetap bisa diunduh setelah event DISABLED | F, `tests/server/certificate-download-route.test.ts`, `tests/integration/certificates.test.ts` |
+| 2 | `GET /me/certificates/[number]/pdf` | `src/app/me/certificates/[number]/pdf/route.ts` | sesi + peran PARTICIPANT + akun aktif | sertifikat dicari dengan `{number, registration.userId}` dan belum dicabut; tetap bisa diunduh setelah event DISABLED | F, `tests/server/certificate-download-route.test.ts`, `tests/integration/certificates.test.ts` |
 | 3 | `GET /organizer/events/[id]/certificate/preview` | `src/app/organizer/events/[id]/certificate/preview/route.ts` | `requireEventOwner` | PDF contoh bertanda air PRATINJAU, tanpa data peserta | B |
 | 4 | `GET /sign/[token]/preview` | `src/app/sign/[token]/preview/route.ts` | Token | `canSign` (aktif dan event tidak tutup), selain itu 404; data contoh saja | B |
-| 5 | `GET /auth/continue` | `src/app/auth/continue/route.ts` | sesi Better Auth | akun dinonaktifkan dan konflik peran di-sign-out; tujuan lewat `resolvePostLoginPath`; tidak mengubah data | `tests/server/auth-continue.test.ts` |
-| 6 | `GET, POST /api/auth/[...all]` | `src/app/api/auth/[...all]/route.ts` | Better Auth (publik, dibatasi rate limit) | field user milik server `input: false`; peran dari halaman pendaftaran | `tests/integration/email-password-auth.test.ts`, `tests/lib/auth-config.test.ts` |
+| 5 | `GET /auth/continue` | `src/app/auth/continue/route.ts` | sesi Better Auth | akun dinonaktifkan dan konflik peran di-sign-out (admin di `/login` atau `/organizer/login` mendapat pesan generik; non-admin di `/admin/login` mendapat "Akun ini tidak punya akses admin."); tujuan lewat `resolvePostLoginPath` (admin hanya ke `/admin/*`); tidak mengubah data | `tests/server/auth-continue.test.ts` |
+| 6 | `GET, POST /api/auth/[...all]` | `src/app/api/auth/[...all]/route.ts` | Better Auth (publik, dibatasi rate limit) | field user milik server `input: false`; peran dari halaman pendaftaran; intent ADMIN ditolak 403 untuk `/sign-up/email` dan akun baru OAuth, peran ADMIN hanya dari backfill/seed/DB | `tests/integration/email-password-auth.test.ts`, `tests/server/new-user.test.ts`, `tests/lib/auth-config.test.ts` |
 
 ## Halaman
 
@@ -99,7 +99,7 @@ Singkatan kolom test (berlaku untuk semua tabel): A = `tests/server/action-autho
 | 9 | `/organizer/events/[id]/participants` | `src/app/organizer/events/[id]/participants/page.tsx` | `requireEventOwner` | data dibatasi `event.id` hasil guard | `tests/server/authz.test.ts`, `tests/lib/authorization-inventory.test.ts` |
 | 10 | `/organizer/events/[id]/checkin` | `src/app/organizer/events/[id]/checkin/page.tsx` | `requireEventOwner` | - | `tests/server/authz.test.ts`, `tests/lib/authorization-inventory.test.ts` |
 | 11 | `/organizer/events/[id]/certificate` | `src/app/organizer/events/[id]/certificate/page.tsx` | `requireEventOwner` | penandatangan dibatasi `event.id` hasil guard | `tests/server/authz.test.ts`, `tests/lib/authorization-inventory.test.ts` |
-| 12 | `/admin` | `src/app/admin/page.tsx` | `requireAdmin` | - | `tests/server/route-guards.test.ts`, `tests/lib/authorization-inventory.test.ts` |
+| 12 | `/admin` | `src/app/admin/page.tsx` | `requireAdmin` | - | `tests/server/authz.test.ts`, `tests/server/route-guards.test.ts`, `tests/lib/authorization-inventory.test.ts` |
 | 13 | `/admin/events` | `src/app/admin/events/page.tsx` | `requireAdmin` | - | `tests/server/authz.test.ts`, `tests/lib/authorization-inventory.test.ts` |
 | 14 | `/admin/logs` | `src/app/admin/logs/page.tsx` | `requireAdmin` | - | `tests/server/authz.test.ts`, `tests/lib/authorization-inventory.test.ts` |
 | 15 | `/admin/test-error` | `src/app/admin/test-error/page.tsx` | `requireAdmin` | melempar galat sengaja hanya setelah guard lolos | `tests/server/authz.test.ts`, `tests/lib/authorization-inventory.test.ts` |
@@ -121,6 +121,7 @@ Singkatan kolom test (berlaku untuk semua tabel): A = `tests/server/action-autho
 | 4 | `/login` | `src/app/login/page.tsx` | redirect bila sudah login | - |
 | 5 | `/register` | `src/app/register/page.tsx` | redirect bila sudah login | - |
 | 6 | `/organizer/login` | `src/app/organizer/login/page.tsx` | dikecualikan dari `src/proxy.ts`; redirect bila sudah login | - |
+| 6a | `/admin/login` | `src/app/admin/login/page.tsx` | dikecualikan dari `src/proxy.ts`; redirect ke `/admin` bila sudah login sebagai ADMIN; tanpa tautan daftar, login tidak pernah membuat akun | `tests/server/proxy.test.ts`, `tests/server/auth-continue.test.ts`, `tests/server/new-user.test.ts` |
 | 7 | `/organizer/register` | `src/app/organizer/register/page.tsx` | `requireUser` (login panitia); dikecualikan dari `src/proxy.ts` agar akun baru bisa melengkapi profil | `tests/lib/authorization-inventory.test.ts` |
 | 8 | `/legal/accept` | `src/app/legal/accept/page.tsx` | sesi saja | `tests/lib/authorization-inventory.test.ts` |
 | 9 | `/legal/terms` | `src/app/legal/terms/page.tsx` | statis | - |
@@ -136,3 +137,4 @@ Singkatan kolom test (berlaku untuk semua tabel): A = `tests/server/action-autho
 - `revokeEventCertificate` sengaja tidak diblok pada event DISABLED/CANCELLED. Pencabutan sertifikat adalah koreksi, bukan penerbitan. Bila ingin admin membekukan penuh event DISABLED, tambahkan cek status di action dan satu baris di test A.
 - Event CANCELLED masih boleh `deleteSigner` dan `unlockDesign` (hanya DISABLED yang ditolak); `createSigner`, `regenerateLink`, `emailSignerLink`, dan penerbitan ditolak untuk keduanya.
 - Penandatangan memakai token sekali pakai di URL tanpa login. Yang membatasi risikonya: hash token di DB, masa berlaku, status PENDING, `Referrer-Policy: no-referrer`, dan event tidak boleh tutup.
+- Peran ADMIN adalah akun terpisah dari peserta dan panitia (`User.role`). Kolom `isAdmin` dihapus; peran ADMIN hanya berasal dari backfill migrasi, `prisma/seed.ts`, atau DB langsung. Intent ADMIN ditolak (403) oleh hook `hooks.before` untuk `/sign-up/email` dan oleh `databaseHooks.user.create.before` (`src/server/new-user.ts`) untuk akun baru lewat OAuth, sehingga `/admin/login` tidak pernah membuat akun. Akun ADMIN ditolak di `/me/*`, `/organizer/*`, dan pendaftaran acara; peserta dan panitia mendapat 404 di `/admin/*`.

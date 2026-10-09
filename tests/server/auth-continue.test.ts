@@ -55,6 +55,35 @@ describe("GET /auth/continue", () => {
     expect(mocks.signOut).toHaveBeenCalledTimes(1);
   });
 
+  it.each(["participant", "organizer"])("rejects an admin account on the %s page with a generic message", async (intent) => {
+    mocks.getSession.mockResolvedValue(sessionFor({ role: "ADMIN" }));
+    const loginPath = intent === "organizer" ? "/organizer/login" : "/login";
+    await expect(GET(request(`intent=${intent}`))).rejects.toThrow(`REDIRECT:${loginPath}?error=role-admin`);
+    expect(mocks.signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["PARTICIPANT", "ORGANIZER"])("signs out a %s account that logs in on the admin page", async (role) => {
+    mocks.getSession.mockResolvedValue(sessionFor({ role }));
+    await expect(GET(request("intent=admin&next=%2Fadmin%2Fevents"))).rejects.toThrow(
+      "REDIRECT:/admin/login?error=role-not-admin",
+    );
+    expect(mocks.signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends admins to the admin panel or a path inside it", async () => {
+    mocks.getSession.mockResolvedValue(sessionFor({ role: "ADMIN" }));
+    await expect(GET(request("intent=admin"))).rejects.toThrow("REDIRECT:/admin");
+    await expect(GET(request("intent=admin&next=%2Fadmin%2Fevents"))).rejects.toThrow("REDIRECT:/admin/events");
+    await expect(GET(request("intent=admin&next=%2Forganizer"))).rejects.toThrow("REDIRECT:/admin");
+    expect(mocks.signOut).not.toHaveBeenCalled();
+    expect(mocks.findProfile).not.toHaveBeenCalled();
+  });
+
+  it("returns to the admin login without a session", async () => {
+    mocks.getSession.mockResolvedValue(null);
+    await expect(GET(request("intent=admin"))).rejects.toThrow("REDIRECT:/admin/login");
+  });
+
   it("treats a missing intent as participant", async () => {
     mocks.getSession.mockResolvedValue(sessionFor({ role: "ORGANIZER" }));
     await expect(GET(request(""))).rejects.toThrow("REDIRECT:/login?error=role-organizer");

@@ -39,7 +39,7 @@ describe("/admin", () => {
   });
 
   it("renders for admins", async () => {
-    mocks.requireAdmin.mockResolvedValue({ id: "u1", isAdmin: true });
+    mocks.requireAdmin.mockResolvedValue({ id: "u1", role: "ADMIN" });
     await expect(AdminPage()).resolves.toBeTruthy();
   });
 });

@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 
-import { AdminNav } from "@/components/admin/admin-nav";
-import { Container } from "@/components/layout/container";
 import {
   Table,
   TableBody,
@@ -26,10 +24,9 @@ export default async function AdminLogsPage() {
   });
 
   return (
-    <Container className="flex flex-col gap-8 py-12">
-      <header className="flex flex-col gap-3">
+    <div className="flex flex-col gap-8">
+      <header>
         <h1 className="text-balance text-2xl font-semibold tracking-tight">Log error</h1>
-        <AdminNav />
       </header>
       {logs.length === 0 ? (
         <p className="text-sm text-muted-foreground">Belum ada error tercatat.</p>
@@ -64,6 +61,6 @@ export default async function AdminLogsPage() {
           </TableBody>
         </Table>
       )}
-    </Container>
+    </div>
   );
 }

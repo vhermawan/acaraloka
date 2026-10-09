@@ -6,6 +6,8 @@ import {
   homePathFor,
   loginPathFor,
   parseIntent,
+  adminLoginConflict,
+  pageConflict,
   parseRole,
   resolveNewUserRole,
   resolvePostLoginPath,
@@ -32,13 +34,57 @@ describe("role conflict", () => {
   });
 });
 
+describe("admin role conflict", () => {
+  it("rejects admin accounts on the participant and organizer pages with a generic message", () => {
+    expect(detectRoleConflict("ADMIN", "PARTICIPANT")).toBe("role-admin");
+    expect(detectRoleConflict("ADMIN", "ORGANIZER")).toBe("role-admin");
+    expect(ROLE_CONFLICT_MESSAGES["role-admin"]).not.toMatch(/admin/i);
+  });
+
+  it("rejects non-admin accounts on the admin page", () => {
+    expect(detectRoleConflict("PARTICIPANT", "ADMIN")).toBe("role-not-admin");
+    expect(detectRoleConflict("ORGANIZER", "ADMIN")).toBe("role-not-admin");
+    expect(detectRoleConflict("ADMIN", "ADMIN")).toBeNull();
+    expect(ROLE_CONFLICT_MESSAGES["role-not-admin"]).toBe("Akun ini tidak punya akses admin.");
+  });
+});
+
+describe("pageConflict", () => {
+  it("prefers the session role, then the error query", () => {
+    expect(pageConflict("ADMIN", "PARTICIPANT", undefined)).toBe("role-admin");
+    expect(pageConflict("PARTICIPANT", "ADMIN", "role-admin")).toBe("role-not-admin");
+    expect(pageConflict(null, "ADMIN", "role-not-admin")).toBe("role-not-admin");
+    expect(pageConflict("PARTICIPANT", "PARTICIPANT", "role-organizer")).toBe("role-organizer");
+    expect(pageConflict(null, "PARTICIPANT", "bogus")).toBeNull();
+  });
+});
+
+describe("adminLoginConflict", () => {
+  it("shows the generic admin message for unknown OAuth error codes", () => {
+    expect(adminLoginConflict(null, "unable_to_create_user", false)).toBe("role-not-admin");
+    expect(adminLoginConflict(null, "ADMIN_SIGNUP_FORBIDDEN", false)).toBe("role-not-admin");
+  });
+
+  it("leaves known notices, disabled accounts and a clean page alone", () => {
+    expect(adminLoginConflict(null, "verify-expired", true)).toBeNull();
+    expect(adminLoginConflict(null, "disabled", false)).toBeNull();
+    expect(adminLoginConflict(null, undefined, false)).toBeNull();
+    expect(adminLoginConflict("PARTICIPANT", undefined, false)).toBe("role-not-admin");
+  });
+});
+
 describe("resolveNewUserRole", () => {
   it("creates organizer accounts only for an explicit organizer intent", () => {
-    expect(resolveNewUserRole({ intent: "ORGANIZER" })).toBe("ORGANIZER");
-    expect(resolveNewUserRole({ intent: "PARTICIPANT" })).toBe("PARTICIPANT");
-    expect(resolveNewUserRole({ intent: "admin" })).toBe("PARTICIPANT");
-    expect(resolveNewUserRole({})).toBe("PARTICIPANT");
+    expect(resolveNewUserRole("ORGANIZER")).toBe("ORGANIZER");
+    expect(resolveNewUserRole("PARTICIPANT")).toBe("PARTICIPANT");
+    expect(resolveNewUserRole("x")).toBe("PARTICIPANT");
+    expect(resolveNewUserRole(undefined)).toBe("PARTICIPANT");
     expect(resolveNewUserRole(null)).toBe("PARTICIPANT");
+  });
+
+  it("never yields a role for an admin intent", () => {
+    expect(resolveNewUserRole("ADMIN")).toBeNull();
+    expect(resolveNewUserRole("admin")).toBeNull();
   });
 });
 
@@ -50,6 +96,9 @@ describe("parsing", () => {
     expect(parseIntent("organizer")).toBe("ORGANIZER");
     expect(parseIntent("participant")).toBe("PARTICIPANT");
     expect(parseIntent(null)).toBe("PARTICIPANT");
+    expect(parseIntent("admin")).toBe("ADMIN");
+    expect(parseIntent("ADMIN")).toBe("ADMIN");
+    expect(parseRole("ADMIN")).toBe("ADMIN");
   });
 
   it("maps roles to login and home paths", () => {
@@ -57,6 +106,8 @@ describe("parsing", () => {
     expect(loginPathFor("PARTICIPANT")).toBe("/login");
     expect(homePathFor("ORGANIZER")).toBe("/organizer");
     expect(homePathFor("PARTICIPANT")).toBe("/me/tickets");
+    expect(loginPathFor("ADMIN")).toBe("/admin/login");
+    expect(homePathFor("ADMIN")).toBe("/admin");
   });
 });
 
@@ -85,5 +136,17 @@ describe("resolvePostLoginPath", () => {
     expect(resolvePostLoginPath("ORGANIZER", "/organizer/\t/x", true)).toBe("/organizer");
     expect(resolvePostLoginPath("PARTICIPANT", "//evil.com", true)).toBe("/me/tickets");
     expect(resolvePostLoginPath("PARTICIPANT", "/organizer/events", true)).toBe("/me/tickets");
+  });
+
+  it("keeps admins inside the admin area", () => {
+    expect(resolvePostLoginPath("ADMIN", null, true)).toBe("/admin");
+    expect(resolvePostLoginPath("ADMIN", "/admin/events", true)).toBe("/admin/events");
+    expect(resolvePostLoginPath("ADMIN", "/admin/login", true)).toBe("/admin");
+    expect(resolvePostLoginPath("ADMIN", "/me/tickets", true)).toBe("/admin");
+    expect(resolvePostLoginPath("ADMIN", "//evil.com", true)).toBe("/admin");
+  });
+
+  it("never sends participants into the admin area", () => {
+    expect(resolvePostLoginPath("PARTICIPANT", "/admin/events", true)).toBe("/me/tickets");
   });
 });

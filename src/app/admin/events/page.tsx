@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { AdminNav } from "@/components/admin/admin-nav";
 import { DisableEventDialog } from "@/components/admin/disable-event-dialog";
 import { EnableEventButton } from "@/components/admin/enable-event-button";
 import { EventStatusBadge } from "@/components/events/event-status-badge";
-import { Container } from "@/components/layout/container";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -43,10 +41,9 @@ export default async function AdminEventsPage({ searchParams }: PageProps<"/admi
   }
 
   return (
-    <Container className="flex flex-col gap-8 py-12">
-      <header className="flex flex-col gap-3">
+    <div className="flex flex-col gap-8">
+      <header>
         <h1 className="text-balance text-2xl font-semibold tracking-tight">Acara</h1>
-        <AdminNav />
       </header>
 
       <form role="search" className="flex max-w-md gap-2">
@@ -140,6 +137,6 @@ export default async function AdminEventsPage({ searchParams }: PageProps<"/admi
           </div>
         </nav>
       ) : null}
-    </Container>
+    </div>
   );
 }

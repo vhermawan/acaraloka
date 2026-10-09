@@ -50,7 +50,7 @@ describe("admin events authorization", () => {
 
 describe("disableEventAction", () => {
   beforeEach(() => {
-    mocks.requireAdmin.mockResolvedValue({ id: "admin1", isAdmin: true });
+    mocks.requireAdmin.mockResolvedValue({ id: "admin1", role: "ADMIN" });
   });
 
   it("requires a reason", async () => {

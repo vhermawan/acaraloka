@@ -47,7 +47,7 @@ async function call(
   return { status: response.status, json, location: response.headers.get("location"), cookie: response.headers.get("set-cookie") };
 }
 
-function signUp(email: string, intent: "PARTICIPANT" | "ORGANIZER", extra: Json = {}, password = PASSWORD) {
+function signUp(email: string, intent: "PARTICIPANT" | "ORGANIZER" | "ADMIN", extra: Json = {}, password = PASSWORD) {
   return call("/sign-up/email", {
     body: { name: "Budi Uji", email, password, intent, acceptTerms: true, callbackURL: "/auth/continue?intent=participant", ...extra },
   });
@@ -128,8 +128,7 @@ describe("email and password auth", () => {
 
     const sneaky = nextEmail("nakal");
     const rejected = await signUp(sneaky, "PARTICIPANT", {
-      role: "ORGANIZER",
-      isAdmin: true,
+      role: "ADMIN",
       termsVersion: "1999-01-01",
       disabledAt: new Date().toISOString(),
     });
@@ -177,7 +176,7 @@ describe("email and password auth", () => {
       { termsAcceptedAt: new Date("1999-01-01").toISOString() },
       { phone: "081200000000" },
       { role: "ORGANIZER" },
-      { isAdmin: true },
+      { role: "ADMIN" },
     ];
     for (const body of forbidden) {
       const res = await call("/update-user", { headers: { cookie }, body: { name: "Nama Baru", ...body } });

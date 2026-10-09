@@ -2,7 +2,7 @@ import "server-only";
 import { betterAuth } from "better-auth";
 import { z } from "zod";
 import { prismaAdapter } from "@better-auth/prisma-adapter";
-import { APIError, createAuthMiddleware, getOAuthState } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/server/db";
 import { env, getAuthConfig } from "@/lib/env";
@@ -14,8 +14,7 @@ import {
   VERIFICATION_TTL_SECONDS,
   isTokenOlderThanAccount,
 } from "@/lib/auth-config";
-import { TERMS_VERSION } from "@/lib/legal";
-import { USER_ROLES, loginPathFor, parseIntent, parseRole, resolveNewUserRole } from "@/lib/roles";
+import { USER_ROLES, loginPathFor, parseRole } from "@/lib/roles";
 import {
   discardUnverifiedPasswordSignUp,
   markEmailVerified,
@@ -23,6 +22,7 @@ import {
   sendResetPassword,
   sendVerificationEmail,
 } from "@/server/auth-email";
+import { requireSelfServeRole, prepareNewUser } from "@/server/new-user";
 
 const authConfig = getAuthConfig();
 
@@ -76,6 +76,7 @@ export const auth = betterAuth({
     before: createAuthMiddleware(async (ctx) => {
       if (ctx.path !== "/sign-up/email") return;
       const body = (ctx.body ?? {}) as Record<string, unknown>;
+      requireSelfServeRole(body.intent);
       if (body.acceptTerms !== true) {
         throw new APIError("BAD_REQUEST", {
           code: "TERMS_NOT_ACCEPTED",
@@ -106,12 +107,6 @@ export const auth = betterAuth({
         required: false,
         input: false,
       },
-      isAdmin: {
-        type: "boolean",
-        required: false,
-        defaultValue: false,
-        input: false,
-      },
       role: {
         type: [...USER_ROLES],
         required: false,
@@ -138,20 +133,7 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
-        before: async (user, context) => {
-          if (context?.path === "/sign-up/email") {
-            return {
-              data: {
-                ...user,
-                role: parseIntent((context.body as Record<string, unknown> | undefined)?.intent),
-                termsVersion: TERMS_VERSION,
-                termsAcceptedAt: new Date(),
-                disabledAt: null,
-              },
-            };
-          }
-          return { data: { ...user, role: resolveNewUserRole(await getOAuthState()) } };
-        },
+        before: prepareNewUser,
       },
     },
   },

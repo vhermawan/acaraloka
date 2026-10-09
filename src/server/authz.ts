@@ -2,7 +2,7 @@ import "server-only";
 import { notFound, redirect } from "next/navigation";
 
 import { TERMS_VERSION } from "@/lib/legal";
-import { homePathFor, loginPathFor, parseRole } from "@/lib/roles";
+import { detectRoleConflict, homePathFor, loginPathFor, parseRole } from "@/lib/roles";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/server/db";
 
@@ -34,14 +34,16 @@ export async function requireUser(options: { next?: string; loginPath?: string }
 
 export async function requireParticipant(options: { next?: string } = {}) {
   const user = await requireUser(options);
-  if (parseRole(user.role) === "ORGANIZER") redirect(homePathFor("ORGANIZER"));
+  const role = parseRole(user.role);
+  if (role !== "PARTICIPANT") redirect(homePathFor(role));
 
   return user;
 }
 
 export async function requireOrganizer() {
   const user = await requireUser({ loginPath: loginPathFor("ORGANIZER") });
-  if (parseRole(user.role) !== "ORGANIZER") redirect(`${loginPathFor("ORGANIZER")}?error=role-participant`);
+  const conflict = detectRoleConflict(parseRole(user.role), "ORGANIZER");
+  if (conflict) redirect(`${loginPathFor("ORGANIZER")}?error=${conflict}`);
 
   const organizer = await prisma.organizerProfile.findUnique({
     where: { userId: user.id },
@@ -60,8 +62,8 @@ export async function requireEventOwner(eventId: string) {
 }
 
 export async function requireAdmin() {
-  const user = await requireUser();
-  if (user.isAdmin !== true) notFound();
+  const session = await getSession();
+  if (session && parseRole(session.user.role) !== "ADMIN") notFound();
 
-  return user;
+  return requireUser({ loginPath: loginPathFor("ADMIN") });
 }

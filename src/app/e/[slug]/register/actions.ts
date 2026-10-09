@@ -20,7 +20,7 @@ const REJECTION_MESSAGES = {
   ALREADY_REGISTERED: "Kamu sudah terdaftar di acara ini. Cek tiketmu di Tiket Saya.",
   SOLD_OUT: "Maaf, kuota tiket ini baru saja habis. Coba pilih jenis tiket lain jika masih ada.",
   CLOSED: "Pendaftaran acara ini sudah ditutup.",
-  ORGANIZER_ACCOUNT: "Akun panitia tidak bisa mendaftar acara. Masuk dengan akun peserta.",
+  NON_PARTICIPANT_ACCOUNT: "Akun ini tidak bisa mendaftar acara. Masuk dengan akun peserta.",
 } as const;
 
 export async function registerForEvent(slug: string, _prev: RegisterState, formData: FormData): Promise<RegisterState> {
@@ -29,7 +29,7 @@ export async function registerForEvent(slug: string, _prev: RegisterState, formD
     [...formData.entries()].filter(([key]) => !key.startsWith("$")).map(([key, value]) => [key, String(value)]),
   );
 
-  if (user.role === "ORGANIZER") return { message: REJECTION_MESSAGES.ORGANIZER_ACCOUNT, values };
+  if (user.role !== "PARTICIPANT") return { message: REJECTION_MESSAGES.NON_PARTICIPANT_ACCOUNT, values };
 
   if (!canRegisterFreeTicket(user)) {
     return { message: "Verifikasi email akunmu dulu sebelum mendaftar.", values };

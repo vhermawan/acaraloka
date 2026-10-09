@@ -5,7 +5,7 @@ import { AuthFrame } from "@/components/auth/auth-frame";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { OrganizerRegisterForm } from "@/components/organizer/organizer-register-form";
 import { parseAuthNotice } from "@/lib/auth-notice";
-import { parseRole, parseRoleConflict, resolvePostLoginPath } from "@/lib/roles";
+import { pageConflict, parseRole, resolvePostLoginPath } from "@/lib/roles";
 import { getSession } from "@/lib/session";
 import { requireUser } from "@/server/authz";
 import { prisma } from "@/server/db";
@@ -50,7 +50,7 @@ export default async function OrganizerRegisterPage({ searchParams }: PageProps<
       mode="register"
       path="/organizer/register"
       next={nextPath}
-      conflict={sessionRole === "PARTICIPANT" ? "role-participant" : parseRoleConflict(error)}
+      conflict={pageConflict(sessionRole, "ORGANIZER", error)}
       disabled={error === "disabled"}
       notice={parseAuthNotice(error)}
     />

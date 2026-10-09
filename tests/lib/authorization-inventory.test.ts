@@ -22,7 +22,7 @@ const pageFiles = files.filter((file) => file.endsWith("/page.tsx"));
 const protectedPages = pageFiles.filter((file) => /^src\/app\/(me|organizer|admin)\//.test(file));
 
 const GUARD_PATTERN = /require(Participant|Organizer|EventOwner|Admin|User)\(/;
-const PUBLIC_PROTECTED_PAGES = new Set(["src/app/organizer/login/page.tsx"]);
+const PUBLIC_PROTECTED_PAGES = new Set(["src/app/organizer/login/page.tsx", "src/app/admin/login/page.tsx"]);
 const HTTP_METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
 
 type Row = { section: string; name: string; file: string; guard: string };

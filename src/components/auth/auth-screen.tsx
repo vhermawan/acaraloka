@@ -25,6 +25,7 @@ import {
   pathWithNext,
   registerPathFor,
   type RoleConflict,
+  type SelfServeRole,
   type UserRole,
 } from "@/lib/roles";
 
@@ -47,7 +48,13 @@ type AuthScreenProps = {
   notice?: AuthNotice | null;
 };
 
-const COPY: Record<UserRole, Record<AuthMode, { heading: string; description: string; button: string }>> = {
+const ADMIN_COPY = {
+  heading: "Masuk admin",
+  description: `Panel pengelolaan ${APP_NAME} untuk tim internal.`,
+  button: "Masuk dengan Google",
+};
+
+const COPY: Record<SelfServeRole, Record<AuthMode, { heading: string; description: string; button: string }>> = {
   PARTICIPANT: {
     login: {
       heading: `Masuk ke ${APP_NAME}`,
@@ -82,7 +89,7 @@ function AuthLink({ href, children }: { href: string; children: React.ReactNode 
   );
 }
 
-function AuthFooter({ role, mode, next }: Pick<AuthScreenProps, "role" | "mode" | "next">) {
+function AuthFooter({ role, mode, next }: { role: SelfServeRole; mode: AuthMode; next: string }) {
   const otherRole = role === "PARTICIPANT" ? "ORGANIZER" : "PARTICIPANT";
   const label = role === "ORGANIZER" ? "akun panitia" : "akun";
   return (
@@ -116,13 +123,13 @@ async function AuthScreen({ role, mode, path, next, conflict, disabled, notice =
   const inApp = detectInAppBrowser(userAgent);
   const pageUrl = new URL(path, env.APP_BASE_URL);
   if (next !== homePathFor(role)) pageUrl.searchParams.set("next", next);
-  const copy = COPY[role][mode];
+  const copy = role === "ADMIN" ? ADMIN_COPY : COPY[role][mode];
 
   return (
     <AuthFrame
       heading={inApp ? "Buka di browser" : copy.heading}
       description={inApp ? "Halaman ini dibuka dari dalam aplikasi lain." : copy.description}
-      footer={inApp ? undefined : <AuthFooter role={role} mode={mode} next={next} />}
+      footer={inApp || role === "ADMIN" ? undefined : <AuthFooter role={role} mode={mode} next={next} />}
     >
       {inApp ? (
         <InAppBrowserNotice
@@ -141,7 +148,7 @@ async function AuthScreen({ role, mode, path, next, conflict, disabled, notice =
           {notice ? <AuthAlert tone={describeAuthNotice(notice).tone}>{describeAuthNotice(notice).message}</AuthAlert> : null}
           <GoogleSignInButton role={role} next={next} label={copy.button} selectAccount={conflict !== null} />
           <AuthDivider>atau dengan email</AuthDivider>
-          {mode === "login" ? <SignInForm role={role} next={next} /> : <SignUpForm role={role} next={next} />}
+          {mode === "login" || role === "ADMIN" ? <SignInForm role={role} next={next} /> : <SignUpForm role={role} next={next} />}
           <p className="text-center text-xs/5 text-muted-foreground">
             Dari akun Google kami memakai nama, email, dan foto profil. Baca{" "}
             <AuthLink href="/legal/privacy">Kebijakan Privasi</AuthLink> dan{" "}

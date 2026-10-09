@@ -74,7 +74,7 @@ export async function discardUnverifiedPasswordSignUp(email: string) {
       email,
       emailVerified: false,
       disabledAt: null,
-      OR: [{ isAdmin: null }, { isAdmin: false }],
+      role: { not: "ADMIN" },
       accounts: { some: { providerId: "credential" }, none: { providerId: { not: "credential" } } },
       registrations: { none: {} },
       organizerProfile: null,

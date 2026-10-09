@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { parseAuthNotice } from "@/lib/auth-notice";
-import { parseRole, parseRoleConflict, resolvePostLoginPath } from "@/lib/roles";
+import { pageConflict, parseRole, resolvePostLoginPath } from "@/lib/roles";
 import { getSession } from "@/lib/session";
 
 export const metadata: Metadata = {
@@ -24,7 +24,7 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registe
       mode="register"
       path="/register"
       next={nextPath}
-      conflict={sessionRole === "ORGANIZER" ? "role-organizer" : parseRoleConflict(error)}
+      conflict={pageConflict(sessionRole, "PARTICIPANT", error)}
       disabled={error === "disabled"}
       notice={parseAuthNotice(error)}
     />

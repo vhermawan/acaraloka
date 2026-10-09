@@ -139,7 +139,6 @@ function session(overrides: Record<string, unknown> = {}) {
     user: {
       id: "u1",
       emailVerified: true,
-      isAdmin: false,
       role: "ORGANIZER",
       disabledAt: null,
       termsVersion: TERMS_VERSION,
@@ -162,7 +161,7 @@ describe("without a session", () => {
   it.each([...organizerActions, ...adminOnlyActions, ...participantOnlyActions, ...signedInActions])(
     "%s redirects to login and changes nothing",
     async (_name, call) => {
-      await expect(call()).rejects.toThrow(/^REDIRECT:\/(organizer\/)?login/);
+      await expect(call()).rejects.toThrow(/^REDIRECT:\/(organizer\/|admin\/)?login/);
       expect(mocks.sideEffect).not.toHaveBeenCalled();
     },
   );
@@ -173,13 +172,19 @@ describe("with a disabled account", () => {
     mocks.getSession.mockResolvedValue(session({ disabledAt: new Date() }));
   });
 
-  it.each([...organizerActions, ...adminOnlyActions, ...participantOnlyActions, ...signedInActions.slice(0, 2)])(
+  it.each([...organizerActions, ...participantOnlyActions, ...signedInActions.slice(0, 2)])(
     "%s is refused and changes nothing",
     async (_name, call) => {
       await expect(call()).rejects.toThrow(/error=disabled/);
       expect(mocks.sideEffect).not.toHaveBeenCalled();
     },
   );
+
+  it.each(adminOnlyActions)("%s is refused for a disabled admin and changes nothing", async (_name, call) => {
+    mocks.getSession.mockResolvedValue(session({ role: "ADMIN", disabledAt: new Date() }));
+    await expect(call()).rejects.toThrow("REDIRECT:/admin/login?error=disabled");
+    expect(mocks.sideEffect).not.toHaveBeenCalled();
+  });
 });
 
 describe("with the wrong role", () => {
@@ -195,9 +200,23 @@ describe("with the wrong role", () => {
     expect(mocks.sideEffect).not.toHaveBeenCalled();
   });
 
-  it.each(adminOnlyActions)("%s hides itself from non-admins", async (_name, call) => {
-    mocks.getSession.mockResolvedValue(session({ role: "PARTICIPANT", isAdmin: false }));
-    await expect(call()).rejects.toThrow("NOT_FOUND");
+  it.each(adminOnlyActions)("%s hides itself from participants and organizers", async (_name, call) => {
+    for (const role of ["PARTICIPANT", "ORGANIZER"]) {
+      mocks.getSession.mockResolvedValue(session({ role }));
+      await expect(call()).rejects.toThrow("NOT_FOUND");
+    }
+    expect(mocks.sideEffect).not.toHaveBeenCalled();
+  });
+
+  it.each(organizerActions)("%s refuses an admin account", async (_name, call) => {
+    mocks.getSession.mockResolvedValue(session({ role: "ADMIN" }));
+    await expect(call()).rejects.toThrow("REDIRECT:/organizer/login?error=role-admin");
+    expect(mocks.sideEffect).not.toHaveBeenCalled();
+  });
+
+  it.each(participantOnlyActions)("%s refuses an admin account", async (_name, call) => {
+    mocks.getSession.mockResolvedValue(session({ role: "ADMIN" }));
+    await expect(call()).rejects.toThrow("REDIRECT:/admin");
     expect(mocks.sideEffect).not.toHaveBeenCalled();
   });
 

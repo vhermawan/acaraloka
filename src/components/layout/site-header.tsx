@@ -8,10 +8,11 @@ import { SiteNav } from "@/components/layout/site-nav";
 import { AccountMenu } from "@/components/auth/account-menu";
 import { getSession } from "@/lib/session";
 import { APP_NAME } from "@/lib/brand";
+import { parseRole } from "@/lib/roles";
 
 async function SiteHeader() {
   const session = await getSession();
-  const isOrganizer = session?.user.role === "ORGANIZER";
+  const role = session ? parseRole(session.user.role) : null;
 
   return (
     <header
@@ -40,8 +41,7 @@ async function SiteHeader() {
             <AccountMenu
               name={session.user.name}
               email={session.user.email}
-              isOrganizer={isOrganizer}
-              isAdmin={session.user.isAdmin === true}
+              role={role ?? "PARTICIPANT"}
             />
           </div>
         ) : (
