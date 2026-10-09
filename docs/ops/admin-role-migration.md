@@ -1,6 +1,6 @@
 # Migrasi peran ADMIN (T-036)
 
-Peran admin kini disimpan di `"user"."role"` (`ADMIN`). Kolom lama `"isAdmin"` tetap ada di database tetapi tidak dibaca atau ditulis oleh kode. Kolom itu baru dihapus di rilis berikutnya (fase contract).
+Peran admin kini disimpan di `"user"."role"` (`ADMIN`). Rilis T-036 (expand) mempertahankan kolom lama `"isAdmin"` tanpa membacanya; rilis T-041 (contract) menghapusnya. Lihat "Rilis contract (T-041)" di bawah.
 
 ## Migrasi rilis ini
 
@@ -10,6 +10,8 @@ Peran admin kini disimpan di `"user"."role"` (`ADMIN`). Kolom lama `"isAdmin"` t
 Tidak ada data yang dihapus. Menjalankan ulang backfill aman (idempoten).
 
 ## Cek sebelum migrasi prod (baca saja)
+
+Bagian ini hanya untuk rilis T-036. Setelah rilis T-041 kolom `"isAdmin"` sudah tidak ada, jadi query di bawah tidak berlaku lagi.
 
 Akun admin sekarang bisa saja memiliki profil panitia, acara, atau pendaftaran. Setelah menjadi ADMIN, data itu tetap ada tetapi tidak terlihat di UI peserta atau panitia.
 
@@ -28,7 +30,7 @@ Jika semua hitungan 0, tidak ada tindakan lain. Jika `acara` atau `pendaftaran` 
 
 ## Urutan rilis
 
-Kolom `"isAdmin"` tidak dihapus, jadi login peserta dan panitia aman di kedua urutan. Risiko selama jeda antara deploy dan migrasi:
+Pada rilis T-036 kolom `"isAdmin"` belum dihapus, jadi login peserta dan panitia aman di kedua urutan. Risiko selama jeda antara deploy dan migrasi:
 
 - Deploy dulu, lalu migrasi (dianjurkan): kode baru tidak memakai `"isAdmin"`. Sebelum backfill berjalan belum ada akun ADMIN, jadi `/admin` memberi 404 untuk semua orang, dan pendaftaran ulang email yang belum terverifikasi bisa gagal karena nilai enum `ADMIN` belum ada di Postgres.
 - Migrasi dulu, lalu deploy: kode lama tetap bisa membaca `"isAdmin"`, tetapi akun yang sudah ber-role `ADMIN` bisa gagal dibaca oleh client Prisma lama (enum tidak dikenal) sampai kode baru live.
@@ -40,7 +42,7 @@ Langkah yang disarankan:
 1. Jalankan SQL cek di atas.
 2. Deploy rilis ini, lalu segera jalankan workflow DB migrate ke production.
 3. Verifikasi: login admin di `/admin/login`, `/admin` terbuka, peserta dan panitia mendapat 404 di `/admin`, admin ditolak di `/login` dan `/organizer/login`.
-4. Rilis berikutnya (contract): migrasi `ALTER TABLE "user" DROP COLUMN "isAdmin"` dan hapus field dari `schema.prisma`. Dikerjakan sebagai todo terpisah, setelah langkah 3 terverifikasi.
+4. Rilis contract: selesai di T-041, lihat "Rilis contract (T-041)" di bawah.
 
 ## Jika admin punya acara
 
@@ -59,3 +61,16 @@ COMMIT;
 ```
 
 Pastikan hasil `SELECT` pertama adalah 1; jika 0, `ROLLBACK` dan buat profil panitia untuk akun tujuan lebih dulu (kolom `events.organizer_id` memiliki foreign key ke `organizer_profiles.user_id`). Pendaftaran milik admin sebagai peserta tidak perlu dipindahkan; tiket tetap tersimpan di akun itu.
+
+## Rilis contract (T-041)
+
+Migrasi `20261009190000_drop_user_is_admin`: `ALTER TABLE "user" DROP COLUMN "isAdmin"`. Field `isAdmin` juga dihapus dari `schema.prisma`.
+
+Urutan wajib: **deploy dulu, lalu migrasi.** Client Prisma pada kode lama masih menyertakan `"isAdmin"` di setiap query `user`, jadi bila kolom dihapus sebelum kode baru live, query akun di kode lama gagal. Kode baru tidak lagi menyebut kolom itu, sehingga aman berjalan sebelum maupun sesudah kolom dihapus.
+
+1. Pastikan rilis T-036 sudah live dan login admin di `/admin/login` berhasil.
+2. Deploy rilis T-041 dan tunggu sampai live.
+3. Jalankan workflow DB migrate ke production.
+4. Verifikasi: login admin, peserta, dan panitia berjalan; `/admin` terbuka untuk admin.
+
+Kolom yang dihapus tidak bisa dikembalikan beserta isinya. Nilainya sudah tidak dipakai sejak backfill T-036, jadi tidak ada data yang hilang.
