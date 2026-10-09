@@ -285,6 +285,7 @@ model User {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   phone            String?
+  isAdmin          Boolean?          @default(false)
   role             UserRole          @default(PARTICIPANT)
   disabledAt       DateTime?
   termsVersion     String?

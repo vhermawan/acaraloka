@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { parseAuthNotice } from "@/lib/auth-notice";
-import { pageConflict, parseRole, resolvePostLoginPath } from "@/lib/roles";
+import { adminLoginConflict, parseRole, resolvePostLoginPath } from "@/lib/roles";
 import { getSession } from "@/lib/session";
 
 export const metadata: Metadata = {
@@ -12,12 +12,14 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminLoginPage({ searchParams }: PageProps<"/admin/login">) {
-  const { next, error, notice } = await searchParams;
+  const { next, error, notice: rawNotice } = await searchParams;
   const nextPath = resolvePostLoginPath("ADMIN", next, true);
 
   const session = await getSession();
   const sessionRole = session ? parseRole(session.user.role) : null;
   if (session && !session.user.disabledAt && sessionRole === "ADMIN") redirect(nextPath);
+
+  const notice = parseAuthNotice(error, rawNotice);
 
   return (
     <AuthScreen
@@ -25,9 +27,9 @@ export default async function AdminLoginPage({ searchParams }: PageProps<"/admin
       mode="login"
       path="/admin/login"
       next={nextPath}
-      conflict={pageConflict(sessionRole, "ADMIN", error)}
+      conflict={adminLoginConflict(sessionRole, error, parseAuthNotice(error) !== null)}
       disabled={error === "disabled"}
-      notice={parseAuthNotice(error, notice)}
+      notice={notice}
     />
   );
 }

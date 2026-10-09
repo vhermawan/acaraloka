@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { config } from "dotenv";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { assertAdminSeedable } from "./admin-seed";
 
 config({ path: ".env.local" });
 
@@ -24,9 +25,12 @@ async function seedAdmin() {
     return null;
   }
 
+  const existing = await prisma.user.findUnique({ where: { email: adminEmail }, select: { role: true } });
+  assertAdminSeedable(adminEmail, existing?.role ?? null);
+
   return prisma.user.upsert({
     where: { email: adminEmail },
-    update: { role: "ADMIN" },
+    update: {},
     create: {
       id: randomUUID(),
       email: adminEmail,

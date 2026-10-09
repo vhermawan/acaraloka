@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { assertAdminSeedable } from "../../prisma/admin-seed";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { afterAll, describe, expect, it, vi } from "vitest";
 
@@ -120,6 +121,10 @@ describe("admin role backfill migration", () => {
     .map((statement) => statement.trim())
     .find((statement) => statement.startsWith("UPDATE"));
 
+  it("keeps the isAdmin column for the contract release", () => {
+    expect(migration.replace(/^--.*$/gm, "")).not.toMatch(/DROP|ALTER TABLE/i);
+  });
+
   it("promotes only flagged accounts to ADMIN and leaves other roles alone", async () => {
     expect(backfill).toBeDefined();
     class Rollback extends Error {}
@@ -153,5 +158,17 @@ describe("admin role backfill migration", () => {
       { id: "plain-participant", role: "PARTICIPANT" },
       { id: "unset-flag", role: "PARTICIPANT" },
     ]);
+  });
+});
+
+describe("admin seed guard", () => {
+  it("refuses to take over an account that already has another role", () => {
+    expect(() => assertAdminSeedable("a@example.test", "PARTICIPANT")).toThrow(/PARTICIPANT/);
+    expect(() => assertAdminSeedable("a@example.test", "ORGANIZER")).toThrow(/ORGANIZER/);
+  });
+
+  it("accepts a new or already-admin account", () => {
+    expect(() => assertAdminSeedable("a@example.test", null)).not.toThrow();
+    expect(() => assertAdminSeedable("a@example.test", "ADMIN")).not.toThrow();
   });
 });

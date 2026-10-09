@@ -6,6 +6,7 @@ import {
   homePathFor,
   loginPathFor,
   parseIntent,
+  adminLoginConflict,
   pageConflict,
   parseRole,
   resolveNewUserRole,
@@ -55,6 +56,20 @@ describe("pageConflict", () => {
     expect(pageConflict(null, "ADMIN", "role-not-admin")).toBe("role-not-admin");
     expect(pageConflict("PARTICIPANT", "PARTICIPANT", "role-organizer")).toBe("role-organizer");
     expect(pageConflict(null, "PARTICIPANT", "bogus")).toBeNull();
+  });
+});
+
+describe("adminLoginConflict", () => {
+  it("shows the generic admin message for unknown OAuth error codes", () => {
+    expect(adminLoginConflict(null, "unable_to_create_user", false)).toBe("role-not-admin");
+    expect(adminLoginConflict(null, "ADMIN_SIGNUP_FORBIDDEN", false)).toBe("role-not-admin");
+  });
+
+  it("leaves known notices, disabled accounts and a clean page alone", () => {
+    expect(adminLoginConflict(null, "verify-expired", true)).toBeNull();
+    expect(adminLoginConflict(null, "disabled", false)).toBeNull();
+    expect(adminLoginConflict(null, undefined, false)).toBeNull();
+    expect(adminLoginConflict("PARTICIPANT", undefined, false)).toBe("role-not-admin");
   });
 });
 

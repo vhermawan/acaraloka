@@ -104,6 +104,17 @@ export function pageConflict(sessionRole: UserRole | null, intent: UserRole, err
   return fromSession ?? parseRoleConflict(error);
 }
 
+export function adminLoginConflict(
+  sessionRole: UserRole | null,
+  error: unknown,
+  isKnownNotice: boolean,
+): RoleConflict | null {
+  const known = pageConflict(sessionRole, "ADMIN", error);
+  if (known) return known;
+  const unrecognized = typeof error === "string" && error !== "disabled" && !isKnownNotice;
+  return unrecognized ? "role-not-admin" : null;
+}
+
 export function resolveNewUserRole(intent: unknown): SelfServeRole | null {
   const role = parseIntent(intent);
   return role === "ADMIN" ? null : role;
