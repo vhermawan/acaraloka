@@ -121,7 +121,7 @@ describe("admin role backfill migration", () => {
     .map((statement) => statement.trim())
     .find((statement) => statement.startsWith("UPDATE"));
 
-  it("keeps the isAdmin column for the contract release", () => {
+  it("does not drop or alter columns in the backfill step", () => {
     expect(migration.replace(/^--.*$/gm, "")).not.toMatch(/DROP|ALTER TABLE/i);
   });
 
