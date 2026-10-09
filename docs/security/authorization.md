@@ -131,6 +131,8 @@ Singkatan kolom test (berlaku untuk semua tabel): A = `tests/server/action-autho
 
 ## Catatan keputusan
 
+- Route unduh PDF `/me/certificates/[number]/pdf` memakai `getSession` langsung, bukan `requireParticipant`, karena guard itu mengarahkan ke halaman (redirect) yang tidak cocok untuk respons berkas. Akibatnya versi Syarat & Privasi terbaru tidak dicek saat mengunduh. Ini disengaja: sertifikat yang sudah terbit tetap hak pemiliknya, dan datanya dibatasi `registration.userId` dari sesi.
+- `tests/lib/authorization-inventory.test.ts` mem-parse berkas dengan TypeScript AST: setiap fungsi yang diekspor dari berkas `"use server"` wajib punya baris sendiri (nama + berkas), setiap export HTTP method di `route.ts` wajib tercantum, dan action yang guard-nya `require*` harus memanggil guard itu sebagai `await` pertama.
 - `revokeEventCertificate` sengaja tidak diblok pada event DISABLED/CANCELLED. Pencabutan sertifikat adalah koreksi, bukan penerbitan. Bila ingin admin membekukan penuh event DISABLED, tambahkan cek status di action dan satu baris di test A.
 - Event CANCELLED masih boleh `deleteSigner` dan `unlockDesign` (hanya DISABLED yang ditolak); `createSigner`, `regenerateLink`, `emailSignerLink`, dan penerbitan ditolak untuk keduanya.
 - Penandatangan memakai token sekali pakai di URL tanpa login. Yang membatasi risikonya: hash token di DB, masa berlaku, status PENDING, `Referrer-Policy: no-referrer`, dan event tidak boleh tutup.
