@@ -199,6 +199,22 @@ function drawHeading(page: PDFPage, fonts: ThemeFonts, label: CertificateLabels[
   });
 }
 
+function drawCustomHeading(
+  page: PDFPage,
+  fonts: ThemeFonts,
+  heading: CertificateLayout["heading"],
+  label: CertificateLabels["heading"],
+  accent: Color,
+) {
+  const text = label.text.trim();
+  if (!heading.visible || !text) return;
+  const { width } = page.getSize();
+  const point = toPoint(page, heading.x, heading.y);
+  const font = fonts.heading.bold;
+  const size = fitFontSize(sanitizeForFont(text, font), font, heading.fontSize, width * 0.9, 8);
+  drawAligned(page, text, { x: point.x, y: point.y, size, font, align: heading.align, color: pick(label.color, accent) });
+}
+
 async function drawBackground(pdf: PDFDocument, page: PDFPage, background: NonNullable<CertificateTemplate["background"]>) {
   const image =
     backgroundFormat(background.path) === "png"
@@ -253,6 +269,7 @@ export async function renderCertificatePdf(
 
   if (template.background) {
     await drawBackground(pdf, page, template.background);
+    drawCustomHeading(page, fonts, layout.heading, layout.labels.heading, accent);
   } else {
     drawBorder(page, layout.theme, accent);
     drawHeading(page, fonts, layout.labels.heading, accent);

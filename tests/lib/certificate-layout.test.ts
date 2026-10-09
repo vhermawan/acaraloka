@@ -58,6 +58,23 @@ describe("labels and colors", () => {
     expect(parsed.recipientName.color).toBeNull();
   });
 
+  it("defaults the heading element to hidden at the built-in position for legacy layouts", () => {
+    const legacy = JSON.parse(JSON.stringify(defaultCertificateLayout(1))) as Record<string, unknown>;
+    delete legacy.heading;
+    const parsed = parseCertificateLayout(legacy);
+    expect(parsed.heading).toEqual({ visible: false, x: 0.5, y: 0.19, fontSize: 38, align: "center" });
+    expect(parsed).toEqual(defaultCertificateLayout(1));
+  });
+
+  it("limits heading size and coordinates", () => {
+    for (const heading of [{ fontSize: 7 }, { fontSize: 73 }, { x: 1.1 }, { y: -0.1 }, { align: "top" }]) {
+      expect(certificateLayoutSchema.safeParse({ ...defaultCertificateLayout(), heading }).success).toBe(false);
+    }
+    expect(
+      certificateLayoutSchema.safeParse({ ...defaultCertificateLayout(), heading: { visible: true, fontSize: 24 } }).success,
+    ).toBe(true);
+  });
+
   it("accepts blank labels and hex colors", () => {
     const layout = defaultCertificateLayout();
     layout.labels.recipientPrefix.text = "";

@@ -158,7 +158,7 @@ function BackgroundPanel({ eventId, hasBackground, locked, closed }: BackgroundP
             dikompres otomatis sampai maksimal 3 MB. Ukuran yang disarankan: {BACKGROUND_SIZE_HINT}.
           </p>
           <p className="text-xs text-muted-foreground">
-            Judul, border, dan aksen bawaan tidak dipakai. Atur nama, acara, tanggal, nomor, tanda tangan, dan QR di atas
+            Border dan aksen bawaan tidak dipakai, judul bisa ditampilkan lewat pengaturan tata letak. Atur nama, acara, tanggal, nomor, tanda tangan, dan QR di atas
             gambar Anda.
           </p>
           {locked ? (

@@ -34,7 +34,11 @@ import {
 } from "@/lib/certificate-layout";
 import { cn } from "cn";
 
-type Selection = { kind: "text"; key: TextElementKey } | { kind: "signer"; index: number } | { kind: "qr" };
+type Selection =
+  | { kind: "text"; key: TextElementKey }
+  | { kind: "signer"; index: number }
+  | { kind: "qr" }
+  | { kind: "heading" };
 
 const TEXT_KEYS: TextElementKey[] = ["recipientName", "eventTitle", "eventDate", "certificateNumber"];
 
@@ -141,6 +145,7 @@ function sameSelection(a: Selection, b: Selection) {
 
 function selectionLabel(selection: Selection) {
   if (selection.kind === "text") return TEXT_ELEMENT_LABELS[selection.key];
+  if (selection.kind === "heading") return "Judul";
   if (selection.kind === "signer") return `Penandatangan ${selection.index + 1}`;
   return "QR verifikasi";
 }
@@ -198,12 +203,23 @@ function CertificateLayoutEditor({
   const selected =
     selection.kind === "text"
       ? layout[selection.key]
-      : selection.kind === "signer"
-        ? layout.signers[selection.index]
-        : layout.verifyQr;
+      : selection.kind === "heading"
+        ? layout.heading
+        : selection.kind === "signer"
+          ? layout.signers[selection.index]
+          : layout.verifyQr;
 
   function update(patch: Partial<{ x: number; y: number; fontSize: number; align: TextAlign; size: number; color: string | null }>) {
     setLayout((current) => {
+      if (selection.kind === "heading") {
+        const { color, ...rest } = patch;
+        if (color === undefined) return { ...current, heading: { ...current.heading, ...rest } };
+        return {
+          ...current,
+          heading: { ...current.heading, ...rest },
+          labels: { ...current.labels, heading: { ...current.labels.heading, color } },
+        };
+      }
       if (selection.kind === "text") {
         return { ...current, [selection.key]: { ...current[selection.key], ...patch } };
       }
@@ -236,6 +252,14 @@ function CertificateLayoutEditor({
     ...Array.from({ length: signerCount }, (_, index) => ({ kind: "signer", index }) as const),
     { kind: "qr" },
   ];
+  const showHeadingElement = customBackground && layout.heading.visible;
+  if (showHeadingElement) elementButtons.unshift({ kind: "heading" });
+
+  function toggleHeading(visible: boolean) {
+    setLayout((current) => ({ ...current, heading: { ...current.heading, visible } }));
+    if (!visible && selection.kind === "heading") setSelection({ kind: "text", key: "recipientName" });
+    if (visible) setSelection({ kind: "heading" });
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-8">
@@ -292,6 +316,28 @@ function CertificateLayoutEditor({
                 style={{ backgroundColor: layout.labels.heading.color ?? accent }}
               />
             </>
+          ) : null}
+          {showHeadingElement && layout.labels.heading.text.trim() ? (
+            <button
+              type="button"
+              onClick={() => setSelection({ kind: "heading" })}
+              aria-label="Pilih judul"
+              aria-pressed={selection.kind === "heading"}
+              className={cn(
+                "absolute whitespace-nowrap rounded-sm px-1 leading-tight outline-offset-2",
+                selection.kind === "heading" ? "outline-2 outline-primary" : "outline-1 outline-dashed outline-neutral-400",
+              )}
+              style={{
+                left: `${layout.heading.x * 100}%`,
+                top: `${layout.heading.y * 100}%`,
+                transform: TRANSLATE[layout.heading.align],
+                fontSize: `${layout.heading.fontSize * scale}cqw`,
+                color: layout.labels.heading.color ?? accent,
+                ...headingFont,
+              }}
+            >
+              {layout.labels.heading.text}
+            </button>
           ) : null}
           {(
             [
@@ -491,7 +537,7 @@ function CertificateLayoutEditor({
 
               <div className="flex flex-col gap-4 border-t border-border pt-4">
                 <span className="text-sm font-medium">Teks pendamping</span>
-                {LABEL_KEYS.filter((key) => key !== "heading" || !customBackground).map((key) => (
+                {LABEL_KEYS.filter((key) => key !== "heading" || !customBackground || layout.heading.visible).map((key) => (
                   <div key={key} className="flex flex-col gap-2">
                     <label className="flex flex-col gap-1.5 text-sm">
                       {LABEL_TITLES[key]}
@@ -519,6 +565,18 @@ function CertificateLayoutEditor({
           <Tabs.Panel value="layout" className="outline-none">
             <fieldset className="flex flex-col gap-5" disabled={locked}>
               <legend className="sr-only">Tata letak</legend>
+              {customBackground ? (
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <input
+                    type="checkbox"
+                    checked={layout.heading.visible}
+                    onChange={(event) => toggleHeading(event.target.checked)}
+                    className="size-4"
+                  />
+                  Tampilkan judul
+                </label>
+              ) : null}
+
               <div className="flex flex-col gap-2">
                 <span id="element-label" className="text-sm font-medium">
                   Elemen
@@ -586,23 +644,29 @@ function CertificateLayoutEditor({
                 />
               ) : null}
 
-              {selection.kind === "text" ? (
+              {selection.kind === "text" || selection.kind === "heading" ? (
                 <ColorField
                   label="Warna teks"
-                  value={layout[selection.key].color}
-                  fallback={selection.key === "recipientName" || selection.key === "eventTitle" ? INK_HEX : MUTED_HEX}
+                  value={selection.kind === "heading" ? layout.labels.heading.color : layout[selection.key].color}
+                  fallback={
+                    selection.kind === "heading"
+                      ? accent
+                      : selection.key === "recipientName" || selection.key === "eventTitle"
+                        ? INK_HEX
+                        : MUTED_HEX
+                  }
                   onChange={(color) => update({ color })}
                 />
               ) : null}
 
-              {selection.kind === "text" ? (
+              {selection.kind === "text" || selection.kind === "heading" ? (
                 <div className="flex flex-col gap-2">
                   <span id="align-label" className="text-sm font-medium">
                     Perataan
                   </span>
                   <div role="group" aria-labelledby="align-label" className="grid grid-cols-3 gap-2">
                     {(Object.entries(ALIGN_LABELS) as [TextAlign, string][]).map(([value, label]) => {
-                      const active = layout[selection.key].align === value;
+                      const active = (selection.kind === "heading" ? layout.heading : layout[selection.key]).align === value;
                       return (
                         <Button
                           key={value}
@@ -628,7 +692,7 @@ function CertificateLayoutEditor({
                   type="button"
                   variant="ghost"
                   className="h-10 px-3"
-                  onClick={() => setLayout((current) => ({ ...defaultCertificateLayout(signerCount), theme: current.theme, labels: current.labels }))}
+                  onClick={() => setLayout((current) => ({ ...defaultCertificateLayout(signerCount), theme: current.theme, labels: current.labels, heading: { ...defaultCertificateLayout(signerCount).heading, visible: current.heading.visible } }))}
                 >
                   Kembalikan posisi awal
                 </Button>

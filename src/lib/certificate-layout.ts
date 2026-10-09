@@ -21,6 +21,16 @@ const textElement = z.object({
   color: hexColor.nullable().default(null),
 });
 
+const headingElement = z
+  .object({
+    visible: z.boolean().default(false),
+    x: coordinate.default(0.5),
+    y: coordinate.default(0.19),
+    fontSize: z.number().int().min(8).max(72).default(38),
+    align: align.default("center"),
+  })
+  .prefault({});
+
 function labelElement(text: string) {
   return z
     .object({
@@ -123,6 +133,7 @@ export const certificateLayoutSchema = z.object({
       eventPrefix: labelElement(DEFAULT_LABEL_TEXTS.eventPrefix),
     })
     .prefault({}),
+  heading: headingElement,
   recipientName: textElement,
   certificateNumber: textElement,
   eventTitle: textElement,
@@ -161,11 +172,16 @@ export function defaultCertificateLabels(): CertificateLabels {
   };
 }
 
+export function defaultHeadingElement(): CertificateLayout["heading"] {
+  return { visible: false, x: 0.5, y: 0.19, fontSize: 38, align: "center" };
+}
+
 export function defaultCertificateLayout(signerCount = 1): CertificateLayout {
   const slots = signerSlots(signerCount);
   return {
     theme: defaultCertificateTheme(),
     labels: defaultCertificateLabels(),
+    heading: defaultHeadingElement(),
     recipientName: { x: 0.5, y: 0.45, fontSize: 36, align: "center", color: null },
     eventTitle: { x: 0.5, y: 0.56, fontSize: 16, align: "center", color: null },
     eventDate: { x: 0.5, y: 0.61, fontSize: 12, align: "center", color: null },

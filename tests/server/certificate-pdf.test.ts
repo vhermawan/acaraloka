@@ -214,6 +214,44 @@ describe("uploaded background", () => {
     expect(content).toContain("1 0 0 RG");
   });
 
+  it("draws the heading at a custom position without the decorative line when enabled", async () => {
+    const layout = defaultCertificateLayout(1);
+    layout.heading = { visible: true, x: 0.25, y: 0.1, fontSize: 24, align: "left" };
+    layout.labels.heading.text = "PIAGAM";
+    const content = await pageContent(await renderCertificatePdf(layout, data, { template: uploadTemplate("a4") }));
+    expect(content).toContain(hex("PIAGAM"));
+    expect(content).not.toContain(hex("SERTIFIKAT"));
+    const hidden = await pageContent(
+      await renderCertificatePdf({ ...layout, heading: { ...layout.heading, visible: false } }, data, {
+        template: uploadTemplate("a4"),
+      }),
+    );
+    expect(hidden).not.toContain(hex("PIAGAM"));
+    const lines = (text: string) => (text.match(/ L\s/g) ?? []).length;
+    expect(lines(content)).toBe(lines(hidden));
+  });
+
+  it("does not draw the heading in upload mode by default", async () => {
+    const content = await pageContent(await renderCertificatePdf(defaultCertificateLayout(1), data, { template: uploadTemplate("wide") }));
+    expect(content).not.toContain(hex("SERTIFIKAT"));
+  });
+
+  it("hides an enabled heading with blank text", async () => {
+    const layout = defaultCertificateLayout(1);
+    layout.heading.visible = true;
+    layout.labels.heading.text = " ";
+    const content = await pageContent(await renderCertificatePdf(layout, data, { template: uploadTemplate("a4") }));
+    expect(content).not.toContain(hex("SERTIFIKAT"));
+  });
+
+  it("keeps the built-in heading fixed regardless of the heading element", async () => {
+    const layout = defaultCertificateLayout(1);
+    layout.heading = { visible: true, x: 0.1, y: 0.9, fontSize: 10, align: "right" };
+    const custom = await pageContent(await renderCertificatePdf(layout, data));
+    const plain = await pageContent(await renderCertificatePdf(defaultCertificateLayout(1), data));
+    expect(custom).toBe(plain);
+  });
+
   it("keeps the default A4 template when none is given", async () => {
     const pdf = await PDFDocument.load(await renderCertificatePdf(defaultCertificateLayout(1), data, { template: DEFAULT_TEMPLATE }));
     expect(Math.round(pdf.getPage(0).getSize().height)).toBe(595);
