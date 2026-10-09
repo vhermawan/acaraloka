@@ -67,6 +67,7 @@ vi.mock("@/server/signers", () => ({
 }));
 vi.mock("@/server/admin-events", () => ({ disableEvent: recorded(), enableEvent: recorded() }));
 vi.mock("@/server/admin-users", () => ({ disableUser: recorded(), enableUser: recorded() }));
+vi.mock("@/server/admin-email", () => ({ runManualDrain: recorded() }));
 vi.mock("@/server/registration", () => ({ createRegistration: recorded() }));
 vi.mock("@/server/public-event", () => ({ getPublicEvent: recorded() }));
 vi.mock("@/server/registration-form", () => ({ getRegistrationFields: recorded() }));
@@ -79,6 +80,7 @@ const checkinActions = await import("@/app/organizer/events/[id]/checkin/actions
 const certificateActions = await import("@/app/organizer/events/[id]/certificate/actions");
 const adminActions = await import("@/app/admin/events/actions");
 const adminUserActions = await import("@/app/admin/users/actions");
+const adminEmailActions = await import("@/app/admin/email/actions");
 const myTicketActions = await import("@/app/me/tickets/[id]/actions");
 const registerActions = await import("@/app/e/[slug]/register/actions");
 const organizerRegisterActions = await import("@/app/organizer/register/actions");
@@ -124,6 +126,7 @@ const adminOnlyActions: Call[] = [
   ["enableEventAction", () => adminActions.enableEventAction("e1")],
   ["disableUserAction", () => adminUserActions.disableUserAction("u2", {}, form())],
   ["enableUserAction", () => adminUserActions.enableUserAction("u2")],
+  ["drainQueueAction", () => adminEmailActions.drainQueueAction()],
 ];
 
 const participantOnlyActions: Call[] = [
