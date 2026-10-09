@@ -66,6 +66,7 @@ vi.mock("@/server/signers", () => ({
   unlockCertificate: recorded(),
 }));
 vi.mock("@/server/admin-events", () => ({ disableEvent: recorded(), enableEvent: recorded() }));
+vi.mock("@/server/admin-users", () => ({ disableUser: recorded(), enableUser: recorded() }));
 vi.mock("@/server/registration", () => ({ createRegistration: recorded() }));
 vi.mock("@/server/public-event", () => ({ getPublicEvent: recorded() }));
 vi.mock("@/server/registration-form", () => ({ getRegistrationFields: recorded() }));
@@ -77,6 +78,7 @@ const participantActions = await import("@/app/organizer/events/[id]/participant
 const checkinActions = await import("@/app/organizer/events/[id]/checkin/actions");
 const certificateActions = await import("@/app/organizer/events/[id]/certificate/actions");
 const adminActions = await import("@/app/admin/events/actions");
+const adminUserActions = await import("@/app/admin/users/actions");
 const myTicketActions = await import("@/app/me/tickets/[id]/actions");
 const registerActions = await import("@/app/e/[slug]/register/actions");
 const organizerRegisterActions = await import("@/app/organizer/register/actions");
@@ -120,6 +122,8 @@ const organizerActions: Call[] = [["createEvent", () => eventActions.createEvent
 const adminOnlyActions: Call[] = [
   ["disableEventAction", () => adminActions.disableEventAction("e1", {}, form())],
   ["enableEventAction", () => adminActions.enableEventAction("e1")],
+  ["disableUserAction", () => adminUserActions.disableUserAction("u2", {}, form())],
+  ["enableUserAction", () => adminUserActions.enableUserAction("u2")],
 ];
 
 const participantOnlyActions: Call[] = [
@@ -172,7 +176,7 @@ describe("with a disabled account", () => {
     mocks.getSession.mockResolvedValue(session({ disabledAt: new Date() }));
   });
 
-  it.each([...organizerActions, ...participantOnlyActions, ...signedInActions.slice(0, 2)])(
+  it.each([...organizerActions, ...participantOnlyActions, ...signedInActions])(
     "%s is refused and changes nothing",
     async (_name, call) => {
       await expect(call()).rejects.toThrow(/error=disabled/);

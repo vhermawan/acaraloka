@@ -23,6 +23,7 @@ import {
   sendVerificationEmail,
 } from "@/server/auth-email";
 import { requireSelfServeRole, prepareNewUser } from "@/server/new-user";
+import { rejectDisabledPasswordSignIn } from "@/server/session-guard";
 
 const authConfig = getAuthConfig();
 
@@ -134,6 +135,11 @@ export const auth = betterAuth({
     user: {
       create: {
         before: prepareNewUser,
+      },
+    },
+    session: {
+      create: {
+        before: rejectDisabledPasswordSignIn,
       },
     },
   },

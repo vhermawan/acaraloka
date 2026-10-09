@@ -18,6 +18,10 @@ describe("search params", () => {
     ["-2", 1],
     ["abc", 1],
     [["2", "5"], 2],
+    ["1e20", 1],
+    ["99999999999999999999", 1],
+    ["10001", 10_000],
+    ["2.5", 1],
   ])("parsePage(%j) = %d", (input, expected) => {
     expect(parsePage(input)).toBe(expected);
   });

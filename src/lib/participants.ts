@@ -14,9 +14,11 @@ export function participantStatus(registration: { status: string; checkedInAt: D
   return "REGISTERED";
 }
 
+export const MAX_PAGE = 10_000;
+
 export function parsePage(value: unknown): number {
   const page = Number(Array.isArray(value) ? value[0] : value);
-  return Number.isInteger(page) && page > 0 ? page : 1;
+  return Number.isSafeInteger(page) && page > 0 ? Math.min(page, MAX_PAGE) : 1;
 }
 
 export function parseQuery(value: unknown): string {
