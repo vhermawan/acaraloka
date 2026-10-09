@@ -104,6 +104,7 @@ export const auth = betterAuth({
       phone: {
         type: "string",
         required: false,
+        input: false,
       },
       isAdmin: {
         type: "boolean",
@@ -120,14 +121,17 @@ export const auth = betterAuth({
       disabledAt: {
         type: "date",
         required: false,
+        input: false,
       },
       termsVersion: {
         type: "string",
         required: false,
+        input: false,
       },
       termsAcceptedAt: {
         type: "date",
         required: false,
+        input: false,
       },
     },
   },
