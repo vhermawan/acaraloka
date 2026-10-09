@@ -36,6 +36,11 @@ enum SignerStatus {
   DECLINED
 }
 
+enum UserRole {
+  PARTICIPANT
+  ORGANIZER
+}
+
 enum EmailStatus {
   PENDING
   SENDING
@@ -280,6 +285,7 @@ model User {
   updatedAt        DateTime          @updatedAt
   phone            String?
   isAdmin          Boolean?          @default(false)
+  role             UserRole          @default(PARTICIPANT)
   disabledAt       DateTime?
   termsVersion     String?
   termsAcceptedAt  DateTime?

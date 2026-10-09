@@ -6,7 +6,7 @@ import { TicketStateBadge } from "@/components/tickets/ticket-state-badge";
 import { Button } from "@/components/ui/button";
 import { ticketState } from "@/lib/ticket-state";
 import { formatEventDateTime } from "@/lib/timezone";
-import { requireUser } from "@/server/authz";
+import { requireParticipant } from "@/server/authz";
 import { listUserTickets } from "@/server/tickets";
 
 export const metadata: Metadata = {
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default async function MyTicketsPage() {
-  const user = await requireUser({ next: "/me/tickets" });
+  const user = await requireParticipant({ next: "/me/tickets" });
   const tickets = await listUserTickets(user.id);
 
   return (

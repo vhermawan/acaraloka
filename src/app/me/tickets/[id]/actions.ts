@@ -2,14 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 
-import { requireUser } from "@/server/authz";
+import { requireParticipant } from "@/server/authz";
 import { cancelRegistration } from "@/server/cancellation";
 import { registrantNameSchema } from "@/lib/validation/registration";
 import { updateRegistrationName } from "@/server/certificates";
 import { prisma } from "@/server/db";
 
 export async function cancelMyRegistration(registrationId: string): Promise<{ error?: string }> {
-  const user = await requireUser();
+  const user = await requireParticipant();
   const registration = await prisma.registration.findFirst({
     where: { id: registrationId, userId: user.id },
     select: { eventId: true, event: { select: { slug: true, endAt: true, status: true } } },
@@ -33,7 +33,7 @@ export async function cancelMyRegistration(registrationId: string): Promise<{ er
 }
 
 export async function renameMyRegistration(registrationId: string, name: string): Promise<{ error?: string }> {
-  const user = await requireUser();
+  const user = await requireParticipant();
   const parsed = registrantNameSchema.safeParse(name);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Nama tidak valid." };
 

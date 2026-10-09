@@ -24,7 +24,7 @@ vi.mock("@/server/db", () => ({
   },
 }));
 
-const { requireUser, requireOrganizer, requireEventOwner, requireAdmin, canRegisterFreeTicket } =
+const { requireUser, requireParticipant, requireOrganizer, requireEventOwner, requireAdmin, canRegisterFreeTicket } =
   await import("@/server/authz");
 
 function sessionFor(overrides: Record<string, unknown> = {}) {
@@ -34,6 +34,7 @@ function sessionFor(overrides: Record<string, unknown> = {}) {
       id: "u1",
       emailVerified: true,
       isAdmin: false,
+      role: "ORGANIZER",
       disabledAt: null,
       termsVersion: TERMS_VERSION,
       termsAcceptedAt: new Date(),
@@ -57,6 +58,13 @@ describe("requireUser", () => {
     await expect(requireUser()).rejects.toThrow("REDIRECT:/login?error=disabled");
   });
 
+  it("keeps organizer logins on the organizer page when disabled", async () => {
+    mocks.getSession.mockResolvedValue(sessionFor({ disabledAt: new Date() }));
+    await expect(requireUser({ loginPath: "/organizer/login" })).rejects.toThrow(
+      "REDIRECT:/organizer/login?error=disabled",
+    );
+  });
+
   it("redirects to terms when not accepted", async () => {
     mocks.getSession.mockResolvedValue(sessionFor({ termsAcceptedAt: null, termsVersion: null }));
     await expect(requireUser()).rejects.toThrow("REDIRECT:/legal/accept");
@@ -73,11 +81,39 @@ describe("requireUser", () => {
   });
 });
 
+describe("requireParticipant", () => {
+  it("redirects organizer accounts to the dashboard", async () => {
+    mocks.getSession.mockResolvedValue(sessionFor({ role: "ORGANIZER" }));
+    await expect(requireParticipant()).rejects.toThrow("REDIRECT:/organizer");
+  });
+
+  it("returns the user for participant accounts", async () => {
+    mocks.getSession.mockResolvedValue(sessionFor({ role: "PARTICIPANT" }));
+    await expect(requireParticipant()).resolves.toMatchObject({ id: "u1" });
+  });
+
+  it("sends anonymous visitors to the participant login", async () => {
+    mocks.getSession.mockResolvedValue(null);
+    await expect(requireParticipant({ next: "/me/tickets" })).rejects.toThrow("REDIRECT:/login?next=");
+  });
+});
+
 describe("requireOrganizer", () => {
-  it("redirects to join page without organizer profile", async () => {
+  it("sends anonymous visitors to the organizer login", async () => {
+    mocks.getSession.mockResolvedValue(null);
+    await expect(requireOrganizer()).rejects.toThrow("REDIRECT:/organizer/login");
+  });
+
+  it("rejects participant accounts with a role conflict", async () => {
+    mocks.getSession.mockResolvedValue(sessionFor({ role: "PARTICIPANT" }));
+    await expect(requireOrganizer()).rejects.toThrow("REDIRECT:/organizer/login?error=role-participant");
+    expect(mocks.findOrganizer).not.toHaveBeenCalled();
+  });
+
+  it("redirects to organizer registration without a profile", async () => {
     mocks.getSession.mockResolvedValue(sessionFor());
     mocks.findOrganizer.mockResolvedValue(null);
-    await expect(requireOrganizer()).rejects.toThrow("REDIRECT:/organizer/join");
+    await expect(requireOrganizer()).rejects.toThrow("REDIRECT:/organizer/register");
   });
 
   it("returns organizer when profile exists", async () => {

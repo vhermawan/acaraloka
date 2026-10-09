@@ -9,7 +9,7 @@ import { TicketQr } from "@/components/tickets/ticket-qr";
 import { TicketStateBadge } from "@/components/tickets/ticket-state-badge";
 import { ticketState } from "@/lib/ticket-state";
 import { formatEventDateTime } from "@/lib/timezone";
-import { requireUser } from "@/server/authz";
+import { requireParticipant } from "@/server/authz";
 import { getUserTicket } from "@/server/tickets";
 
 export const metadata: Metadata = {
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 export default async function TicketDetailPage({ params }: PageProps<"/me/tickets/[id]">) {
   const { id } = await params;
-  const user = await requireUser({ next: `/me/tickets/${id}` });
+  const user = await requireParticipant({ next: `/me/tickets/${id}` });
   const ticket = await getUserTicket(user.id, id);
   if (!ticket) notFound();
 

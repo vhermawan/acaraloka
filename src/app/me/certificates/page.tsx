@@ -5,7 +5,7 @@ import { Container } from "@/components/layout/container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatEventDateTime } from "@/lib/timezone";
-import { requireUser } from "@/server/authz";
+import { requireParticipant } from "@/server/authz";
 import { listUserCertificates } from "@/server/certificates";
 
 export const metadata: Metadata = {
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default async function MyCertificatesPage() {
-  const user = await requireUser({ next: "/me/certificates" });
+  const user = await requireParticipant({ next: "/me/certificates" });
   const certificates = await listUserCertificates(user.id);
 
   return (

@@ -1,1 +1,1 @@
-export const CREATE_EVENT_HREF = `/login?next=${encodeURIComponent("/organizer/events/new")}`;
+export const CREATE_EVENT_HREF = `/organizer/register?next=${encodeURIComponent("/organizer/events/new")}`;
