@@ -43,7 +43,7 @@ function recorder(respond: (email: OutgoingEmail) => SendResult = () => ({ ok: t
 }
 
 afterAll(async () => {
-  await db.emailOutbox.deleteMany({ where: { dedupeKey: { startsWith: `${runId}:` } } });
+  await db.emailOutbox.deleteMany({ where: { dedupeKey: { startsWith: runId } } });
   await db.auditLog.deleteMany({ where: { actorId: adminId } });
   await db.$disconnect();
 });
