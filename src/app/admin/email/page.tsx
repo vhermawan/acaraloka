@@ -44,7 +44,11 @@ export default async function AdminEmailPage({ searchParams }: PageProps<"/admin
   const cards = [
     { label: "Terkirim 24 jam", value: overview.sent24h.toLocaleString("id-ID") },
     { label: "Gagal 24 jam", value: overview.failed24h.toLocaleString("id-ID") },
-    { label: "Antre", value: overview.queued.toLocaleString("id-ID") },
+    {
+      label: "Antre",
+      value: overview.queued.toLocaleString("id-ID"),
+      hint: overview.scheduled > 0 ? `${overview.scheduled.toLocaleString("id-ID")} dijadwalkan ulang` : undefined,
+    },
     {
       label: "Sisa anggaran 24 jam",
       value: overview.remainingBudget.toLocaleString("id-ID"),

@@ -63,6 +63,7 @@ describe("getEmailOverview", () => {
         row({ status: "FAILED", payload: undefined, updatedAt: hoursAgo(40), lastError: "422: bad" }),
         row({ status: "PENDING" }),
         row({ status: "PENDING" }),
+        row({ status: "PENDING", sendAfter: new Date(now.getTime() + HOUR) }),
         row({ status: "SENDING", claimedAt: now }),
       ],
     });
@@ -71,6 +72,7 @@ describe("getEmailOverview", () => {
     expect(after.sent24h - before.sent24h).toBe(2);
     expect(after.failed24h - before.failed24h).toBe(1);
     expect(after.queued - before.queued).toBe(2);
+    expect(after.scheduled - before.scheduled).toBe(1);
     expect(before.remainingBudget - after.remainingBudget).toBe(3);
     expect(after.budget).toBe(50);
     expect(after.enabled).toBe(true);
@@ -171,6 +173,36 @@ describe("runManualDrain", () => {
       ],
     });
     const rejectedTo = (await db.emailOutbox.findUniqueOrThrow({ where: { dedupeKey: `${runId}:drain-rejected` } })).to;
+    const bystanders = [
+      row({
+        priority: -2,
+        dedupeKey: `${runId}x:bystander-pending`,
+        createdAt: new Date(Date.now() - 5 * HOUR),
+        updatedAt: new Date(Date.now() - 5 * HOUR),
+      }),
+      row({
+        priority: -2,
+        status: "SENDING",
+        claimedAt: new Date(Date.now() - 5 * HOUR),
+        dedupeKey: `${runId}x:bystander-stale`,
+        updatedAt: new Date(Date.now() - 5 * HOUR),
+      }),
+      row({
+        priority: -2,
+        payload: { broken: true },
+        dedupeKey: `${runId}x:bystander-invalid`,
+        updatedAt: new Date(Date.now() - 5 * HOUR),
+      }),
+    ];
+    await db.emailOutbox.createMany({ data: bystanders });
+    const snapshot = () =>
+      db.emailOutbox.findMany({
+        where: { dedupeKey: { startsWith: `${runId}x:` } },
+        orderBy: { dedupeKey: "asc" },
+      });
+    const bystandersBefore = await snapshot();
+    expect(bystandersBefore).toHaveLength(3);
+
     const mock = recorder((email) =>
       email.to === rejectedTo ? { ok: false, status: 422, message: "invalid" } : { ok: true, id: "msg" },
     );
@@ -179,6 +211,8 @@ describe("runManualDrain", () => {
       { actorId: adminId },
       {
         db,
+        dedupeKeyPrefix: `${runId}:`,
+        cooldownActorId: adminId,
         send: mock.send,
         budget: 100_000,
         pauseMs: 0,
@@ -189,7 +223,9 @@ describe("runManualDrain", () => {
     );
     expect(result).toMatchObject({ ok: true, skipped: false, failed: 1 });
     if (!result.ok || result.skipped) throw new Error("unexpected");
-    expect(result.sent).toBeGreaterThanOrEqual(1);
+    expect(result.sent).toBe(1);
+    expect(mock.calls).toHaveLength(2);
+    expect(await snapshot()).toEqual(bystandersBefore);
 
     const sentRow = await db.emailOutbox.findUniqueOrThrow({ where: { dedupeKey: `${runId}:drain-ok` } });
     expect(sentRow.status).toBe("SENT");
@@ -197,15 +233,38 @@ describe("runManualDrain", () => {
 
     const audit = await db.auditLog.findFirstOrThrow({ where: { actorId: adminId, action: "email.drain" } });
     expect(audit.entityType).toBe("EmailOutbox");
-    expect(audit.meta).toMatchObject({ skipped: false, sent: result.sent, failed: 1 });
+    expect(audit.meta).toMatchObject({ status: "done", skipped: false, sent: result.sent, failed: 1 });
 
     const second = recorder();
     const blocked = await runManualDrain(
       { actorId: adminId },
-      { db, send: second.send, budget: 100_000, pauseMs: 0 },
+      { db, dedupeKeyPrefix: `${runId}:`, cooldownActorId: adminId, send: second.send, budget: 100_000, pauseMs: 0 },
     );
     expect(blocked).toEqual({ ok: false, reason: "COOLDOWN" });
     expect(second.calls).toEqual([]);
     expect(await db.auditLog.count({ where: { actorId: adminId } })).toBe(1);
+  });
+
+  it("records a failed drain in the audit log so the cooldown still applies", async () => {
+    await db.emailOutbox.create({ data: row({ priority: -1, dedupeKey: `${runId}:drain-throws` }) });
+    const later = () => new Date(Date.now() + 2 * HOUR);
+    const result = await runManualDrain(
+      { actorId: adminId },
+      {
+        db,
+        dedupeKeyPrefix: `${runId}:`,
+        cooldownActorId: adminId,
+        send: async () => {
+          throw new Error("boom");
+        },
+        budget: 100_000,
+        pauseMs: 0,
+        now: later,
+      },
+    );
+    expect(result).toEqual({ ok: false, reason: "FAILED" });
+    const failed = await db.auditLog.findMany({ where: { actorId: adminId, action: "email.drain" } });
+    expect(failed.some((entry) => (entry.meta as { status?: string }).status === "failed")).toBe(true);
+    expect(failed.every((entry) => (entry.meta as { status?: string }).status !== "started")).toBe(true);
   });
 });

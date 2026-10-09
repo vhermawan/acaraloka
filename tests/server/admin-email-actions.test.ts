@@ -46,6 +46,7 @@ describe("page", () => {
       sent24h: 0,
       failed24h: 0,
       queued: 0,
+      scheduled: 0,
       budget: 95,
       remainingBudget: 95,
       enabled: true,

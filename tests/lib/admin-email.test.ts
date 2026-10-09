@@ -23,6 +23,9 @@ describe("maskEmail", () => {
     ["@x.id", "***"],
     ["budi@", "***"],
     ["@", "***"],
+    ["Nama Lengkap <vihermawan@gmail.com>", "vi***@gmail.com"],
+    ["<budi@x.id>", "bu***@x.id"],
+    ['"budi@x.id"', "bu***@x.id"],
   ])("masks %j as %j", (input, expected) => {
     expect(maskEmail(input)).toBe(expected);
   });
@@ -72,8 +75,26 @@ describe("redactEmailError", () => {
 
   it("replaces key=value secrets and bearer values", () => {
     expect(redactEmailError("token=xyz")).toBe("token=[redacted]");
-    expect(redactEmailError("Authorization: Bearer abc")).not.toContain("abc");
+    expect(redactEmailError("Authorization: Bearer abc")).toBe("Authorization=[redacted]");
+    expect(redactEmailError("Authorization: Basic abc123")).toBe("Authorization=[redacted]");
+    expect(redactEmailError("failed Basic dXNlcjpwYXNz here")).toBe("failed Basic [redacted] here");
+    expect(redactEmailError("sent token abcdefghij12 ok")).toBe("sent token [redacted] ok");
+    expect(redactEmailError("token expired")).toBe("token expired");
     expect(redactEmailError("bearer abc")).toBe("bearer [redacted]");
+  });
+
+  it.each([
+    ["api_key=abc", "abc"],
+    ["access_token=zzz111", "zzz111"],
+    ["client_secret: s3cr3t", "s3cr3t"],
+    ["apiKey: xyz", "xyz"],
+    ["x-api-key: short", "short"],
+    ['{"password":"hunter2"}', "hunter2"],
+    ["db_password = hunter2", "hunter2"],
+  ])("redacts compound secret names in %j", (input, secret) => {
+    const out = redactEmailError(input)!;
+    expect(out).not.toContain(secret);
+    expect(out).toContain("[redacted]");
   });
 
   it("collapses whitespace and truncates", () => {

@@ -24,10 +24,11 @@ export async function getEmailOverview(
   const budget = options.budget ?? env.EMAIL_DAILY_BUDGET;
   const since = new Date(now.getTime() - BUDGET_WINDOW_MS);
 
-  const [sent24h, failed24h, queued, used] = await Promise.all([
+  const [sent24h, failed24h, queued, scheduled, used] = await Promise.all([
     db.emailOutbox.count({ where: { status: "SENT", sentAt: { gt: since } } }),
     db.emailOutbox.count({ where: { status: "FAILED", updatedAt: { gt: since } } }),
-    db.emailOutbox.count({ where: { status: "PENDING" } }),
+    db.emailOutbox.count({ where: { status: "PENDING", sendAfter: { lte: now } } }),
+    db.emailOutbox.count({ where: { status: "PENDING", sendAfter: { gt: now } } }),
     countBudgetUsed(db, now),
   ]);
 
@@ -35,6 +36,7 @@ export async function getEmailOverview(
     sent24h,
     failed24h,
     queued,
+    scheduled,
     budget,
     remainingBudget: remainingBudget(budget, used),
     enabled: options.enabled ?? env.EMAIL_ENABLED,
@@ -87,6 +89,8 @@ export async function runManualDrain(
   input: { actorId: string },
   options: Pick<DrainOptions, "send" | "budget" | "baseUrl" | "pauseMs" | "report"> & {
     db?: PrismaClient;
+    dedupeKeyPrefix?: string;
+    cooldownActorId?: string;
     enabled?: boolean;
     now?: () => Date;
   } = {},
@@ -96,35 +100,48 @@ export async function runManualDrain(
   if (!(options.enabled ?? env.EMAIL_ENABLED)) return { ok: false, reason: "DISABLED" };
 
   const recent = await db.auditLog.count({
-    where: { action: "email.drain", createdAt: { gt: new Date(now().getTime() - MANUAL_DRAIN_COOLDOWN_MS) } },
+    where: {
+      action: "email.drain",
+      createdAt: { gt: new Date(now().getTime() - MANUAL_DRAIN_COOLDOWN_MS) },
+      ...(options.cooldownActorId ? { actorId: options.cooldownActorId } : {}),
+    },
   });
   if (recent > 0) return { ok: false, reason: "COOLDOWN" };
 
-  let result: Awaited<ReturnType<typeof drainOutbox>>;
-  try {
-    result = await drainOutbox({ ...options, db, now, maxBatch: MANUAL_DRAIN_MAX_EMAILS });
-  } catch (error) {
-    await recordError({ source: "email.drain", error }).catch(() => undefined);
-    return { ok: false, reason: "FAILED" };
-  }
-
-  await db.auditLog.create({
+  const audit = await db.auditLog.create({
     data: {
       actorId: input.actorId,
       action: "email.drain",
       entityType: "EmailOutbox",
       entityId: "queue",
-      meta: result.skipped
-        ? { skipped: true }
-        : {
-            skipped: false,
-            sent: result.sent,
-            failed: result.failed,
-            retrying: result.retrying,
-            rateLimited: result.rateLimited,
-          },
+      meta: { status: "started" },
     },
+    select: { id: true },
   });
+  const finish = (meta: Prisma.InputJsonObject) =>
+    db.auditLog.update({ where: { id: audit.id }, data: { meta } }).catch(() => undefined);
+
+  let result: Awaited<ReturnType<typeof drainOutbox>>;
+  try {
+    result = await drainOutbox({ ...options, db, now, maxBatch: MANUAL_DRAIN_MAX_EMAILS });
+  } catch (error) {
+    await finish({ status: "failed" });
+    await recordError({ source: "email.drain", error }).catch(() => undefined);
+    return { ok: false, reason: "FAILED" };
+  }
+
+  await finish(
+    result.skipped
+      ? { status: "done", skipped: true }
+      : {
+          status: "done",
+          skipped: false,
+          sent: result.sent,
+          failed: result.failed,
+          retrying: result.retrying,
+          rateLimited: result.rateLimited,
+        },
+  );
 
   return result.skipped ? { ok: true, skipped: true } : { ok: true, ...result };
 }

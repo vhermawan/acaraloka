@@ -55,7 +55,9 @@ const MASKED = "***";
 const MAX_DOMAIN_LENGTH = 60;
 
 export function maskEmail(value: string | null | undefined): string {
-  const cleaned = (value ?? "").replace(/[\s\u0000-\u001f\u007f]+/g, "").toLowerCase();
+  const raw = value ?? "";
+  const bracketed = /<([^<>]*)>/.exec(raw)?.[1];
+  const cleaned = (bracketed ?? raw).replace(/[\s<>"'\u0000-\u001f\u007f]+/g, "").toLowerCase();
   const at = cleaned.lastIndexOf("@");
   if (at <= 0 || at === cleaned.length - 1) return MASKED;
 
@@ -70,8 +72,10 @@ export function redactEmailError(value: string | null | undefined): string | nul
   if (!value) return null;
   let text = value
     .replace(/https?:\/\/\S+/gi, "[url]")
-    .replace(/\bbearer\s+\S+/gi, "bearer [redacted]")
-    .replace(/\b(token|key|secret|password|authorization)\b\s*[:=]\s*\S+/gi, "$1=[redacted]");
+    .replace(/\b(proxy-authorization|authorization)\b["']?\s*[:=]\s*(?:(?:bearer|basic|digest|token)\s+)?["']?[^\s"',}]+/gi, "$1=[redacted]")
+    .replace(/\b(bearer|basic)\s+\S+/gi, "$1 [redacted]")
+    .replace(/\btoken\s+\S{8,}/gi, "token [redacted]")
+    .replace(/([\w-]*(?:token|key|secret|password))["']?\s*[:=]\s*["']?[^\s"',}]+/gi, "$1=[redacted]");
   text = redactEmails(text)
     .replace(/[A-Za-z0-9_\-.~+/=]{20,}/g, "[token]")
     .replace(/[\u0000-\u001f\u007f\s]+/g, " ")

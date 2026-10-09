@@ -58,6 +58,7 @@ export type DrainOptions = {
   send?: EmailSender;
   budget?: number;
   maxBatch?: number;
+  dedupeKeyPrefix?: string;
   baseUrl?: string;
   now?: () => Date;
   pauseMs?: number;
@@ -70,7 +71,7 @@ export async function countBudgetUsed(db: DbClient, now: Date): Promise<number> 
   });
 }
 
-async function claimBatch(db: PrismaClient, budget: number, now: Date, maxBatch?: number): Promise<ClaimedRow[] | null> {
+async function claimBatch(db: PrismaClient, budget: number, now: Date, maxBatch?: number, dedupeKeyPrefix?: string): Promise<ClaimedRow[] | null> {
   return db.$transaction(async (tx) => {
     const [{ locked }] = await tx.$queryRaw<{ locked: boolean }[]>`
       SELECT pg_try_advisory_xact_lock(${DRAIN_LOCK_KEY}::bigint) AS "locked"`;
@@ -81,13 +82,15 @@ async function claimBatch(db: PrismaClient, budget: number, now: Date, maxBatch?
     if (limit === 0) return [];
 
     const staleBefore = new Date(now.getTime() - STALE_CLAIM_MS);
+    const scope = dedupeKeyPrefix ? Prisma.sql`AND starts_with("dedupe_key", ${dedupeKeyPrefix})` : Prisma.empty;
     const rows = await tx.$queryRaw<ClaimedRow[]>`
       UPDATE "email_outbox"
       SET "status" = 'SENDING', "claimed_at" = ${now}, "updated_at" = ${now}
       WHERE "id" IN (
         SELECT "id" FROM "email_outbox"
-        WHERE ("status" = 'PENDING' AND "send_after" <= ${now})
-           OR ("status" = 'SENDING' AND "claimed_at" < ${staleBefore})
+        WHERE (("status" = 'PENDING' AND "send_after" <= ${now})
+           OR ("status" = 'SENDING' AND "claimed_at" < ${staleBefore}))
+           ${scope}
         ORDER BY "priority" ASC, "created_at" ASC
         LIMIT ${limit}
         FOR UPDATE SKIP LOCKED
@@ -110,7 +113,7 @@ export async function drainOutbox(options: DrainOptions = {}): Promise<DrainResu
   const pauseMs = options.pauseMs ?? PAUSE_BETWEEN_SENDS_MS;
   const report = options.report ?? defaultReport;
 
-  const rows = await claimBatch(db, budget, now(), options.maxBatch);
+  const rows = await claimBatch(db, budget, now(), options.maxBatch, options.dedupeKeyPrefix);
   if (rows === null) return { skipped: true };
 
   const result = { skipped: false as const, sent: 0, failed: 0, retrying: 0, rateLimited: false };
