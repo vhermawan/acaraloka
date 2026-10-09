@@ -5,3 +5,5 @@ export const disableReasonSchema = z
   .trim()
   .min(5, "Tulis alasan penonaktifan minimal 5 karakter.")
   .max(500, "Alasan maksimal 500 karakter.");
+
+export const disableReasonFormSchema = z.object({ reason: disableReasonSchema });

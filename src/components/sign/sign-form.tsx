@@ -1,13 +1,19 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useCallback, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
 import { declineSigning, submitSignature } from "@/app/sign/[token]/actions";
 import { SignaturePad, type SignaturePadHandle } from "@/components/sign/signature-pad";
 import { Button } from "@/components/ui/button";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
+import { declineReasonSchema } from "@/lib/validation/signer";
+
+const declineFormSchema = z.object({ reason: declineReasonSchema });
 
 function SignForm({ token }: { token: string }) {
   const router = useRouter();
@@ -16,8 +22,17 @@ function SignForm({ token }: { token: string }) {
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
   const [declining, setDeclining] = useState(false);
-  const [reason, setReason] = useState("");
   const [pending, startTransition] = useTransition();
+  const {
+    register,
+    handleSubmit: handleDeclineSubmit,
+    setError: setDeclineError,
+    formState: { errors },
+  } = useForm<z.input<typeof declineFormSchema>, unknown, z.output<typeof declineFormSchema>>({
+    resolver: zodResolver(declineFormSchema),
+    defaultValues: { reason: "" },
+    mode: "onTouched",
+  });
   const handleChange = useCallback((value: boolean) => setEmpty(value), []);
 
   function handleSubmit() {
@@ -37,17 +52,17 @@ function SignForm({ token }: { token: string }) {
     });
   }
 
-  function handleDecline() {
+  const handleDecline = handleDeclineSubmit(({ reason }) => {
     setError("");
     startTransition(async () => {
       const result = await declineSigning(token, reason);
       if (result.error) {
-        setError(result.error);
+        setDeclineError("reason", { type: "server", message: result.error });
         return;
       }
       router.refresh();
     });
-  }
+  });
 
   return (
     <div className="flex flex-col gap-8">
@@ -69,34 +84,35 @@ function SignForm({ token }: { token: string }) {
       </section>
 
       {declining ? (
-        <section aria-labelledby="decline-heading" className="flex flex-col gap-3">
+        <form
+          aria-labelledby="decline-heading"
+          onSubmit={handleDecline}
+          noValidate
+          className="flex flex-col gap-3"
+        >
           <h2 id="decline-heading" className="font-medium">
             Tolak menandatangani
           </h2>
-          <Field>
+          <Field data-invalid={!!errors.reason}>
             <FieldLabel htmlFor="decline-reason">Alasan untuk panitia</FieldLabel>
             <Textarea
               id="decline-reason"
               rows={3}
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
               placeholder="Contoh: jabatan saya salah tulis"
+              aria-invalid={!!errors.reason}
+              {...register("reason")}
             />
+            <FieldError errors={[errors.reason]} />
           </Field>
-          {error ? (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          ) : null}
           <div className="flex flex-wrap gap-2">
-            <Button variant="destructive" className="h-11 px-4" disabled={pending} onClick={handleDecline}>
+            <Button type="submit" variant="destructive" className="h-11 px-4" disabled={pending}>
               {pending ? "Mengirim..." : "Kirim penolakan"}
             </Button>
-            <Button variant="ghost" className="h-11" onClick={() => setDeclining(false)}>
+            <Button type="button" variant="ghost" className="h-11" onClick={() => setDeclining(false)}>
               Kembali
             </Button>
           </div>
-        </section>
+        </form>
       ) : (
         <section aria-labelledby="sign-heading" className="flex flex-col gap-3">
           <h2 id="sign-heading" className="font-medium">

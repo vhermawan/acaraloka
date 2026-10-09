@@ -1,7 +1,10 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useTransition } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { cancelParticipant } from "@/app/organizer/events/[id]/participants/actions";
 import { Button } from "@/components/ui/button";
@@ -15,8 +18,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
+import { cancellationReasonSchema } from "@/lib/validation/cancellation";
 
 type CancelParticipantButtonProps = {
   eventId: string;
@@ -24,13 +28,24 @@ type CancelParticipantButtonProps = {
   name: string;
 };
 
+const cancelParticipantSchema = z.object({ reason: cancellationReasonSchema });
+
 function CancelParticipantButton({ eventId, registrationId, name }: CancelParticipantButtonProps) {
   const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState("");
   const [pending, startTransition] = useTransition();
   const reasonId = `cancel-reason-${registrationId}`;
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<z.input<typeof cancelParticipantSchema>, unknown, z.output<typeof cancelParticipantSchema>>({
+    resolver: zodResolver(cancelParticipantSchema),
+    defaultValues: { reason: "" },
+    mode: "onTouched",
+  });
 
-  function handleConfirm() {
+  const onSubmit = handleSubmit(({ reason }) => {
     startTransition(async () => {
       const result = await cancelParticipant(eventId, registrationId, reason);
       if (result.error) {
@@ -39,9 +54,9 @@ function CancelParticipantButton({ eventId, registrationId, name }: CancelPartic
       }
       toast.success(`Pendaftaran ${name} dibatalkan.`);
       setOpen(false);
-      setReason("");
+      reset();
     });
-  }
+  });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -51,20 +66,29 @@ function CancelParticipantButton({ eventId, registrationId, name }: CancelPartic
         Batalkan
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Batalkan pendaftaran {name}?</DialogTitle>
-          <DialogDescription>Tiket peserta tidak berlaku lagi dan kuotanya dilepas.</DialogDescription>
-        </DialogHeader>
-        <Field>
-          <FieldLabel htmlFor={reasonId}>Alasan (opsional)</FieldLabel>
-          <Textarea id={reasonId} value={reason} onChange={(event) => setReason(event.target.value)} rows={3} />
-        </Field>
-        <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>Tidak jadi</DialogClose>
-          <Button variant="destructive" onClick={handleConfirm} disabled={pending}>
-            {pending ? "Membatalkan..." : "Batalkan"}
-          </Button>
-        </DialogFooter>
+        <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+          <DialogHeader>
+            <DialogTitle>Batalkan pendaftaran {name}?</DialogTitle>
+            <DialogDescription>Tiket peserta tidak berlaku lagi dan kuotanya dilepas.</DialogDescription>
+          </DialogHeader>
+          <Field data-invalid={!!errors.reason}>
+            <FieldLabel htmlFor={reasonId}>Alasan (opsional)</FieldLabel>
+            <Textarea
+              id={reasonId}
+              rows={3}
+              placeholder="Contoh: Peserta minta dibatalkan lewat email."
+              aria-invalid={!!errors.reason}
+              {...register("reason")}
+            />
+            <FieldError errors={[errors.reason]} />
+          </Field>
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="outline" />}>Tidak jadi</DialogClose>
+            <Button type="submit" variant="destructive" disabled={pending}>
+              {pending ? "Membatalkan..." : "Batalkan"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

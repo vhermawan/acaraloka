@@ -17,9 +17,19 @@ export type RegistrationField = {
   options: string[];
 };
 
+export type RegistrationFormInput = {
+  ticketTypeId: string;
+  name: string;
+  email: string;
+  phone: string;
+  consent: "on";
+} & Record<AnswerKey, string>;
+
 export type RegistrationAnswer = { fieldId: string; label: string; value: string };
 
-export function answerKey(fieldId: string) {
+export type AnswerKey = `field_${string}`;
+
+export function answerKey(fieldId: string): AnswerKey {
   return `field_${fieldId}`;
 }
 
@@ -32,7 +42,7 @@ function answerSchema(field: RegistrationField) {
 export function buildRegistrationSchema(fields: RegistrationField[], ticketTypeIds: string[]) {
   const answerShape = Object.fromEntries(fields.map((field) => [answerKey(field.id), answerSchema(field)]));
 
-  return z
+  const schema = z
     .object({
       ticketTypeId: z.string().refine((value) => ticketTypeIds.includes(value), "Pilih jenis tiket."),
       name: registrantNameSchema,
@@ -50,4 +60,6 @@ export function buildRegistrationSchema(fields: RegistrationField[], ticketTypeI
       }));
       return { ticketTypeId: data.ticketTypeId, name: data.name, email: data.email, phone: data.phone, answers };
     });
+
+  return schema as z.ZodType<z.output<typeof schema>, RegistrationFormInput>;
 }

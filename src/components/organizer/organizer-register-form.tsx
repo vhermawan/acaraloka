@@ -12,24 +12,33 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { useActionForm } from "@/hooks/use-action-form";
+import { organizerProfileSchema } from "@/lib/validation/organizer";
 
 type OrganizerRegisterFormProps = {
   defaultEmail: string;
   next: string;
 };
 
-function toErrors(messages?: string[]) {
-  return messages?.map((message) => ({ message }));
-}
-
 function OrganizerRegisterForm({ defaultEmail, next }: OrganizerRegisterFormProps) {
   const [state, formAction, pending] = useActionState<OrganizerRegisterState, FormData>(
     registerOrganizer,
     {},
   );
+  const {
+    form: {
+      register,
+      formState: { errors },
+    },
+    onSubmit,
+  } = useActionForm(organizerProfileSchema, {
+    defaultValues: { orgName: "", contactEmail: defaultEmail, contactPhone: "" },
+    dispatch: formAction,
+    serverErrors: state.errors,
+  });
 
   return (
-    <form action={formAction} noValidate>
+    <form onSubmit={onSubmit} noValidate>
       <FieldGroup>
         <input type="hidden" name="next" value={next} />
         {state.message ? (
@@ -40,48 +49,45 @@ function OrganizerRegisterForm({ defaultEmail, next }: OrganizerRegisterFormProp
             {state.message}
           </p>
         ) : null}
-        <Field data-invalid={!!state.errors?.orgName}>
+        <Field data-invalid={!!errors.orgName}>
           <FieldLabel htmlFor="orgName">Nama penyelenggara</FieldLabel>
           <Input
             id="orgName"
-            name="orgName"
-            required
             autoComplete="organization"
-            defaultValue={state.values?.orgName}
-            aria-invalid={!!state.errors?.orgName}
+            placeholder="Contoh: Komunitas Desain Bandung"
+            aria-invalid={!!errors.orgName}
             className="h-10"
+            {...register("orgName")}
           />
           <FieldDescription>Tampil di halaman acara dan sertifikat.</FieldDescription>
-          <FieldError errors={toErrors(state.errors?.orgName)} />
+          <FieldError errors={[errors.orgName]} />
         </Field>
-        <Field data-invalid={!!state.errors?.contactEmail}>
+        <Field data-invalid={!!errors.contactEmail}>
           <FieldLabel htmlFor="contactEmail">Email kontak (opsional)</FieldLabel>
           <Input
             id="contactEmail"
-            name="contactEmail"
             type="email"
             autoComplete="email"
-            defaultValue={state.values?.contactEmail ?? defaultEmail}
-            aria-invalid={!!state.errors?.contactEmail}
+            placeholder="panitia@email.com"
+            aria-invalid={!!errors.contactEmail}
             className="h-10"
+            {...register("contactEmail")}
           />
-          <FieldError errors={toErrors(state.errors?.contactEmail)} />
+          <FieldError errors={[errors.contactEmail]} />
         </Field>
-        <Field data-invalid={!!state.errors?.contactPhone}>
+        <Field data-invalid={!!errors.contactPhone}>
           <FieldLabel htmlFor="contactPhone">Nomor HP kontak</FieldLabel>
           <Input
             id="contactPhone"
-            name="contactPhone"
             type="tel"
             inputMode="tel"
-            required
             autoComplete="tel"
             placeholder="081234567890"
-            defaultValue={state.values?.contactPhone}
-            aria-invalid={!!state.errors?.contactPhone}
+            aria-invalid={!!errors.contactPhone}
             className="h-10"
+            {...register("contactPhone")}
           />
-          <FieldError errors={toErrors(state.errors?.contactPhone)} />
+          <FieldError errors={[errors.contactPhone]} />
         </Field>
         <Button type="submit" className="h-11 w-full" disabled={pending}>
           {pending ? "Menyimpan..." : "Buat akun panitia"}

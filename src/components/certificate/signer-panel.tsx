@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import {
@@ -15,8 +15,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { useActionForm } from "@/hooks/use-action-form";
 import { MAX_SIGNERS } from "@/lib/certificate-layout";
-import { SIGNER_STATUS_LABELS, type SignerLinkState } from "@/lib/validation/signer";
+import { SIGNER_STATUS_LABELS, signerSchema, type SignerLinkState } from "@/lib/validation/signer";
 
 export type SignerRow = {
   id: string;
@@ -33,10 +34,6 @@ const STATE_STYLES: Record<SignerLinkState, string> = {
   SIGNED: "border-transparent bg-success/10 text-success",
   DECLINED: "border-transparent bg-destructive/10 text-destructive",
 };
-
-function toErrors(messages?: string[]) {
-  return messages?.map((message) => ({ message }));
-}
 
 type ShareLinkProps = { signerName: string; url: string; emailedTo?: string; onClose: () => void };
 
@@ -98,7 +95,6 @@ type SignerPanelProps = {
 };
 
 function SignerPanel({ eventId, signers, locked, closed, emailEnabled }: SignerPanelProps) {
-  const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, pending] = useActionState<SignerFormState, FormData>(
     createSigner.bind(null, eventId),
     {},
@@ -108,8 +104,18 @@ function SignerPanel({ eventId, signers, locked, closed, emailEnabled }: SignerP
   );
   const [dismissedAt, setDismissedAt] = useState(0);
   const [rowPending, startRow] = useTransition();
-  const errors = state.errors ?? {};
-  const values = state.values ?? {};
+  const {
+    form: {
+      register,
+      reset,
+      formState: { errors },
+    },
+    onSubmit,
+  } = useActionForm(signerSchema, {
+    defaultValues: { name: "", title: "", email: "" },
+    dispatch: formAction,
+    serverErrors: state.errors,
+  });
   const canAdd = !locked && !closed && signers.length < MAX_SIGNERS;
 
   const latest = [state.link, regenerated]
@@ -118,8 +124,8 @@ function SignerPanel({ eventId, signers, locked, closed, emailEnabled }: SignerP
   const shared = latest && latest.issuedAt > dismissedAt ? latest : null;
 
   useEffect(() => {
-    if (state.link) formRef.current?.reset();
-  }, [state.link]);
+    if (state.link) reset();
+  }, [state.link, reset]);
 
   function handleRegenerate(signer: SignerRow) {
     startRow(async () => {
@@ -221,7 +227,7 @@ function SignerPanel({ eventId, signers, locked, closed, emailEnabled }: SignerP
       )}
 
       {canAdd ? (
-        <form ref={formRef} action={formAction} noValidate className="flex flex-col gap-3 border-t border-border pt-5">
+        <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3 border-t border-border pt-5">
           <h3 className="text-sm font-semibold">Tambah penandatangan</h3>
           {state.message ? (
             <p role="alert" className="text-sm text-destructive">
@@ -231,35 +237,38 @@ function SignerPanel({ eventId, signers, locked, closed, emailEnabled }: SignerP
           <div className="grid gap-3 md:grid-cols-3">
             <Field data-invalid={!!errors.name}>
               <FieldLabel htmlFor="signer-name">Nama lengkap dan gelar</FieldLabel>
-              <Input id="signer-name" name="name" required defaultValue={values.name} aria-invalid={!!errors.name} className="h-10" />
-              <FieldError errors={toErrors(errors.name)} />
+              <Input
+                id="signer-name"
+                placeholder="Contoh: Dr. Nama Lengkap, M.Kom."
+                aria-invalid={!!errors.name}
+                className="h-10"
+                {...register("name")}
+              />
+              <FieldError errors={[errors.name]} />
             </Field>
             <Field data-invalid={!!errors.title}>
               <FieldLabel htmlFor="signer-title">Jabatan</FieldLabel>
               <Input
                 id="signer-title"
-                name="title"
-                required
-                placeholder="Ketua Pelaksana"
-                defaultValue={values.title}
+                placeholder="Contoh: Ketua Pelaksana"
                 aria-invalid={!!errors.title}
                 className="h-10"
+                {...register("title")}
               />
-              <FieldError errors={toErrors(errors.title)} />
+              <FieldError errors={[errors.title]} />
             </Field>
             <Field data-invalid={!!errors.email}>
               <FieldLabel htmlFor="signer-email">Email</FieldLabel>
               <Input
                 id="signer-email"
-                name="email"
                 type="email"
                 inputMode="email"
-                required
-                defaultValue={values.email}
+                placeholder="nama@email.com"
                 aria-invalid={!!errors.email}
                 className="h-10"
+                {...register("email")}
               />
-              <FieldError errors={toErrors(errors.email)} />
+              <FieldError errors={[errors.email]} />
             </Field>
           </div>
           <Button type="submit" className="h-10 w-fit px-4" disabled={pending}>
