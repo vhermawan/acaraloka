@@ -14,15 +14,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
+import type { UserRole } from "@/lib/roles";
 
 type AccountMenuProps = {
   name: string;
   email: string;
-  isOrganizer: boolean;
-  isAdmin: boolean;
+  role: UserRole;
 };
 
-function AccountMenu({ name, email, isOrganizer, isAdmin }: AccountMenuProps) {
+function AccountMenu({ name, email, role }: AccountMenuProps) {
   const router = useRouter();
 
   async function handleSignOut() {
@@ -46,7 +46,9 @@ function AccountMenu({ name, email, isOrganizer, isAdmin }: AccountMenuProps) {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          {isOrganizer ? (
+          {role === "ADMIN" ? (
+            <DropdownMenuItem render={<Link href="/admin" />}>Panel admin</DropdownMenuItem>
+          ) : role === "ORGANIZER" ? (
             <DropdownMenuItem render={<Link href="/organizer" />}>Dashboard panitia</DropdownMenuItem>
           ) : (
             <>
@@ -54,9 +56,6 @@ function AccountMenu({ name, email, isOrganizer, isAdmin }: AccountMenuProps) {
               <DropdownMenuItem render={<Link href="/me/certificates" />}>Sertifikat saya</DropdownMenuItem>
             </>
           )}
-          {isAdmin ? (
-            <DropdownMenuItem render={<Link href="/admin" />}>Admin</DropdownMenuItem>
-          ) : null}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>Keluar</DropdownMenuItem>

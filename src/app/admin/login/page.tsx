@@ -7,24 +7,25 @@ import { pageConflict, parseRole, resolvePostLoginPath } from "@/lib/roles";
 import { getSession } from "@/lib/session";
 
 export const metadata: Metadata = {
-  title: "Masuk",
+  title: "Masuk admin",
+  robots: { index: false },
 };
 
-export default async function LoginPage({ searchParams }: PageProps<"/login">) {
+export default async function AdminLoginPage({ searchParams }: PageProps<"/admin/login">) {
   const { next, error, notice } = await searchParams;
-  const nextPath = resolvePostLoginPath("PARTICIPANT", next, true);
+  const nextPath = resolvePostLoginPath("ADMIN", next, true);
 
   const session = await getSession();
   const sessionRole = session ? parseRole(session.user.role) : null;
-  if (session && !session.user.disabledAt && sessionRole === "PARTICIPANT") redirect(nextPath);
+  if (session && !session.user.disabledAt && sessionRole === "ADMIN") redirect(nextPath);
 
   return (
     <AuthScreen
-      role="PARTICIPANT"
+      role="ADMIN"
       mode="login"
-      path="/login"
+      path="/admin/login"
       next={nextPath}
-      conflict={pageConflict(sessionRole, "PARTICIPANT", error)}
+      conflict={pageConflict(sessionRole, "ADMIN", error)}
       disabled={error === "disabled"}
       notice={parseAuthNotice(error, notice)}
     />

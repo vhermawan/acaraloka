@@ -36,8 +36,14 @@ describe("GET /me/certificates/[number]/pdf", () => {
     expect(mocks.getUserCertificateRenderData).not.toHaveBeenCalled();
   });
 
+  it("returns 404 for admin accounts without looking up certificates", async () => {
+    mocks.getSession.mockResolvedValue({ user: { id: "u4", disabledAt: null, role: "ADMIN" } });
+    await expect(GET(new Request("http://x"), context("HA-1"))).rejects.toThrow("NOT_FOUND");
+    expect(mocks.getUserCertificateRenderData).not.toHaveBeenCalled();
+  });
+
   it("returns 404 when the certificate is not owned by the user", async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: "u2", disabledAt: null } });
+    mocks.getSession.mockResolvedValue({ user: { id: "u2", disabledAt: null, role: "PARTICIPANT" } });
     mocks.getUserCertificateRenderData.mockResolvedValue(null);
     await expect(GET(new Request("http://x"), context("HA-1"))).rejects.toThrow("NOT_FOUND");
     expect(mocks.getUserCertificateRenderData).toHaveBeenCalledWith("u2", "HA-1");
@@ -45,7 +51,7 @@ describe("GET /me/certificates/[number]/pdf", () => {
   });
 
   it("serves an attachment named after the certificate number", async () => {
-    mocks.getSession.mockResolvedValue({ user: { id: "u1", disabledAt: null } });
+    mocks.getSession.mockResolvedValue({ user: { id: "u1", disabledAt: null, role: "PARTICIPANT" } });
     mocks.getUserCertificateRenderData.mockResolvedValue({ layout: {}, data: { certificateNumber: "HA-2026-0001-ABC123" } });
     mocks.renderCertificatePdf.mockResolvedValue(new Uint8Array([1, 2, 3]));
     const response = await GET(new Request("http://x"), context("HA-2026-0001-ABC123"));

@@ -25,7 +25,6 @@ export default async function OrganizerLayout({ children }: LayoutProps<"/organi
       orgName={organizer.orgName}
       userName={session.user.name}
       userEmail={session.user.email}
-      isAdmin={session.user.isAdmin === true}
     >
       {children}
     </OrganizerShell>

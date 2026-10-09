@@ -100,12 +100,12 @@ describe("createRegistration against Postgres", () => {
     await db.event.update({ where: { id: eventId }, data: { status: "PUBLISHED" } });
   });
 
-  it("refuses registration for ORGANIZER accounts without reserving a seat", async () => {
+  it.each(["ORGANIZER", "ADMIN"] as const)("refuses registration for %s accounts without reserving a seat", async (role) => {
     const before = await db.ticketType.findUniqueOrThrow({ where: { id: ticketTypeId } });
-    await db.user.update({ where: { id: `${runId}-u${PARALLEL}` }, data: { role: "ORGANIZER" } });
+    await db.user.update({ where: { id: `${runId}-u${PARALLEL}` }, data: { role } });
     await expect(createRegistration(input(PARALLEL), db)).resolves.toEqual({
       ok: false,
-      reason: "ORGANIZER_ACCOUNT",
+      reason: "NON_PARTICIPANT_ACCOUNT",
     });
     const after = await db.ticketType.findUniqueOrThrow({ where: { id: ticketTypeId } });
     expect(after.reservedCount).toBe(before.reservedCount);

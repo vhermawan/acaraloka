@@ -13,6 +13,8 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
 
+const SAMPLE_ORGANIZER_EMAIL = "organizer@example.test";
+
 async function seedAdmin() {
   const adminEmail = process.env.ADMIN_EMAIL?.trim();
   if (!adminEmail) {
@@ -24,23 +26,35 @@ async function seedAdmin() {
 
   return prisma.user.upsert({
     where: { email: adminEmail },
-    update: { isAdmin: true },
+    update: { role: "ADMIN" },
     create: {
       id: randomUUID(),
       email: adminEmail,
       name: "Admin Acaraloka",
       emailVerified: true,
-      isAdmin: true,
+      role: "ADMIN",
     },
   });
 }
 
-async function seedSampleEvent(adminUserId: string) {
-  await prisma.organizerProfile.upsert({
-    where: { userId: adminUserId },
+async function seedSampleEvent() {
+  const organizer = await prisma.user.upsert({
+    where: { email: SAMPLE_ORGANIZER_EMAIL },
     update: {},
     create: {
-      userId: adminUserId,
+      id: randomUUID(),
+      email: SAMPLE_ORGANIZER_EMAIL,
+      name: "Panitia Contoh",
+      emailVerified: true,
+      role: "ORGANIZER",
+    },
+  });
+
+  await prisma.organizerProfile.upsert({
+    where: { userId: organizer.id },
+    update: {},
+    create: {
+      userId: organizer.id,
       orgName: "Acaraloka",
       contactPhone: "081200000000",
     },
@@ -55,7 +69,7 @@ async function seedSampleEvent(adminUserId: string) {
     where: { slug: "contoh-workshop-acaraloka" },
     update: {},
     create: {
-      organizerId: adminUserId,
+      organizerId: organizer.id,
       slug: "contoh-workshop-acaraloka",
       title: "Contoh Workshop Acaraloka",
       description: "Event contoh untuk memverifikasi alur pendaftaran gratis Tahap 1.",
@@ -83,7 +97,7 @@ async function seedSampleEvent(adminUserId: string) {
 async function main() {
   const admin = await seedAdmin();
   if (admin) {
-    await seedSampleEvent(admin.id);
+    await seedSampleEvent();
   }
 }
 

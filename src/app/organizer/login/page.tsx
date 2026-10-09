@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { parseAuthNotice } from "@/lib/auth-notice";
-import { parseRole, parseRoleConflict, resolvePostLoginPath } from "@/lib/roles";
+import { pageConflict, parseRole, resolvePostLoginPath } from "@/lib/roles";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/server/db";
 
@@ -30,7 +30,7 @@ export default async function OrganizerLoginPage({ searchParams }: PageProps<"/o
       mode="login"
       path="/organizer/login"
       next={resolvePostLoginPath("ORGANIZER", next, true)}
-      conflict={sessionRole === "PARTICIPANT" ? "role-participant" : parseRoleConflict(error)}
+      conflict={pageConflict(sessionRole, "ORGANIZER", error)}
       disabled={error === "disabled"}
       notice={parseAuthNotice(error, notice)}
     />

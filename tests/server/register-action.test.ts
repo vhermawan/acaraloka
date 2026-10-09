@@ -24,10 +24,10 @@ beforeEach(() => {
 });
 
 describe("registerForEvent", () => {
-  it("rejects organizer accounts before touching registration", async () => {
-    mocks.requireUser.mockResolvedValue({ id: "u1", role: "ORGANIZER", emailVerified: true });
+  it.each(["ORGANIZER", "ADMIN"])("rejects %s accounts before touching registration", async (role) => {
+    mocks.requireUser.mockResolvedValue({ id: "u1", role, emailVerified: true });
     const state = await registerForEvent("abc", {}, new FormData());
-    expect(state.message).toBe("Akun panitia tidak bisa mendaftar acara. Masuk dengan akun peserta.");
+    expect(state.message).toBe("Akun ini tidak bisa mendaftar acara. Masuk dengan akun peserta.");
     expect(mocks.createRegistration).not.toHaveBeenCalled();
   });
 });

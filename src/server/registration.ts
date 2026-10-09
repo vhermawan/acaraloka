@@ -19,10 +19,10 @@ export type CreateRegistrationInput = {
 
 export type CreateRegistrationResult =
   | { ok: true; registrationId: string }
-  | { ok: false; reason: "ALREADY_REGISTERED" | "SOLD_OUT" | "CLOSED" | "ORGANIZER_ACCOUNT" };
+  | { ok: false; reason: "ALREADY_REGISTERED" | "SOLD_OUT" | "CLOSED" | "NON_PARTICIPANT_ACCOUNT" };
 
 class RegistrationRejected extends Error {
-  constructor(readonly reason: "ALREADY_REGISTERED" | "SOLD_OUT" | "CLOSED" | "ORGANIZER_ACCOUNT") {
+  constructor(readonly reason: "ALREADY_REGISTERED" | "SOLD_OUT" | "CLOSED" | "NON_PARTICIPANT_ACCOUNT") {
     super(reason);
   }
 }
@@ -45,7 +45,7 @@ export async function createRegistration(
       if (!event || event.status !== "PUBLISHED" || event.endAt <= now) throw new RegistrationRejected("CLOSED");
 
       const account = await tx.user.findUnique({ where: { id: input.userId }, select: { role: true } });
-      if (account?.role === "ORGANIZER") throw new RegistrationRejected("ORGANIZER_ACCOUNT");
+      if (account && account.role !== "PARTICIPANT") throw new RegistrationRejected("NON_PARTICIPANT_ACCOUNT");
 
       const existing = await tx.registration.findFirst({
         where: { eventId: input.eventId, userId: input.userId, status: "CONFIRMED" },

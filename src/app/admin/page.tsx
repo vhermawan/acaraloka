@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
 
-import { AdminNav } from "@/components/admin/admin-nav";
-import { Container } from "@/components/layout/container";
 import { formatBytes } from "@/lib/format";
 import { getAdminStats } from "@/server/admin-stats";
 import { requireAdmin } from "@/server/authz";
 
 export const metadata: Metadata = {
-  title: "Admin",
+  title: "Ringkasan",
 };
 
 const DB_LIMIT_BYTES = 500 * 1024 * 1024;
@@ -28,10 +26,9 @@ export default async function AdminPage() {
   ];
 
   return (
-    <Container className="flex flex-col gap-8 py-12">
-      <header className="flex flex-col gap-3">
-        <h1 className="text-balance text-2xl font-semibold tracking-tight">Admin</h1>
-        <AdminNav />
+    <div className="flex flex-col gap-8">
+      <header>
+        <h1 className="text-balance text-2xl font-semibold tracking-tight">Ringkasan</h1>
       </header>
       <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border lg:grid-cols-4">
         {items.map((item) => (
@@ -42,6 +39,6 @@ export default async function AdminPage() {
           </div>
         ))}
       </dl>
-    </Container>
+    </div>
   );
 }
