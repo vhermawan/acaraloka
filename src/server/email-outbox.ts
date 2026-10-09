@@ -57,22 +57,27 @@ export type DrainOptions = {
   db?: PrismaClient;
   send?: EmailSender;
   budget?: number;
+  maxBatch?: number;
   baseUrl?: string;
   now?: () => Date;
   pauseMs?: number;
   report?: (error: Error, context: { outboxId: string; template: string; status: number | null }) => Promise<void>;
 };
 
-async function claimBatch(db: PrismaClient, budget: number, now: Date): Promise<ClaimedRow[] | null> {
+export async function countBudgetUsed(db: DbClient, now: Date): Promise<number> {
+  return db.emailOutbox.count({
+    where: { OR: [{ sentAt: { gt: new Date(now.getTime() - BUDGET_WINDOW_MS) } }, { status: "SENDING" }] },
+  });
+}
+
+async function claimBatch(db: PrismaClient, budget: number, now: Date, maxBatch?: number): Promise<ClaimedRow[] | null> {
   return db.$transaction(async (tx) => {
     const [{ locked }] = await tx.$queryRaw<{ locked: boolean }[]>`
       SELECT pg_try_advisory_xact_lock(${DRAIN_LOCK_KEY}::bigint) AS "locked"`;
     if (!locked) return null;
 
-    const used = await tx.emailOutbox.count({
-      where: { OR: [{ sentAt: { gt: new Date(now.getTime() - BUDGET_WINDOW_MS) } }, { status: "SENDING" }] },
-    });
-    const limit = claimLimit(budget, used);
+    const used = await countBudgetUsed(tx, now);
+    const limit = claimLimit(budget, used, maxBatch);
     if (limit === 0) return [];
 
     const staleBefore = new Date(now.getTime() - STALE_CLAIM_MS);
@@ -105,7 +110,7 @@ export async function drainOutbox(options: DrainOptions = {}): Promise<DrainResu
   const pauseMs = options.pauseMs ?? PAUSE_BETWEEN_SENDS_MS;
   const report = options.report ?? defaultReport;
 
-  const rows = await claimBatch(db, budget, now());
+  const rows = await claimBatch(db, budget, now(), options.maxBatch);
   if (rows === null) return { skipped: true };
 
   const result = { skipped: false as const, sent: 0, failed: 0, retrying: 0, rateLimited: false };

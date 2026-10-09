@@ -22,7 +22,7 @@ const ADMIN_NAV: AdminNavEntry[] = [
   { href: "/admin/users", label: "Pengguna", icon: Users, ready: true },
   { href: "/admin/organizers", label: "Panitia", icon: Building2, ready: true },
   { href: "/admin/events", label: "Acara", icon: CalendarDays, ready: true },
-  { href: "/admin/email", label: "Email", icon: Mail, ready: false },
+  { href: "/admin/email", label: "Email", icon: Mail, ready: true },
   { href: "/admin/logs", label: "Log error", icon: TriangleAlert, ready: true },
 ];
 
