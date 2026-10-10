@@ -8,6 +8,7 @@ import { PosterUploader } from "@/components/events/poster-uploader";
 import { PublicLinkRow } from "@/components/events/public-link-row";
 import { PublishEventPanel } from "@/components/events/publish-event-panel";
 import { ReadOnlyNotice } from "@/components/events/read-only-notice";
+import { resolveEventLocation } from "@/lib/event-location";
 import { getPublishChecklist, isPubliclyVisible } from "@/lib/event-publish";
 import { dateToLocalInput } from "@/lib/timezone";
 import { requireEventOwner } from "@/server/authz";
@@ -49,6 +50,7 @@ function DangerAction({
 export default async function EditEventPage({ params }: PageProps<"/organizer/events/[id]">) {
   const { id } = await params;
   const { event } = await requireEventOwner(id);
+  const location = resolveEventLocation(event);
   const editable = event.status === "DRAFT" || event.status === "PUBLISHED";
   const ticketTypeCount = await prisma.ticketType.count({ where: { eventId: event.id } });
   const cancellable = event.status === "PUBLISHED" && event.startAt > new Date();
@@ -79,11 +81,11 @@ export default async function EditEventPage({ params }: PageProps<"/organizer/ev
               timezone: event.timezone,
               startAt: dateToLocalInput(event.startAt, event.timezone),
               endAt: dateToLocalInput(event.endAt, event.timezone),
-              locationType: event.locationType,
-              venueName: event.venueName ?? "",
-              venueAddress: event.venueAddress ?? "",
-              placeId: event.placeId ?? "",
-              onlineUrl: event.onlineUrl ?? "",
+              locationType: location.locationType,
+              venueName: location.venueName ?? "",
+              venueAddress: location.venueAddress ?? "",
+              placeId: location.placeId ?? "",
+              onlineUrl: location.onlineUrl ?? "",
             }}
           />
         </section>

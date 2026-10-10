@@ -31,6 +31,15 @@ describe("getPublicEvent", () => {
     expect(event?.location.onlineProvider).toEqual({ id: "zoom", label: "Zoom" });
   });
 
+  it("falls back to the legacy venue and does not expose it", async () => {
+    findUnique.mockResolvedValue({ ...row, locationType: "OFFLINE", venueName: null, onlineUrl: null, venue: "Aula Lama" });
+
+    const event = await getPublicEvent("s");
+
+    expect(event?.location.venueName).toBe("Aula Lama");
+    expect(event).not.toHaveProperty("venue");
+  });
+
   it("returns nothing for non-public events", async () => {
     findUnique.mockResolvedValue({ ...row, status: "DRAFT" });
 

@@ -9,6 +9,7 @@ const eventSelect = {
   startAt: true,
   endAt: true,
   timezone: true,
+  venue: true,
   locationType: true,
   venueName: true,
   venueAddress: true,

@@ -81,6 +81,7 @@ function EventForm({ action, defaultValues = EMPTY, submitLabel, disabled, cance
   const timezone = useWatch({ control, name: "timezone" });
   const startAt = useWatch({ control, name: "startAt" });
   const locationType = useWatch({ control, name: "locationType" });
+  const placeId = useWatch({ control, name: "placeId" });
   const showVenue = hasPhysicalVenue(locationType);
   const showOnline = hasOnlineMeeting(locationType);
 
@@ -201,6 +202,19 @@ function EventForm({ action, defaultValues = EMPTY, submitLabel, disabled, cance
                 />
               ) : null}
               <input type="hidden" {...register("placeId")} />
+              {placeId ? (
+                <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+                  <span>Terhubung ke hasil pencarian Google Maps. Peta ditampilkan di halaman acara.</span>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="h-auto p-0"
+                    onClick={() => setValue("placeId", "", { shouldDirty: true })}
+                  >
+                    Lepas
+                  </Button>
+                </p>
+              ) : null}
               <Field data-invalid={!!errors.venueName}>
                 <FieldLabel htmlFor="venueName">Nama tempat</FieldLabel>
                 <Input
@@ -208,7 +222,7 @@ function EventForm({ action, defaultValues = EMPTY, submitLabel, disabled, cance
                   placeholder="Contoh: Aula Gedung Sate"
                   aria-invalid={!!errors.venueName}
                   className="h-10"
-                  {...register("venueName")}
+                  {...register("venueName", { onChange: () => setValue("placeId", "", { shouldDirty: true }) })}
                 />
                 <FieldError errors={[errors.venueName]} />
               </Field>
