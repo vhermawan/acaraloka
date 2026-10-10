@@ -37,11 +37,38 @@ export async function createSignedUploadUrl(bucket: string, path: string): Promi
 export async function removeObjects(bucket: string, paths: string[]): Promise<void> {
   if (paths.length === 0) return;
   const { baseUrl, key } = storageConfig();
-  await fetch(`${baseUrl}/object/${bucket}`, {
+  const response = await fetch(`${baseUrl}/object/${bucket}`, {
     method: "DELETE",
     headers: { ...authHeaders(key), "Content-Type": "application/json" },
     body: JSON.stringify({ prefixes: paths }),
   });
+  if (!response.ok) {
+    throw new Error(`Gagal menghapus berkas (${response.status}): ${await response.text()}`);
+  }
+}
+
+const LIST_PAGE_SIZE = 100;
+
+export async function listObjects(bucket: string, prefix: string): Promise<string[]> {
+  const { baseUrl, key } = storageConfig();
+  const folder = prefix.replace(/\/+$/, "");
+  const paths: string[] = [];
+  for (let offset = 0; ; offset += LIST_PAGE_SIZE) {
+    const response = await fetch(`${baseUrl}/object/list/${bucket}`, {
+      method: "POST",
+      headers: { ...authHeaders(key), "Content-Type": "application/json" },
+      body: JSON.stringify({ prefix: folder, limit: LIST_PAGE_SIZE, offset, sortBy: { column: "name", order: "asc" } }),
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      throw new Error(`Gagal membaca daftar berkas (${response.status}): ${await response.text()}`);
+    }
+    const page = (await response.json()) as { name: string; id: string | null }[];
+    for (const entry of page) {
+      if (entry.id !== null) paths.push(`${folder}/${entry.name}`);
+    }
+    if (page.length < LIST_PAGE_SIZE) return paths;
+  }
 }
 
 export function publicObjectUrl(bucket: string, path: string): string {

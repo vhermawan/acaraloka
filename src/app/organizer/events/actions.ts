@@ -18,7 +18,9 @@ import { cancelEvent } from "@/server/cancellation";
 import { setFlash } from "@/server/flash";
 import { scheduleEmailDrain } from "@/server/email-schedule";
 import { prisma } from "@/server/db";
-import { POSTER_BUCKET, createSignedUploadUrl, removeObjects } from "@/server/storage";
+import { POSTER_BUCKET, createSignedUploadUrl } from "@/server/storage";
+import { removeObjectsQuietly } from "@/server/storage-cleanup";
+import { pruneCertificateBackgrounds } from "@/server/certificate-config";
 
 type EventField = "title" | "description" | "timezone" | "startAt" | "endAt" | "venue";
 
@@ -75,7 +77,8 @@ export async function deleteEvent(eventId: string): Promise<{ error?: string }> 
   if (event.status !== "DRAFT") return { error: "Hanya acara draf yang bisa dihapus." };
 
   await prisma.event.delete({ where: { id: event.id } });
-  if (event.posterPath) await removeObjects(POSTER_BUCKET, [event.posterPath]).catch(() => undefined);
+  if (event.posterPath) await removeObjectsQuietly("event.delete.poster", POSTER_BUCKET, [event.posterPath]);
+  await pruneCertificateBackgrounds(event.id, null);
 
   revalidatePath("/organizer", "layout");
   redirect("/organizer");
@@ -104,7 +107,7 @@ export async function setEventPoster(eventId: string, path: string): Promise<{ e
 
   await prisma.event.update({ where: { id: event.id }, data: { posterPath: path } });
   if (event.posterPath && event.posterPath !== path) {
-    await removeObjects(POSTER_BUCKET, [event.posterPath]).catch(() => undefined);
+    await removeObjectsQuietly("event.poster.replace", POSTER_BUCKET, [event.posterPath]);
   }
   revalidatePath(`/organizer/events/${event.id}`);
   return {};

@@ -54,7 +54,8 @@ vi.mock("@/server/checkin", () => ({
   undoCheckIn: recorded(),
   searchCheckInParticipants: recorded(),
 }));
-vi.mock("@/server/certificate-config", () => ({ saveCertificateLayout: recorded() }));
+vi.mock("@/server/certificate-config", () => ({ saveCertificateLayout: recorded(), pruneCertificateBackgrounds: recorded() }));
+vi.mock("@/server/storage-cleanup", () => ({ removeObjectsQuietly: recorded() }));
 vi.mock("@/server/certificates", () => ({
   issueCertificates: recorded(),
   revokeCertificate: recorded(),
