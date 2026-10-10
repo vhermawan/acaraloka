@@ -12,6 +12,7 @@ import { prisma } from "@/server/db";
 import { enqueueEmails } from "@/server/email-outbox";
 import { generateSignerToken, hashSignerToken } from "@/server/signer-token";
 import { SIGNATURE_BUCKET, downloadObject, removeObjects, uploadObject } from "@/server/storage";
+import { reportCleanupFailure } from "@/server/storage-cleanup";
 
 export type SignatureStore = {
   upload: (path: string, body: Uint8Array) => Promise<void>;
@@ -22,6 +23,14 @@ const supabaseSignatureStore: SignatureStore = {
   upload: (path, body) => uploadObject(SIGNATURE_BUCKET, path, body, "image/png"),
   remove: (paths) => removeObjects(SIGNATURE_BUCKET, paths),
 };
+
+async function removeQuietly(source: string, store: SignatureStore, paths: string[]) {
+  try {
+    await store.remove(paths);
+  } catch (error) {
+    await reportCleanupFailure(source, error, { bucket: SIGNATURE_BUCKET, paths: paths.join(",") });
+  }
+}
 
 function deadTokenHash() {
   return hashSignerToken(generateSignerToken());
@@ -188,7 +197,7 @@ export async function unlockCertificate(
   });
 
   if (!result.ok) return result;
-  await store.remove(result.paths).catch(() => undefined);
+  await removeQuietly("signer.remove", store, result.paths);
   return { ok: true };
 }
 
@@ -253,7 +262,7 @@ export async function signWithToken(
   });
 
   if (!signed) {
-    await store.remove([path]).catch(() => undefined);
+    await removeQuietly("signer.sign-rejected", store, [path]);
     return { ok: false, reason: "INVALID_LINK" };
   }
   return { ok: true };

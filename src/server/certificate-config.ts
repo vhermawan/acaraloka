@@ -26,7 +26,8 @@ import {
 import { BackgroundUnavailableError } from "@/server/certificate-background-error";
 import type { CertificateRenderData, CertificateTemplate } from "@/server/certificate-pdf";
 import { prisma } from "@/server/db";
-import { CERTIFICATE_BACKGROUND_BUCKET, downloadObject, removeObjects } from "@/server/storage";
+import { CERTIFICATE_BACKGROUND_BUCKET, downloadObject, listObjects, removeObjects } from "@/server/storage";
+import { removeObjectsQuietly, reportCleanupFailure } from "@/server/storage-cleanup";
 
 export async function getOrCreateCertificateConfig(eventId: string, db: PrismaClient = prisma) {
   const existing = await db.certificateConfig.findUnique({ where: { eventId } });
@@ -64,6 +65,28 @@ export async function saveCertificateLayout(
   return updated.count === 1;
 }
 
+export async function pruneCertificateBackgrounds(eventId: string, keepPath: string | null): Promise<void> {
+  try {
+    const existing = await listObjects(CERTIFICATE_BACKGROUND_BUCKET, `events/${eventId}`);
+    const stale = existing.filter((path) => path !== keepPath);
+    await removeObjects(CERTIFICATE_BACKGROUND_BUCKET, stale);
+  } catch (error) {
+    await reportCleanupFailure("certificate-background.prune", error, { eventId });
+  }
+}
+
+async function pruneToActiveBackground(eventId: string, db: PrismaClient) {
+  let active: string | null;
+  try {
+    const config = await db.certificateConfig.findUnique({ where: { eventId }, select: { backgroundPath: true } });
+    active = config?.backgroundPath ?? null;
+  } catch (error) {
+    await reportCleanupFailure("certificate-background.prune", error, { eventId });
+    return;
+  }
+  await pruneCertificateBackgrounds(eventId, active);
+}
+
 export type BackgroundChange = { ok: true } | { ok: false; reason: "LOCKED" };
 
 export async function setCertificateBackground(
@@ -74,17 +97,14 @@ export async function setCertificateBackground(
   await getOrCreateCertificateConfig(eventId, db);
   const { width, height } = pageSizeFor(input.format);
   const result = await db.$transaction(async (tx) => {
-    const current = await tx.certificateConfig.findUnique({ where: { eventId }, select: { backgroundPath: true } });
     const updated = await tx.certificateConfig.updateMany({
       where: { eventId, lockedAt: null },
       data: { templateSource: "UPLOAD", backgroundPath: input.path, pageWidth: width, pageHeight: height },
     });
-    return { updated: updated.count === 1, previous: current?.backgroundPath ?? null };
+    return { updated: updated.count === 1 };
   });
   if (!result.updated) return { ok: false, reason: "LOCKED" };
-  if (result.previous && result.previous !== input.path) {
-    await removeObjects(CERTIFICATE_BACKGROUND_BUCKET, [result.previous]).catch(() => undefined);
-  }
+  await pruneToActiveBackground(eventId, db);
   return { ok: true };
 }
 
@@ -92,17 +112,14 @@ export async function clearCertificateBackground(eventId: string, db: PrismaClie
   await getOrCreateCertificateConfig(eventId, db);
   const { width, height } = pageSizeFor("a4");
   const result = await db.$transaction(async (tx) => {
-    const current = await tx.certificateConfig.findUnique({ where: { eventId }, select: { backgroundPath: true } });
     const updated = await tx.certificateConfig.updateMany({
       where: { eventId, lockedAt: null },
       data: { templateSource: "BUILTIN", backgroundPath: null, pageWidth: width, pageHeight: height },
     });
-    return { updated: updated.count === 1, previous: current?.backgroundPath ?? null };
+    return { updated: updated.count === 1 };
   });
   if (!result.updated) return { ok: false, reason: "LOCKED" };
-  if (result.previous) {
-    await removeObjects(CERTIFICATE_BACKGROUND_BUCKET, [result.previous]).catch(() => undefined);
-  }
+  await pruneToActiveBackground(eventId, db);
   return { ok: true };
 }
 
@@ -117,7 +134,7 @@ export async function applyCertificateBackground(
 ): Promise<BackgroundApplyResult> {
   const reject = async (error: string): Promise<BackgroundApplyResult> => {
     if (isBackgroundPathFor(eventId, path)) {
-      await removeObjects(CERTIFICATE_BACKGROUND_BUCKET, [path]).catch(() => undefined);
+      await removeObjectsQuietly("certificate-background.reject", CERTIFICATE_BACKGROUND_BUCKET, [path]);
     }
     return { ok: false, reason: "INVALID", error };
   };
@@ -148,7 +165,7 @@ export async function applyCertificateBackground(
 
   const result = await setCertificateBackground(eventId, { path, format: dimensions.format }, db);
   if (!result.ok) {
-    await removeObjects(CERTIFICATE_BACKGROUND_BUCKET, [path]).catch(() => undefined);
+    await removeObjectsQuietly("certificate-background.reject", CERTIFICATE_BACKGROUND_BUCKET, [path]);
     return { ok: false, reason: "LOCKED", error: BACKGROUND_LOCKED_MESSAGE };
   }
   return { ok: true };

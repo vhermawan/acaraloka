@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   requireOrganizer: vi.fn(),
   update: vi.fn(),
   remove: vi.fn(),
+  prune: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -26,6 +27,8 @@ vi.mock("@/server/storage", () => ({
   createSignedUploadUrl: async (_bucket: string, path: string) => `https://storage.test/${path}?token=t`,
   removeObjects: async () => undefined,
 }));
+vi.mock("@/server/storage-cleanup", () => ({ removeObjectsQuietly: async () => undefined }));
+vi.mock("@/server/certificate-config", () => ({ pruneCertificateBackgrounds: mocks.prune }));
 
 const { updateEvent, deleteEvent, setEventPoster, createPosterUpload } = await import(
   "@/app/organizer/events/actions"
@@ -68,6 +71,13 @@ describe("event actions authorization", () => {
     mocks.requireEventOwner.mockResolvedValue({ event: { id: "e1", status: "PUBLISHED" } });
     await expect(deleteEvent("e1")).resolves.toEqual({ error: "Hanya acara draf yang bisa dihapus." });
     expect(mocks.remove).not.toHaveBeenCalled();
+  });
+
+  it("deletes every certificate background of a deleted draft event", async () => {
+    mocks.requireEventOwner.mockResolvedValue({ event: { id: "e1", status: "DRAFT", posterPath: null } });
+    mocks.remove.mockResolvedValue(undefined);
+    await expect(deleteEvent("e1")).rejects.toThrow("REDIRECT:/organizer");
+    expect(mocks.prune).toHaveBeenCalledWith("e1", null);
   });
 
   it("rejects poster paths outside the event folder", async () => {
