@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { createEvent } from "@/app/organizer/events/actions";
 import { EventForm } from "@/components/events/event-form";
 import { requireOrganizer } from "@/server/authz";
+import { placesEnabled } from "@/server/places";
 
 export const metadata: Metadata = {
   title: "Buat acara",
@@ -19,7 +20,7 @@ export default async function NewEventPage() {
           Acara disimpan sebagai draf. Poster, tiket, dan formulir bisa diatur setelahnya.
         </p>
       </header>
-      <EventForm action={createEvent} submitLabel="Simpan draf" cancelHref="/organizer" />
+      <EventForm action={createEvent} submitLabel="Simpan draf" cancelHref="/organizer" placesEnabled={placesEnabled()} />
     </div>
   );
 }

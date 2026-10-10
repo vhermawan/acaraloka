@@ -3,6 +3,7 @@ import { ExternalLink, TriangleAlert } from "lucide-react";
 import { EventBreadcrumb } from "@/components/events/event-breadcrumb";
 import { EventStatusBadge } from "@/components/events/event-status-badge";
 import { Button } from "@/components/ui/button";
+import { locationSummary, toPublicLocation } from "@/lib/event-location";
 import { LEGAL_OPERATOR } from "@/lib/legal";
 import { formatEventSchedule } from "@/lib/timezone";
 import { requireEventOwner } from "@/server/authz";
@@ -38,7 +39,7 @@ export default async function EventLayout({ children, params }: LayoutProps<"/or
           <p className="text-sm wrap-break-word text-muted-foreground">
             <span className="tabular-nums">{formatEventSchedule(event.startAt, event.timezone)}</span>
             <span aria-hidden="true"> · </span>
-            {event.venue}
+            {locationSummary(toPublicLocation(event))}
           </p>
         </div>
       </header>

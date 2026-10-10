@@ -46,7 +46,11 @@ const validForm = {
   timezone: "Asia/Jakarta",
   startAt: "2026-11-01T09:00",
   endAt: "2026-11-01T12:00",
-  venue: "Aula Kampus A",
+  locationType: "OFFLINE",
+  venueName: "Aula Kampus A",
+  venueAddress: "",
+  placeId: "",
+  onlineUrl: "",
 };
 
 beforeEach(() => {

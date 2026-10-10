@@ -41,6 +41,8 @@ Singkatan kolom test (berlaku untuk semua tabel): A = `tests/server/action-autho
 | 5 | `setEventPoster` | `src/app/organizer/events/actions.ts` | `requireEventOwner` | status DRAFT/PUBLISHED, path harus di `events/<id>/` tanpa `..` | A, `tests/server/event-actions.test.ts` |
 | 6 | `publishEvent` | `src/app/organizer/events/actions.ts` | `requireEventOwner` | update hanya bila status masih DRAFT | A, I |
 | 7 | `cancelEventAction` | `src/app/organizer/events/actions.ts` | `requireEventOwner` | hanya PUBLISHED sebelum mulai; judul harus diketik ulang | A, `tests/integration/cancellation.test.ts` |
+| 7a | `searchPlaces` | `src/app/organizer/events/place-actions.ts` | `requireOrganizer` | proxy Places Autocomplete: key server tidak keluar ke klien; minimal 3 karakter, token sesi divalidasi, batas 30 permintaan per menit per akun (in-memory); tanpa `GOOGLE_PLACES_API_KEY` mengembalikan DISABLED | `tests/server/place-actions.test.ts`, `tests/server/places.test.ts` |
+| 7b | `getPlaceAddress` | `src/app/organizer/events/place-actions.ts` | `requireOrganizer` | proxy Place Details dengan field mask `formattedAddress` saja; `placeId` dan token divalidasi, batas 15 permintaan per menit per akun | `tests/server/place-actions.test.ts`, `tests/server/places.test.ts` |
 | 8 | `createTicketType` | `src/app/organizer/events/[id]/tickets/actions.ts` | `requireEventOwner` | status DRAFT/PUBLISHED; `eventId` dari guard | A |
 | 9 | `updateTicketType` | `src/app/organizer/events/[id]/tickets/actions.ts` | `requireEventOwner` | status DRAFT/PUBLISHED; tiket dicari dengan `{id, eventId}` | A, I |
 | 10 | `deleteTicketType` | `src/app/organizer/events/[id]/tickets/actions.ts` | `requireEventOwner` | status DRAFT/PUBLISHED; hitung pendaftar dan hapus dibatasi `eventId` | A, I |
@@ -127,7 +129,7 @@ Singkatan kolom test (berlaku untuk semua tabel): A = `tests/server/action-autho
 
 | No | Halaman | Berkas | Cek | Test |
 | --- | --- | --- | --- | --- |
-| 1 | `/e/[slug]` | `src/app/e/[slug]/page.tsx` | `getPublicEvent` hanya mengembalikan PUBLISHED dan CANCELLED; DISABLED dan DRAFT 404 | `tests/integration/admin-events.test.ts` |
+| 1 | `/e/[slug]` | `src/app/e/[slug]/page.tsx` | `getPublicEvent` hanya mengembalikan PUBLISHED dan CANCELLED; DISABLED dan DRAFT 404; `onlineUrl` dibuang dari hasil dan tautan meeting hanya dari `getMeetingLinkForUser` (registrasi CONFIRMED milik sesi atau panitia pemilik) | `tests/integration/admin-events.test.ts` |
 | 2 | `/v/[number]` | `src/app/v/[number]/page.tsx` | hanya field publik; nomor tidak dikenal 404 | `tests/integration/critical-flow.test.ts`, `tests/integration/certificates.test.ts` |
 | 3 | `/` | `src/app/page.tsx` | statis | - |
 | 4 | `/login` | `src/app/login/page.tsx` | redirect bila sudah login | - |
@@ -144,6 +146,7 @@ Singkatan kolom test (berlaku untuk semua tabel): A = `tests/server/action-autho
 
 ## Catatan keputusan
 
+- Tautan meeting acara online/hybrid (`Event.onlineUrl`) tidak pernah masuk HTML publik, metadata, JSON-LD, atau sitemap. Hanya dua jalur yang membacanya: `getMeetingLinkForUser` (`src/server/meeting-link.ts`, untuk `/e/[slug]` saat login) dan `getUserTicket` (`/me/tickets/[id]`, registrasi milik sesi) lewat `meetingLinkForViewer` (`src/lib/event-location.ts`): panitia pemilik, atau registrasi CONFIRMED pada acara PUBLISHED. Email e-tiket memuat tautan hanya untuk penerima pendaftaran itu. Test: `tests/lib/event-location.test.ts`, `tests/server/public-event.test.ts`.
 - Route unduh PDF `/me/certificates/[number]/pdf` memakai `getSession` langsung, bukan `requireParticipant`, karena guard itu mengarahkan ke halaman (redirect) yang tidak cocok untuk respons berkas. Akibatnya versi Syarat & Privasi terbaru tidak dicek saat mengunduh. Ini disengaja: sertifikat yang sudah terbit tetap hak pemiliknya, dan datanya dibatasi `registration.userId` dari sesi.
 - `tests/lib/authorization-inventory.test.ts` mem-parse berkas dengan TypeScript AST: setiap fungsi yang diekspor dari berkas `"use server"` wajib punya baris sendiri (nama + berkas), setiap export HTTP method di `route.ts` wajib tercantum, dan action yang guard-nya `require*` harus memanggil guard itu sebagai `await` pertama.
 - `revokeEventCertificate` sengaja tidak diblok pada event DISABLED/CANCELLED. Pencabutan sertifikat adalah koreksi, bukan penerbitan. Bila ingin admin membekukan penuh event DISABLED, tambahkan cek status di action dan satu baris di test A.

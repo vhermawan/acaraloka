@@ -12,6 +12,7 @@ import { getPublishChecklist, isPubliclyVisible } from "@/lib/event-publish";
 import { dateToLocalInput } from "@/lib/timezone";
 import { requireEventOwner } from "@/server/authz";
 import { prisma } from "@/server/db";
+import { placesEnabled } from "@/server/places";
 import { POSTER_BUCKET, publicObjectUrl } from "@/server/storage";
 
 export const metadata: Metadata = {
@@ -71,13 +72,18 @@ export default async function EditEventPage({ params }: PageProps<"/organizer/ev
             action={updateEvent.bind(null, event.id)}
             submitLabel="Simpan perubahan"
             disabled={!editable}
+            placesEnabled={placesEnabled()}
             defaultValues={{
               title: event.title,
               description: event.description,
               timezone: event.timezone,
               startAt: dateToLocalInput(event.startAt, event.timezone),
               endAt: dateToLocalInput(event.endAt, event.timezone),
-              venue: event.venue,
+              locationType: event.locationType,
+              venueName: event.venueName ?? "",
+              venueAddress: event.venueAddress ?? "",
+              placeId: event.placeId ?? "",
+              onlineUrl: event.onlineUrl ?? "",
             }}
           />
         </section>

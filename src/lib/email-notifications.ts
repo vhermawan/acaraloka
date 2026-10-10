@@ -1,12 +1,13 @@
 import { ACCOUNT_NOTICE_BUCKET_SECONDS, AUTH_EMAIL_BUCKET_SECONDS, timeBucket } from "@/lib/auth-config";
 import { EMAIL_PRIORITY, type OutboxItem } from "@/lib/email-outbox";
+import { hasOnlineMeeting, locationSummary, toPublicLocation, type EventLocationFields } from "@/lib/event-location";
 import { formatEventDateTime, formatEventSchedule } from "@/lib/timezone";
 
 type EventInfo = { title: string; startAt: Date; timezone: string };
 
 type Recipient = { id: string; name: string; email: string };
 
-export function ticketConfirmedEmail(registration: Recipient, event: EventInfo & { venue: string }): OutboxItem {
+export function ticketConfirmedEmail(registration: Recipient, event: EventInfo & EventLocationFields): OutboxItem {
   return {
     to: registration.email,
     dedupeKey: `ticket-confirmed:${registration.id}`,
@@ -16,7 +17,8 @@ export function ticketConfirmedEmail(registration: Recipient, event: EventInfo &
       name: registration.name,
       eventTitle: event.title,
       schedule: formatEventSchedule(event.startAt, event.timezone),
-      venue: event.venue,
+      venue: locationSummary(toPublicLocation(event)),
+      ...(hasOnlineMeeting(event.locationType) && event.onlineUrl ? { meetingUrl: event.onlineUrl } : {}),
       ticketPath: `/me/tickets/${registration.id}`,
     },
   };

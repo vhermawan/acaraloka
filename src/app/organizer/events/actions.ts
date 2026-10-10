@@ -22,7 +22,20 @@ import { POSTER_BUCKET, createSignedUploadUrl } from "@/server/storage";
 import { removeObjectsQuietly } from "@/server/storage-cleanup";
 import { pruneCertificateBackgrounds } from "@/server/certificate-config";
 
-type EventField = "title" | "description" | "timezone" | "startAt" | "endAt" | "venue";
+const EVENT_FIELDS = [
+  "title",
+  "description",
+  "timezone",
+  "startAt",
+  "endAt",
+  "locationType",
+  "venueName",
+  "venueAddress",
+  "placeId",
+  "onlineUrl",
+] as const;
+
+type EventField = (typeof EVENT_FIELDS)[number];
 
 export type EventFormState = {
   errors?: Partial<Record<EventField, string[]>>;
@@ -34,8 +47,7 @@ export type EventFormState = {
 const EDITABLE_STATUSES = new Set(["DRAFT", "PUBLISHED"]);
 
 function readEventForm(formData: FormData) {
-  const fields: EventField[] = ["title", "description", "timezone", "startAt", "endAt", "venue"];
-  return Object.fromEntries(fields.map((field) => [field, String(formData.get(field) ?? "")]));
+  return Object.fromEntries(EVENT_FIELDS.map((field) => [field, String(formData.get(field) ?? "")]));
 }
 
 export async function createEvent(_prev: EventFormState, formData: FormData): Promise<EventFormState> {

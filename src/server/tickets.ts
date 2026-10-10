@@ -9,7 +9,10 @@ const eventSelect = {
   startAt: true,
   endAt: true,
   timezone: true,
-  venue: true,
+  locationType: true,
+  venueName: true,
+  venueAddress: true,
+  placeId: true,
   status: true,
   cancelReason: true,
 } as const;
@@ -26,7 +29,7 @@ export async function getUserTicket(userId: string, registrationId: string) {
   return prisma.registration.findFirst({
     where: { id: registrationId, userId },
     include: {
-      event: { select: { ...eventSelect, organizer: { select: { orgName: true, contactPhone: true, contactEmail: true } } } },
+      event: { select: { ...eventSelect, onlineUrl: true, organizer: { select: { orgName: true, contactPhone: true, contactEmail: true } } } },
       ticketType: { select: { name: true } },
       certificate: { select: { id: true } },
     },

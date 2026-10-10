@@ -3,12 +3,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { EventLocation } from "@/components/events/event-location";
 import { Container } from "@/components/layout/container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { env } from "@/lib/env";
 import { eventStructuredData, serializeJsonLd } from "@/lib/structured-data";
+import { getSession } from "@/lib/session";
 import { formatEventDateTime } from "@/lib/timezone";
+import { getMeetingLinkForUser } from "@/server/meeting-link";
 import { getPublicEvent } from "@/server/public-event";
 import { POSTER_BUCKET, publicObjectUrl } from "@/server/storage";
 
@@ -38,6 +41,8 @@ export default async function PublicEventPage({ params }: PageProps<"/e/[slug]">
   const event = await getPublicEvent(slug);
   if (!event) notFound();
 
+  const session = await getSession();
+  const meetingUrl = await getMeetingLinkForUser(event.id, session?.user.id ?? null);
   const cancelled = event.status === "CANCELLED";
   const ended = event.endAt <= new Date();
   const remaining = event.ticketTypes.reduce((sum, ticket) => sum + Math.max(ticket.quota - ticket.reservedCount, 0), 0);
@@ -79,7 +84,14 @@ export default async function PublicEventPage({ params }: PageProps<"/e/[slug]">
             <dt className="text-muted-foreground">Selesai</dt>
             <dd>{formatEventDateTime(event.endAt, event.timezone)}</dd>
             <dt className="text-muted-foreground">Lokasi</dt>
-            <dd className="wrap-break-word">{event.venue}</dd>
+            <dd>
+              <EventLocation
+                location={event.location}
+                eventTitle={event.title}
+                meetingUrl={meetingUrl}
+                embedKey={env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY}
+              />
+            </dd>
           </dl>
           <div className="text-pretty text-sm/relaxed whitespace-pre-line">{event.description}</div>
         </article>

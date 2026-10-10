@@ -5,8 +5,11 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/layout/container";
 import { CancelRegistrationButton } from "@/components/tickets/cancel-registration-button";
 import { RenameRegistrationForm } from "@/components/tickets/rename-registration-form";
+import { EventLocation } from "@/components/events/event-location";
 import { TicketQr } from "@/components/tickets/ticket-qr";
 import { TicketStateBadge } from "@/components/tickets/ticket-state-badge";
+import { env } from "@/lib/env";
+import { meetingLinkForViewer, toPublicLocation } from "@/lib/event-location";
 import { ticketState } from "@/lib/ticket-state";
 import { formatEventDateTime } from "@/lib/timezone";
 import { requireParticipant } from "@/server/authz";
@@ -25,6 +28,7 @@ export default async function TicketDetailPage({ params }: PageProps<"/me/ticket
 
   const { event } = ticket;
   const state = ticketState(ticket, event);
+  const meetingUrl = meetingLinkForViewer(event, { isOrganizer: false, registrationStatus: ticket.status });
   const showQr = state === "ACTIVE" && !!ticket.ticketCode;
 
   return (
@@ -82,7 +86,14 @@ export default async function TicketDetailPage({ params }: PageProps<"/me/ticket
           <dt className="text-muted-foreground">Mulai</dt>
           <dd>{formatEventDateTime(event.startAt, event.timezone)}</dd>
           <dt className="text-muted-foreground">Lokasi</dt>
-          <dd className="wrap-break-word">{event.venue}</dd>
+          <dd>
+            <EventLocation
+              location={toPublicLocation(event)}
+              eventTitle={event.title}
+              meetingUrl={meetingUrl}
+              embedKey={env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY}
+            />
+          </dd>
         </dl>
       </article>
 

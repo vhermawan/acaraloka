@@ -15,10 +15,17 @@ import { escapeHtml, parseEmailMessage, renderEmail } from "@/lib/email-template
 
 const BASE_URL = "https://acaraloka.test";
 const event = { id: "ev1", title: "Workshop <Next.js>", startAt: new Date("2026-11-01T02:00:00Z"), timezone: "Asia/Jakarta" };
+const offlineVenue = {
+  locationType: "OFFLINE" as const,
+  venueName: "Aula A",
+  venueAddress: null,
+  placeId: null,
+  onlineUrl: null,
+};
 const registration = { id: "reg1", name: "Budi & Sari", email: "budi@contoh.test" };
 
 const messages: OutboxItem[] = [
-  ticketConfirmedEmail(registration, { ...event, venue: "Aula A" }),
+  ticketConfirmedEmail(registration, { ...event, ...offlineVenue }),
   eventCancelledEmail(registration, { ...event, reason: "Pembicara berhalangan" }),
   signerInviteEmail(
     { name: "Dr. Rina", email: "rina@contoh.test", token: "tok123", tokenHash: "hash123", tokenExpiresAt: new Date("2026-11-15T02:00:00Z") },
@@ -36,6 +43,24 @@ describe("renderEmail", () => {
     expect(rendered.text).toContain(`${BASE_URL}/`);
     expect(rendered.html).toContain(APP_NAME);
     expect(`${rendered.subject}${rendered.html}${rendered.text}`).not.toContain("—");
+  });
+
+  it("adds the meeting link to the ticket email only when the event is online", () => {
+    const online = renderEmail(
+      ticketConfirmedEmail(registration, {
+        ...event,
+        locationType: "HYBRID",
+        venueName: "Aula A",
+        venueAddress: null,
+        placeId: null,
+        onlineUrl: "https://zoom.us/j/999",
+      }),
+      BASE_URL,
+    );
+    expect(online.text).toContain("Tautan meeting: https://zoom.us/j/999");
+    expect(online.text).toContain("Lokasi: Aula A + Online via Zoom");
+
+    expect(renderEmail(messages[0], BASE_URL).text).not.toContain("Tautan meeting");
   });
 
   it("escapes user-provided values in HTML", () => {
