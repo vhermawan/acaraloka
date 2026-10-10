@@ -273,7 +273,7 @@ describe("removeObjects and listObjects", () => {
     const paths = await real.listObjects("b", "events/e 1/");
     expect(paths).toHaveLength(103);
     expect(paths[0]).toBe("events/e 1/f0");
-    expect(JSON.parse(fetchMock.mock.calls[2][1].body)).toMatchObject({ prefix: "events/e 1", offset: 100 });
+    expect(JSON.parse(fetchMock.mock.calls[2][1].body)).toMatchObject({ prefix: "events/e 1", offset: 100, sortBy: { column: "name", order: "asc" } });
 
     fetchMock.mockResolvedValueOnce(new Response("bad", { status: 400 }));
     await expect(real.listObjects("b", "events/e")).rejects.toThrow("400");

@@ -57,7 +57,7 @@ export async function listObjects(bucket: string, prefix: string): Promise<strin
     const response = await fetch(`${baseUrl}/object/list/${bucket}`, {
       method: "POST",
       headers: { ...authHeaders(key), "Content-Type": "application/json" },
-      body: JSON.stringify({ prefix: folder, limit: LIST_PAGE_SIZE, offset }),
+      body: JSON.stringify({ prefix: folder, limit: LIST_PAGE_SIZE, offset, sortBy: { column: "name", order: "asc" } }),
       cache: "no-store",
     });
     if (!response.ok) {
