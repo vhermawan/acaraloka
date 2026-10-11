@@ -47,7 +47,7 @@ async function createEvent(options: EventOptions = {}) {
       description: "Issue test",
       startAt: new Date(Date.now() + (started ? -day : day)),
       endAt: new Date(Date.now() + (started ? -day / 2 : 2 * day)),
-      venue: "Test",
+      venueName: "Test",
       status,
       ticketTypes: { create: { name: "Umum", quota: 100 } },
     },

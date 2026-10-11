@@ -79,7 +79,6 @@ model Event {
   startAt        DateTime          @map("start_at") @db.Timestamptz(3)
   endAt          DateTime          @map("end_at") @db.Timestamptz(3)
   timezone       String            @default("Asia/Jakarta")
-  venue          String            @default("")
   locationType   EventLocationType @default(OFFLINE) @map("location_type")
   venueName      String?           @map("venue_name")
   venueAddress   String?           @map("venue_address")

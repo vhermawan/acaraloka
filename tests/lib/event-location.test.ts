@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { locationSummary, meetingLinkForViewer, resolveEventLocation, toPublicLocation } from "@/lib/event-location";
+import { locationSummary, meetingLinkForViewer, toPublicLocation } from "@/lib/event-location";
 import { mapsEmbedUrl, mapsSearchUrl } from "@/lib/maps";
 
 const MEETING = "https://zoom.us/j/999?pwd=secret";
@@ -90,38 +90,5 @@ describe("maps urls", () => {
     expect(url.searchParams.get("q")).toBe("place_id:ChIJabc");
     expect(mapsEmbedUrl("ChIJabc", undefined)).toBeNull();
     expect(mapsEmbedUrl(null, "KEY")).toBeNull();
-  });
-});
-
-describe("legacy venue fallback", () => {
-  const legacy = { locationType: "OFFLINE" as const, venueName: null, venueAddress: null, placeId: null, onlineUrl: null };
-
-  it("uses the legacy venue text as the venue name when venueName is empty", () => {
-    expect(toPublicLocation({ ...legacy, venue: "  Aula Lama " })).toMatchObject({ venueName: "Aula Lama" });
-    expect(toPublicLocation({ ...legacy, locationType: "HYBRID", venue: "Aula Lama" })).toMatchObject({ venueName: "Aula Lama" });
-    expect(locationSummary(toPublicLocation({ ...legacy, venue: "Aula Lama" }))).toBe("Aula Lama");
-  });
-
-  it("prefers venueName and ignores an empty legacy venue", () => {
-    expect(toPublicLocation({ ...legacy, venueName: "Baru", venue: "Lama" }).venueName).toBe("Baru");
-    expect(toPublicLocation({ ...legacy, venue: "" }).venueName).toBeNull();
-  });
-
-  it("treats a legacy https venue as an online meeting and never exposes it as a venue name", () => {
-    const resolved = resolveEventLocation({ ...legacy, venue: "https://zoom.us/j/1" });
-    expect(resolved).toMatchObject({ locationType: "ONLINE", venueName: null, onlineUrl: "https://zoom.us/j/1" });
-
-    const location = toPublicLocation({ ...legacy, venue: "https://zoom.us/j/1" });
-    expect(JSON.stringify(location)).not.toContain("zoom.us/j");
-    expect(location.onlineProvider?.id).toBe("zoom");
-    expect(
-      meetingLinkForViewer(
-        { ...legacy, venue: "https://zoom.us/j/1", status: "PUBLISHED" },
-        { isOrganizer: false, registrationStatus: "CONFIRMED" },
-      ),
-    ).toBe("https://zoom.us/j/1");
-    expect(
-      meetingLinkForViewer({ ...legacy, venue: "https://zoom.us/j/1", status: "PUBLISHED" }, { isOrganizer: false, registrationStatus: null }),
-    ).toBeNull();
   });
 });

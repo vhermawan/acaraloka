@@ -124,7 +124,7 @@ beforeAll(async () => {
       description: "Critical flow test",
       startAt: new Date(Date.now() - 86_400_000),
       endAt: new Date(Date.now() + 86_400_000),
-      venue: "Test",
+      venueName: "Test",
       status: "PUBLISHED",
       ticketTypes: { create: { name: "Umum", quota: 10 } },
     },

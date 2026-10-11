@@ -67,7 +67,7 @@ beforeAll(async () => {
       description: "x",
       startAt: new Date(Date.now() + 86_400_000),
       endAt: new Date(Date.now() + 2 * 86_400_000),
-      venue: "Test",
+      venueName: "Test",
       status: "PUBLISHED",
       publishedAt: new Date(),
       ticketTypes: { create: { name: "Umum", quota: 5 } },
