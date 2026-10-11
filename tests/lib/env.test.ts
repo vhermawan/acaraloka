@@ -12,6 +12,8 @@ const ENV_KEYS = [
   "GOOGLE_CLIENT_ID",
   "GOOGLE_CLIENT_SECRET",
   "ADMIN_EMAIL",
+  "GOOGLE_PLACES_API_KEY",
+  "NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY",
   "EMAIL_ENABLED",
   "RESEND_API_KEY",
   "EMAIL_FROM",
@@ -52,6 +54,16 @@ describe("env", () => {
     expect(env.GOOGLE_CLIENT_ID).toBeUndefined();
     expect(env.GOOGLE_CLIENT_SECRET).toBeUndefined();
     expect(env.ADMIN_EMAIL).toBeUndefined();
+  });
+
+  it("membaca key Google Maps opsional dan menganggap string kosong sebagai tidak diisi", async () => {
+    process.env.GOOGLE_PLACES_API_KEY = "  ";
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY = "embed-key";
+
+    const { env } = await import("@/lib/env");
+
+    expect(env.GOOGLE_PLACES_API_KEY).toBeUndefined();
+    expect(env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY).toBe("embed-key");
   });
 
   it("menolak SUPABASE_URL yang bukan URL", async () => {

@@ -10,7 +10,11 @@ const valid = {
   timezone: "Asia/Jakarta",
   startAt: "2026-11-01T09:00",
   endAt: "2026-11-01T12:00",
-  venue: "Aula Kampus A",
+  locationType: "OFFLINE",
+  venueName: "Aula Kampus A",
+  venueAddress: "",
+  placeId: "",
+  onlineUrl: "",
 };
 
 describe("timezone conversion", () => {
@@ -36,6 +40,52 @@ describe("eventFormSchema", () => {
     const result = eventFormSchema.parse(valid);
     expect(result.startAt.toISOString()).toBe("2026-11-01T02:00:00.000Z");
     expect(result.endAt.toISOString()).toBe("2026-11-01T05:00:00.000Z");
+  });
+
+  it("keeps venue fields and drops the meeting link for OFFLINE", () => {
+    const result = eventFormSchema.parse({
+      ...valid,
+      venueAddress: " Jl. Diponegoro 22 ",
+      placeId: "ChIJabc_123-xyz",
+      onlineUrl: "https://zoom.us/j/1",
+    });
+    expect(result).toMatchObject({
+      locationType: "OFFLINE",
+      venueName: "Aula Kampus A",
+      venueAddress: "Jl. Diponegoro 22",
+      placeId: "ChIJabc_123-xyz",
+      onlineUrl: null,
+    });
+  });
+
+  it("requires an https link for ONLINE and drops venue fields", () => {
+    const base = { ...valid, locationType: "ONLINE", venueName: "Sisa", placeId: "ChIJabc_123-xyz" };
+    const ok = eventFormSchema.parse({ ...base, onlineUrl: "https://meet.google.com/abc-defg-hij" });
+    expect(ok).toMatchObject({ venueName: null, venueAddress: null, placeId: null, onlineUrl: "https://meet.google.com/abc-defg-hij" });
+
+    for (const onlineUrl of ["", "http://zoom.us/j/1", "javascript:alert(1)", "zoom.us/j/1", "https://user:pw@zoom.us/j/1"]) {
+      const result = eventFormSchema.safeParse({ ...base, onlineUrl });
+      expect(result.success, onlineUrl).toBe(false);
+      expect(result.error?.flatten().fieldErrors.onlineUrl).toBeDefined();
+    }
+  });
+
+  it("requires both venue name and link for HYBRID", () => {
+    const result = eventFormSchema.safeParse({ ...valid, locationType: "HYBRID", venueName: "A" });
+    expect(Object.keys(result.error!.flatten().fieldErrors).sort()).toEqual(["onlineUrl", "venueName"]);
+    expect(
+      eventFormSchema.parse({ ...valid, locationType: "HYBRID", onlineUrl: "https://zoom.us/j/1" }),
+    ).toMatchObject({ venueName: "Aula Kampus A", onlineUrl: "https://zoom.us/j/1" });
+  });
+
+  it("requires a venue name of at least 3 characters for OFFLINE", () => {
+    const result = eventFormSchema.safeParse({ ...valid, venueName: "ab" });
+    expect(result.error?.flatten().fieldErrors.venueName).toBeDefined();
+  });
+
+  it("rejects an unknown location type and malformed place id", () => {
+    expect(eventFormSchema.safeParse({ ...valid, locationType: "MOON" }).success).toBe(false);
+    expect(eventFormSchema.safeParse({ ...valid, placeId: "a b/c" }).success).toBe(false);
   });
 
   it("rejects end before start", () => {

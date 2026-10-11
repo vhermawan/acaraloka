@@ -40,7 +40,19 @@ export async function createRegistration(
     const registration = await db.$transaction(async (tx) => {
       const event = await tx.event.findUnique({
         where: { id: input.eventId },
-        select: { status: true, endAt: true, title: true, startAt: true, timezone: true, venue: true },
+        select: {
+          status: true,
+          endAt: true,
+          title: true,
+          startAt: true,
+          timezone: true,
+          venue: true,
+          locationType: true,
+          venueName: true,
+          venueAddress: true,
+          placeId: true,
+          onlineUrl: true,
+        },
       });
       if (!event || event.status !== "PUBLISHED" || event.endAt <= now) throw new RegistrationRejected("CLOSED");
 

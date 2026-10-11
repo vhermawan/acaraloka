@@ -9,7 +9,13 @@ const baseEvent = {
   status: "PUBLISHED",
   startAt: new Date("2026-11-01T02:00:00.000Z"),
   endAt: new Date("2026-11-01T05:00:00.000Z"),
-  venue: "Aula Kampus, Surabaya",
+  location: {
+    locationType: "OFFLINE" as const,
+    venueName: "Aula Kampus",
+    venueAddress: "Surabaya",
+    placeId: null,
+    onlineProvider: null,
+  },
   publishedAt: new Date("2026-10-01T00:00:00.000Z"),
   organizer: { orgName: "Komunitas AI" },
   ticketTypes: [
@@ -30,10 +36,46 @@ describe("eventStructuredData", () => {
       startDate: "2026-11-01T02:00:00.000Z",
       endDate: "2026-11-01T05:00:00.000Z",
       eventStatus: "https://schema.org/EventScheduled",
-      location: { "@type": "Place", name: "Aula Kampus, Surabaya", address: "Aula Kampus, Surabaya" },
+      eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+      location: { "@type": "Place", name: "Aula Kampus", address: "Surabaya" },
       image: ["https://cdn.example/poster.png"],
       organizer: { "@type": "Organization", name: "Komunitas AI" },
     });
+  });
+
+  it("describes ONLINE events with a virtual location that points to the public page only", () => {
+    const data = eventStructuredData(
+      {
+        ...baseEvent,
+        location: {
+          locationType: "ONLINE",
+          venueName: null,
+          venueAddress: null,
+          placeId: null,
+          onlineProvider: { id: "zoom", label: "Zoom" },
+        },
+      },
+      "https://acaraloka.com",
+      null,
+    );
+
+    expect(data.eventAttendanceMode).toBe("https://schema.org/OnlineEventAttendanceMode");
+    expect(data.location).toEqual({ "@type": "VirtualLocation", url: "https://acaraloka.com/e/seminar-ai" });
+  });
+
+  it("describes HYBRID events with both a place and a virtual location", () => {
+    const data = eventStructuredData(
+      { ...baseEvent, location: { ...baseEvent.location, locationType: "HYBRID", onlineProvider: { id: "meet", label: "Google Meet" } } },
+      "https://acaraloka.com",
+      null,
+    );
+
+    expect(data.eventAttendanceMode).toBe("https://schema.org/MixedEventAttendanceMode");
+    expect(data.location).toEqual([
+      { "@type": "Place", name: "Aula Kampus", address: "Surabaya" },
+      { "@type": "VirtualLocation", url: "https://acaraloka.com/e/seminar-ai" },
+    ]);
+    expect(JSON.stringify(data)).not.toContain("meet.google.com");
   });
 
   it("maps ticket availability and price per offer", () => {

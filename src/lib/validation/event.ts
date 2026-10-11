@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { LOCATION_TYPES, hasOnlineMeeting, hasPhysicalVenue } from "@/lib/event-location";
+import { parseHttpsUrl } from "@/lib/meeting-provider";
 import { EVENT_TIMEZONE_IDS, localInputToDate } from "@/lib/timezone";
 
 export const POSTER_MAX_BYTES = 2 * 1024 * 1024;
@@ -22,7 +24,11 @@ export const eventFormSchema = z
     timezone: z.enum(EVENT_TIMEZONE_IDS, { message: "Pilih zona waktu." }),
     startAt: z.string(),
     endAt: z.string(),
-    venue: z.string().trim().min(3, "Isi lokasi atau tautan acara.").max(300, "Lokasi maksimal 300 karakter."),
+    locationType: z.enum(LOCATION_TYPES, { message: "Pilih jenis lokasi." }),
+    venueName: z.string().trim().max(200, "Nama tempat maksimal 200 karakter."),
+    venueAddress: z.string().trim().max(300, "Alamat maksimal 300 karakter."),
+    placeId: z.string().trim().max(300).regex(/^[A-Za-z0-9_-]*$/, "Tempat tidak valid."),
+    onlineUrl: z.string().trim().max(500, "Tautan maksimal 500 karakter."),
   })
   .transform((data, ctx) => {
     const startAt = localInputToDate(data.startAt, data.timezone);
@@ -32,8 +38,27 @@ export const eventFormSchema = z
     if (startAt && endAt && endAt <= startAt) {
       ctx.addIssue({ code: "custom", path: ["endAt"], message: "Waktu selesai harus setelah waktu mulai." });
     }
+    const physical = hasPhysicalVenue(data.locationType);
+    const online = hasOnlineMeeting(data.locationType);
+    if (physical && data.venueName.length < 3) {
+      ctx.addIssue({ code: "custom", path: ["venueName"], message: "Isi nama tempat, minimal 3 karakter." });
+    }
+    if (online && !data.onlineUrl) {
+      ctx.addIssue({ code: "custom", path: ["onlineUrl"], message: "Isi tautan meeting." });
+    } else if (online && !parseHttpsUrl(data.onlineUrl)) {
+      ctx.addIssue({ code: "custom", path: ["onlineUrl"], message: "Tautan harus diawali https:// dan valid." });
+    }
     if (!startAt || !endAt) return z.NEVER;
-    return { ...data, startAt, endAt };
+    const { venueName, venueAddress, placeId, onlineUrl, ...rest } = data;
+    return {
+      ...rest,
+      startAt,
+      endAt,
+      venueName: physical ? venueName : null,
+      venueAddress: physical ? venueAddress || null : null,
+      placeId: physical ? placeId || null : null,
+      onlineUrl: online ? onlineUrl : null,
+    };
   });
 
 export type EventFormInput = z.infer<typeof eventFormSchema>;

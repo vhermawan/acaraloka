@@ -52,6 +52,9 @@ const envSchema = z.object({
 
   CLOUDFLARE_ANALYTICS_TOKEN: z.string().min(1).optional(),
 
+  GOOGLE_PLACES_API_KEY: z.string().min(1).optional(),
+  NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY: z.string().min(1).optional(),
+
   EMAIL_ENABLED: z
     .enum(["true", "false"])
     .default("false")
@@ -78,6 +81,8 @@ function loadEnv() {
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     ADMIN_EMAIL: process.env.ADMIN_EMAIL,
     CLOUDFLARE_ANALYTICS_TOKEN: process.env.CLOUDFLARE_ANALYTICS_TOKEN || undefined,
+    GOOGLE_PLACES_API_KEY: process.env.GOOGLE_PLACES_API_KEY?.trim() || undefined,
+    NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY?.trim() || undefined,
     EMAIL_ENABLED: process.env.EMAIL_ENABLED?.trim() || undefined,
     RESEND_API_KEY: process.env.RESEND_API_KEY || undefined,
     EMAIL_FROM: process.env.EMAIL_FROM?.trim() || undefined,

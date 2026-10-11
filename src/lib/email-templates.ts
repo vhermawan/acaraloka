@@ -11,6 +11,7 @@ export const emailPayloadSchemas = {
     eventTitle: z.string(),
     schedule: z.string(),
     venue: z.string(),
+    meetingUrl: z.url({ protocol: /^https$/ }).optional(),
     ticketPath: path,
   }),
   "event-cancelled": z.object({
@@ -126,7 +127,7 @@ function renderText(content: EmailContent, host: string): string {
 function buildContent(message: EmailMessage, link: (path: string) => string): EmailContent {
   switch (message.template) {
     case "ticket-confirmed": {
-      const { name, eventTitle, schedule, venue, ticketPath } = message.payload;
+      const { name, eventTitle, schedule, venue, meetingUrl, ticketPath } = message.payload;
       return {
         subject: `E-tiket kamu untuk ${eventTitle}`,
         heading: "Pendaftaran terkonfirmasi",
@@ -137,6 +138,7 @@ function buildContent(message: EmailMessage, link: (path: string) => string): Em
         details: [
           { label: "Waktu", value: schedule },
           { label: "Lokasi", value: venue },
+          ...(meetingUrl ? [{ label: "Tautan meeting", value: meetingUrl }] : []),
         ],
         action: { label: "Buka e-tiket", url: link(ticketPath) },
         note: "E-tiket juga selalu ada di menu Tiket Saya setelah kamu masuk.",

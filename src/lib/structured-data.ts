@@ -1,3 +1,5 @@
+import type { LocationType, PublicEventLocation } from "@/lib/event-location";
+
 type StructuredDataEvent = {
   slug: string;
   title: string;
@@ -5,11 +7,27 @@ type StructuredDataEvent = {
   status: string;
   startAt: Date;
   endAt: Date;
-  venue: string;
+  location: PublicEventLocation;
   publishedAt: Date | null;
   organizer: { orgName: string };
   ticketTypes: { name: string; price: number; quota: number; reservedCount: number }[];
 };
+
+const ATTENDANCE_MODES: Record<LocationType, string> = {
+  OFFLINE: "https://schema.org/OfflineEventAttendanceMode",
+  ONLINE: "https://schema.org/OnlineEventAttendanceMode",
+  HYBRID: "https://schema.org/MixedEventAttendanceMode",
+};
+
+function structuredLocation(location: PublicEventLocation, pageUrl: string) {
+  const place =
+    location.locationType !== "ONLINE" && location.venueName
+      ? { "@type": "Place", name: location.venueName, address: location.venueAddress ?? location.venueName }
+      : null;
+  const virtual = location.locationType !== "OFFLINE" ? { "@type": "VirtualLocation", url: pageUrl } : null;
+  const parts = [place, virtual].filter((part) => part !== null);
+  return parts.length === 1 ? parts[0] : parts;
+}
 
 export function eventStructuredData(event: StructuredDataEvent, baseUrl: string, imageUrl: string | null) {
   const pageUrl = new URL(`/e/${event.slug}`, baseUrl).toString();
@@ -25,7 +43,8 @@ export function eventStructuredData(event: StructuredDataEvent, baseUrl: string,
     endDate: event.endAt.toISOString(),
     eventStatus:
       event.status === "CANCELLED" ? "https://schema.org/EventCancelled" : "https://schema.org/EventScheduled",
-    location: { "@type": "Place", name: event.venue, address: event.venue },
+    eventAttendanceMode: ATTENDANCE_MODES[event.location.locationType],
+    location: structuredLocation(event.location, pageUrl),
     ...(imageUrl ? { image: [imageUrl] } : {}),
     organizer: { "@type": "Organization", name: event.organizer.orgName },
     offers: event.ticketTypes.map((ticket) => ({

@@ -14,6 +14,12 @@ enum EventStatus {
   DISABLED
 }
 
+enum EventLocationType {
+  OFFLINE
+  ONLINE
+  HYBRID
+}
+
 enum FormFieldType {
   TEXT
   SINGLE_CHOICE
@@ -65,23 +71,28 @@ model OrganizerProfile {
 }
 
 model Event {
-  id             String      @id @default(cuid())
-  organizerId    String      @map("organizer_id")
-  slug           String      @unique
+  id             String            @id @default(cuid())
+  organizerId    String            @map("organizer_id")
+  slug           String            @unique
   title          String
   description    String
-  startAt        DateTime    @map("start_at") @db.Timestamptz(3)
-  endAt          DateTime    @map("end_at") @db.Timestamptz(3)
-  timezone       String      @default("Asia/Jakarta")
-  venue          String
-  posterPath     String?     @map("poster_path")
-  status         EventStatus @default(DRAFT)
-  publishedAt    DateTime?   @map("published_at") @db.Timestamptz(3)
-  cancelledAt    DateTime?   @map("cancelled_at") @db.Timestamptz(3)
-  cancelReason   String?     @map("cancel_reason")
-  disabledReason String?     @map("disabled_reason")
-  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+  startAt        DateTime          @map("start_at") @db.Timestamptz(3)
+  endAt          DateTime          @map("end_at") @db.Timestamptz(3)
+  timezone       String            @default("Asia/Jakarta")
+  venue          String            @default("")
+  locationType   EventLocationType @default(OFFLINE) @map("location_type")
+  venueName      String?           @map("venue_name")
+  venueAddress   String?           @map("venue_address")
+  placeId        String?           @map("place_id")
+  onlineUrl      String?           @map("online_url")
+  posterPath     String?           @map("poster_path")
+  status         EventStatus       @default(DRAFT)
+  publishedAt    DateTime?         @map("published_at") @db.Timestamptz(3)
+  cancelledAt    DateTime?         @map("cancelled_at") @db.Timestamptz(3)
+  cancelReason   String?           @map("cancel_reason")
+  disabledReason String?           @map("disabled_reason")
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   organizer         OrganizerProfile   @relation(fields: [organizerId], references: [userId])
   ticketTypes       TicketType[]

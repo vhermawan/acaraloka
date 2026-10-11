@@ -19,6 +19,8 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { useActionForm } from "@/hooks/use-action-form";
+import { PlaceSearch } from "@/components/events/place-search";
+import { LOCATION_TYPE_LABELS, LOCATION_TYPES, hasOnlineMeeting, hasPhysicalVenue, type LocationType } from "@/lib/event-location";
 import { EVENT_TIMEZONES, timezoneLabel, type EventTimezone } from "@/lib/timezone";
 import { eventFormSchema } from "@/lib/validation/event";
 
@@ -28,7 +30,11 @@ type EventFormValues = {
   timezone: string;
   startAt: string;
   endAt: string;
-  venue: string;
+  locationType: string;
+  venueName: string;
+  venueAddress: string;
+  placeId: string;
+  onlineUrl: string;
 };
 
 type EventFormProps = {
@@ -37,6 +43,7 @@ type EventFormProps = {
   submitLabel: string;
   disabled?: boolean;
   cancelHref?: string;
+  placesEnabled?: boolean;
 };
 
 const EMPTY: EventFormValues = {
@@ -45,25 +52,38 @@ const EMPTY: EventFormValues = {
   timezone: "Asia/Jakarta",
   startAt: "",
   endAt: "",
-  venue: "",
+  locationType: "OFFLINE",
+  venueName: "",
+  venueAddress: "",
+  placeId: "",
+  onlineUrl: "",
 };
 
-function EventForm({ action, defaultValues = EMPTY, submitLabel, disabled, cancelHref }: EventFormProps) {
+function EventForm({ action, defaultValues = EMPTY, submitLabel, disabled, cancelHref, placesEnabled = false }: EventFormProps) {
   const [state, formAction, pending] = useActionState(action, {});
   const {
     form: {
       register,
       control,
+      setValue,
       formState: { errors },
     },
     onSubmit,
   } = useActionForm(eventFormSchema, {
-    defaultValues: { ...defaultValues, timezone: defaultValues.timezone as EventTimezone },
+    defaultValues: {
+      ...defaultValues,
+      timezone: defaultValues.timezone as EventTimezone,
+      locationType: defaultValues.locationType as LocationType,
+    },
     dispatch: formAction,
     serverErrors: state.errors,
   });
   const timezone = useWatch({ control, name: "timezone" });
   const startAt = useWatch({ control, name: "startAt" });
+  const locationType = useWatch({ control, name: "locationType" });
+  const placeId = useWatch({ control, name: "placeId" });
+  const showVenue = hasPhysicalVenue(locationType);
+  const showOnline = hasOnlineMeeting(locationType);
 
   useEffect(() => {
     if (state.savedAt) toast.success("Perubahan disimpan.");
@@ -153,18 +173,95 @@ function EventForm({ action, defaultValues = EMPTY, submitLabel, disabled, cance
               <FieldError errors={[errors.endAt]} />
             </Field>
           </div>
-          <Field data-invalid={!!errors.venue}>
-            <FieldLabel htmlFor="venue">Lokasi</FieldLabel>
-            <Input
-              id="venue"
-              placeholder="Contoh: Aula Gedung Sate, Bandung, atau tautan Zoom"
-              aria-invalid={!!errors.venue}
+          <Field data-invalid={!!errors.locationType}>
+            <FieldLabel htmlFor="locationType">Jenis lokasi</FieldLabel>
+            <NativeSelect
+              id="locationType"
+              aria-invalid={!!errors.locationType}
               className="h-10"
-              {...register("venue")}
-            />
-            <FieldDescription>Alamat tempat, atau tautan Zoom/Meet untuk acara online.</FieldDescription>
-            <FieldError errors={[errors.venue]} />
+              {...register("locationType")}
+            >
+              {LOCATION_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {LOCATION_TYPE_LABELS[type]}
+                </option>
+              ))}
+            </NativeSelect>
+            <FieldError errors={[errors.locationType]} />
           </Field>
+          {showVenue ? (
+            <fieldset className="flex flex-col gap-4 rounded-lg border border-border p-4">
+              <legend className="px-1 text-sm font-medium">Tempat acara</legend>
+              {placesEnabled ? (
+                <PlaceSearch
+                  onPick={(place) => {
+                    setValue("placeId", place.placeId, { shouldDirty: true });
+                    setValue("venueName", place.name, { shouldDirty: true, shouldValidate: true });
+                    setValue("venueAddress", place.address, { shouldDirty: true, shouldValidate: true });
+                  }}
+                />
+              ) : null}
+              <input type="hidden" {...register("placeId")} />
+              {placeId ? (
+                <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+                  <span>Terhubung ke hasil pencarian Google Maps. Peta ditampilkan di halaman acara.</span>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="h-auto p-0"
+                    onClick={() => setValue("placeId", "", { shouldDirty: true })}
+                  >
+                    Lepas
+                  </Button>
+                </p>
+              ) : null}
+              <Field data-invalid={!!errors.venueName}>
+                <FieldLabel htmlFor="venueName">Nama tempat</FieldLabel>
+                <Input
+                  id="venueName"
+                  placeholder="Contoh: Aula Gedung Sate"
+                  aria-invalid={!!errors.venueName}
+                  className="h-10"
+                  {...register("venueName", { onChange: () => setValue("placeId", "", { shouldDirty: true }) })}
+                />
+                <FieldError errors={[errors.venueName]} />
+              </Field>
+              <Field data-invalid={!!errors.venueAddress}>
+                <FieldLabel htmlFor="venueAddress">Alamat</FieldLabel>
+                <Input
+                  id="venueAddress"
+                  placeholder="Contoh: Jl. Diponegoro No. 22, Bandung"
+                  aria-invalid={!!errors.venueAddress}
+                  className="h-10"
+                  {...register("venueAddress")}
+                />
+                <FieldDescription>
+                  {placesEnabled
+                    ? "Terisi otomatis dari hasil pencarian, dan bisa kamu ubah."
+                    : "Peta tampil di halaman acara bila tempat dipilih lewat pencarian."}
+                </FieldDescription>
+                <FieldError errors={[errors.venueAddress]} />
+              </Field>
+            </fieldset>
+          ) : null}
+          {showOnline ? (
+            <Field data-invalid={!!errors.onlineUrl}>
+              <FieldLabel htmlFor="onlineUrl">Tautan meeting</FieldLabel>
+              <Input
+                id="onlineUrl"
+                type="url"
+                inputMode="url"
+                placeholder="https://zoom.us/j/123456789"
+                aria-invalid={!!errors.onlineUrl}
+                className="h-10"
+                {...register("onlineUrl")}
+              />
+              <FieldDescription>
+                Hanya terlihat oleh peserta yang terkonfirmasi dan panitia. Zoom, Google Meet, Teams, YouTube, atau tautan lain.
+              </FieldDescription>
+              <FieldError errors={[errors.onlineUrl]} />
+            </Field>
+          ) : null}
           <div className="flex flex-wrap items-center gap-2">
             <Button type="submit" className="h-10 px-4">
               {pending ? "Menyimpan..." : submitLabel}
