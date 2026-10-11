@@ -52,7 +52,7 @@ beforeAll(async () => {
       description: "Signer test",
       startAt: new Date(Date.now() + 86_400_000),
       endAt: new Date(Date.now() + 90_000_000),
-      venue: "Test",
+      venueName: "Test",
       status: "PUBLISHED",
     },
   });

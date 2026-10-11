@@ -32,7 +32,7 @@ async function createEvent(suffix: string, status: "DRAFT" | "PUBLISHED" | "CANC
       description: "x",
       startAt: new Date(now.getTime() + DAY),
       endAt: new Date(now.getTime() + 2 * DAY),
-      venue: "Test",
+      venueName: "Test",
       status,
       publishedAt,
       ticketTypes: { create: { name: "Umum", quota: 50 } },

@@ -1,4 +1,4 @@
-import { detectMeetingProvider, parseHttpsUrl, type MeetingProvider } from "@/lib/meeting-provider";
+import { detectMeetingProvider, type MeetingProvider } from "@/lib/meeting-provider";
 
 export const LOCATION_TYPES = ["OFFLINE", "ONLINE", "HYBRID"] as const;
 
@@ -16,7 +16,6 @@ export type EventLocationFields = {
   venueAddress: string | null;
   placeId: string | null;
   onlineUrl: string | null;
-  venue?: string;
 };
 
 export type PublicEventLocation = {
@@ -35,18 +34,7 @@ export function hasOnlineMeeting(type: LocationType) {
   return type === "ONLINE" || type === "HYBRID";
 }
 
-export function resolveEventLocation(event: EventLocationFields): Omit<EventLocationFields, "venue"> {
-  const { venue, ...fields } = event;
-  const legacy = venue?.trim();
-  if (!legacy || fields.venueName || fields.onlineUrl || fields.locationType === "ONLINE") return fields;
-  if (parseHttpsUrl(legacy)) {
-    return { locationType: "ONLINE", venueName: null, venueAddress: null, placeId: null, onlineUrl: legacy };
-  }
-  return { ...fields, venueName: legacy };
-}
-
-export function toPublicLocation(input: EventLocationFields): PublicEventLocation {
-  const event = resolveEventLocation(input);
+export function toPublicLocation(event: EventLocationFields): PublicEventLocation {
   return {
     locationType: event.locationType,
     venueName: hasPhysicalVenue(event.locationType) ? event.venueName : null,
@@ -72,10 +60,9 @@ export type MeetingLinkViewer = {
 };
 
 export function meetingLinkForViewer(
-  input: Pick<EventLocationFields, "locationType" | "onlineUrl" | "venueName" | "venue"> & { status: string },
+  event: Pick<EventLocationFields, "locationType" | "onlineUrl"> & { status: string },
   viewer: MeetingLinkViewer,
 ): string | null {
-  const event = { ...resolveEventLocation({ venueAddress: null, placeId: null, ...input }), status: input.status };
   if (!hasOnlineMeeting(event.locationType) || !event.onlineUrl) return null;
   if (viewer.isOrganizer) return event.onlineUrl;
   if (viewer.registrationStatus === "CONFIRMED" && event.status === "PUBLISHED") return event.onlineUrl;

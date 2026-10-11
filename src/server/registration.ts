@@ -46,7 +46,6 @@ export async function createRegistration(
           title: true,
           startAt: true,
           timezone: true,
-          venue: true,
           locationType: true,
           venueName: true,
           venueAddress: true,

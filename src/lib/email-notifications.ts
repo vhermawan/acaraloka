@@ -1,6 +1,6 @@
 import { ACCOUNT_NOTICE_BUCKET_SECONDS, AUTH_EMAIL_BUCKET_SECONDS, timeBucket } from "@/lib/auth-config";
 import { EMAIL_PRIORITY, type OutboxItem } from "@/lib/email-outbox";
-import { hasOnlineMeeting, locationSummary, resolveEventLocation, toPublicLocation, type EventLocationFields } from "@/lib/event-location";
+import { hasOnlineMeeting, locationSummary, toPublicLocation, type EventLocationFields } from "@/lib/event-location";
 import { formatEventDateTime, formatEventSchedule } from "@/lib/timezone";
 
 type EventInfo = { title: string; startAt: Date; timezone: string };
@@ -8,7 +8,7 @@ type EventInfo = { title: string; startAt: Date; timezone: string };
 type Recipient = { id: string; name: string; email: string };
 
 export function ticketConfirmedEmail(registration: Recipient, input: EventInfo & EventLocationFields): OutboxItem {
-  const event = { ...input, ...resolveEventLocation(input) };
+  const event = input;
   return {
     to: registration.email,
     dedupeKey: `ticket-confirmed:${registration.id}`,

@@ -32,7 +32,7 @@ async function createEvent(status: Status, options: { started?: boolean } = {}) 
       description: "Admin event test",
       startAt: new Date(Date.now() + (started ? -day : day)),
       endAt: new Date(Date.now() + (started ? -day / 2 : 2 * day)),
-      venue: "Test",
+      venueName: "Test",
       status,
       publishedAt: status === "DRAFT" ? null : new Date(),
       cancelledAt: status === "CANCELLED" ? new Date() : null,

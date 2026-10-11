@@ -14,8 +14,8 @@ export const getPublicEvent = cache(async (slug: string) => {
     },
   });
   if (!event || !isPubliclyVisible(event.status)) return null;
-  const { onlineUrl, venue, ...publicFields } = event;
-  return { ...publicFields, location: toPublicLocation({ ...publicFields, onlineUrl, venue }) };
+  const { onlineUrl, ...publicFields } = event;
+  return { ...publicFields, location: toPublicLocation({ ...publicFields, onlineUrl }) };
 });
 
 export async function listSitemapEvents() {

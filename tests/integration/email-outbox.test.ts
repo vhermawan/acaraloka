@@ -70,7 +70,7 @@ beforeAll(async () => {
       description: "Email test",
       startAt: new Date(Date.now() + 86_400_000),
       endAt: new Date(Date.now() + 90_000_000),
-      venue: "Aula Uji",
+      venueName: "Aula Uji",
       status: "PUBLISHED",
       ticketTypes: { create: { name: "Umum", quota: 5 } },
     },

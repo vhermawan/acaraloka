@@ -33,7 +33,7 @@ async function createEvent(organizerId: string, status: "DRAFT" | "PUBLISHED" | 
       description: "x",
       startAt: new Date(now + counter * DAY),
       endAt: new Date(now + counter * DAY + 3_600_000),
-      venue: "Test",
+      venueName: "Test",
       status,
       publishedAt: status === "DRAFT" ? null : new Date(),
       ticketTypes: { create: { name: "Umum", quota: 50 } },
