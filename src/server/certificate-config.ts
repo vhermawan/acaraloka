@@ -75,7 +75,7 @@ export async function pruneCertificateBackgrounds(eventId: string, keepPath: str
   }
 }
 
-async function pruneToActiveBackground(eventId: string, db: PrismaClient) {
+export async function pruneToActiveBackground(eventId: string, db: PrismaClient) {
   let active: string | null;
   try {
     const config = await db.certificateConfig.findUnique({ where: { eventId }, select: { backgroundPath: true } });
@@ -99,7 +99,13 @@ export async function setCertificateBackground(
   const result = await db.$transaction(async (tx) => {
     const updated = await tx.certificateConfig.updateMany({
       where: { eventId, lockedAt: null },
-      data: { templateSource: "UPLOAD", backgroundPath: input.path, pageWidth: width, pageHeight: height },
+      data: {
+        templateSource: "UPLOAD",
+        backgroundPath: input.path,
+        pageWidth: width,
+        pageHeight: height,
+        aiGenerationId: null,
+      },
     });
     return { updated: updated.count === 1 };
   });
@@ -114,7 +120,13 @@ export async function clearCertificateBackground(eventId: string, db: PrismaClie
   const result = await db.$transaction(async (tx) => {
     const updated = await tx.certificateConfig.updateMany({
       where: { eventId, lockedAt: null },
-      data: { templateSource: "BUILTIN", backgroundPath: null, pageWidth: width, pageHeight: height },
+      data: {
+        templateSource: "BUILTIN",
+        backgroundPath: null,
+        pageWidth: width,
+        pageHeight: height,
+        aiGenerationId: null,
+      },
     });
     return { updated: updated.count === 1 };
   });
@@ -127,29 +139,28 @@ export type BackgroundApplyResult = { ok: true } | { ok: false; reason: "LOCKED"
 
 export const BACKGROUND_LOCKED_MESSAGE = "Desain sudah terkunci. Buka kunci dulu untuk mengubah gambar latar.";
 
-export async function applyCertificateBackground(
-  eventId: string,
-  path: string,
-  db: PrismaClient = prisma,
-): Promise<BackgroundApplyResult> {
-  const reject = async (error: string): Promise<BackgroundApplyResult> => {
-    if (isBackgroundPathFor(eventId, path)) {
-      await removeObjectsQuietly("certificate-background.reject", CERTIFICATE_BACKGROUND_BUCKET, [path]);
-    }
-    return { ok: false, reason: "INVALID", error };
-  };
+export type BackgroundObjectValidation =
+  | { ok: true; format: PageFormatKey }
+  | { ok: false; error: string; removable: boolean };
 
-  if (!isBackgroundPathFor(eventId, path)) return { ok: false, reason: "INVALID", error: "Berkas gambar latar tidak valid." };
+export async function validateBackgroundObject(eventId: string, path: string): Promise<BackgroundObjectValidation> {
+  if (!isBackgroundPathFor(eventId, path)) {
+    return { ok: false, error: "Berkas gambar latar tidak valid.", removable: false };
+  }
   const extension = backgroundFormat(path);
 
   let bytes: Uint8Array;
   try {
     bytes = await downloadObject(CERTIFICATE_BACKGROUND_BUCKET, path);
   } catch {
-    return { ok: false, reason: "INVALID", error: "Gambar latar belum terunggah. Coba unggah lagi." };
+    return { ok: false, error: "Gambar latar belum terunggah. Coba unggah lagi.", removable: false };
   }
-  if (bytes.byteLength === 0 || bytes.byteLength > BACKGROUND_MAX_BYTES) return reject("Ukuran gambar latar maksimal 3 MB.");
-  if (!hasBackgroundSignature(bytes, extension)) return reject("Isi berkas bukan gambar PNG atau JPG yang valid.");
+  if (bytes.byteLength === 0 || bytes.byteLength > BACKGROUND_MAX_BYTES) {
+    return { ok: false, error: "Ukuran gambar latar maksimal 3 MB.", removable: true };
+  }
+  if (!hasBackgroundSignature(bytes, extension)) {
+    return { ok: false, error: "Isi berkas bukan gambar PNG atau JPG yang valid.", removable: true };
+  }
 
   let size: { width: number; height: number };
   try {
@@ -157,13 +168,28 @@ export async function applyCertificateBackground(
     const image = extension === "png" ? await probe.embedPng(bytes) : await probe.embedJpg(bytes);
     size = { width: image.width, height: image.height };
   } catch {
-    return reject("Gambar tidak bisa dibaca. Coba berkas PNG atau JPG lain.");
+    return { ok: false, error: "Gambar tidak bisa dibaca. Coba berkas PNG atau JPG lain.", removable: true };
   }
 
   const dimensions = validateBackgroundDimensions(size.width, size.height);
-  if (!dimensions.ok) return reject(dimensions.error);
+  if (!dimensions.ok) return { ok: false, error: dimensions.error, removable: true };
+  return { ok: true, format: dimensions.format };
+}
 
-  const result = await setCertificateBackground(eventId, { path, format: dimensions.format }, db);
+export async function applyCertificateBackground(
+  eventId: string,
+  path: string,
+  db: PrismaClient = prisma,
+): Promise<BackgroundApplyResult> {
+  const validation = await validateBackgroundObject(eventId, path);
+  if (!validation.ok) {
+    if (validation.removable) {
+      await removeObjectsQuietly("certificate-background.reject", CERTIFICATE_BACKGROUND_BUCKET, [path]);
+    }
+    return { ok: false, reason: "INVALID", error: validation.error };
+  }
+
+  const result = await setCertificateBackground(eventId, { path, format: validation.format }, db);
   if (!result.ok) {
     await removeObjectsQuietly("certificate-background.reject", CERTIFICATE_BACKGROUND_BUCKET, [path]);
     return { ok: false, reason: "LOCKED", error: BACKGROUND_LOCKED_MESSAGE };

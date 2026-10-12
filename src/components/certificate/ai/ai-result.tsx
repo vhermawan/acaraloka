@@ -4,10 +4,12 @@ import Image from "next/image";
 import { ExternalLink } from "lucide-react";
 
 import { AiLogoPicker, type LogoOption } from "@/components/certificate/ai/ai-logo-picker";
+import { AiResultActions } from "@/components/certificate/ai/ai-result-actions";
 import { Button } from "@/components/ui/button";
+import type { AiDesignState } from "@/server/ai/overview";
 import { cn } from "cn";
 
-export type ResultOption = { id: string; createdAt: string; styleLabel: string; thumbUrl: string | null };
+export type ResultOption = { id: string; createdAt: string; styleLabel: string; thumbUrl: string | null; used: boolean };
 
 type AiResultProps = {
   eventId: string;
@@ -17,9 +19,21 @@ type AiResultProps = {
   logos: LogoOption[];
   logoPath: string | null;
   onLogoChange: (path: string | null) => void;
+  design: AiDesignState;
+  reportAvailable: boolean;
 };
 
-function AiResult({ eventId, results, selectedId, onSelect, logos, logoPath, onLogoChange }: AiResultProps) {
+function AiResult({
+  eventId,
+  results,
+  selectedId,
+  onSelect,
+  logos,
+  logoPath,
+  onLogoChange,
+  design,
+  reportAvailable,
+}: AiResultProps) {
   const selected = results.find((result) => result.id === selectedId) ?? results[0];
   const previewUrl = `/organizer/events/${eventId}/certificate/ai/${selected.id}/preview?logo=${encodeURIComponent(logoPath ?? "none")}`;
 
@@ -54,6 +68,16 @@ function AiResult({ eventId, results, selectedId, onSelect, logos, logoPath, onL
       </p>
 
       <AiLogoPicker eventId={eventId} idPrefix="ai-result-logo" logos={logos} value={logoPath} onChange={onLogoChange} />
+
+      <AiResultActions
+        key={selected.id}
+        eventId={eventId}
+        generationId={selected.id}
+        used={selected.used}
+        logoPath={logoPath}
+        design={design}
+        reportAvailable={reportAvailable}
+      />
 
       {results.length > 1 ? (
         <div className="flex flex-col gap-2 border-t border-border pt-4">

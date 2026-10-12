@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AI_UNAVAILABLE_CODE, AI_UNAVAILABLE_MESSAGE } from "@/lib/ai-config";
+import {
+  AI_LOGO_LIMIT,
+  AI_LOGO_LIMIT_MESSAGE,
+  AI_REJECTION_THROTTLE,
+  AI_REJECTION_THROTTLE_MESSAGE,
+  AI_UNAVAILABLE_CODE,
+  AI_UNAVAILABLE_MESSAGE,
+} from "@/lib/ai-config";
 import { AI_BLOCKLIST_MESSAGE, LOGO_INVALID_MESSAGE } from "@/lib/ai/generate-input";
 import { isAiRawLogoPathFor } from "@/lib/ai/paths";
 
@@ -14,19 +21,38 @@ const mocks = vi.hoisted(() => ({
   createSignedUploadUrl: vi.fn(),
   finalizeLogoUpload: vi.fn(),
   revalidatePath: vi.fn(),
+  countRejected: vi.fn(),
+  countEventKind: vi.fn(),
+  countEventLogos: vi.fn(),
+  sweepOrphanUploads: vi.fn(),
+  deleteEventLogo: vi.fn(),
+  applyAiDesign: vi.fn(),
+  reportGeneration: vi.fn(),
+  removeObjectsQuietly: vi.fn(),
 }));
 
 vi.mock("next/server", () => ({ after: mocks.after }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("@/server/authz", () => ({ requireEventOwner: mocks.requireEventOwner }));
 vi.mock("@/server/ai-access", () => ({ getAiAccess: mocks.getAiAccess }));
-vi.mock("@/server/ai-quota", () => ({ reserveGeneration: mocks.reserveGeneration }));
+vi.mock("@/server/ai-quota", () => ({
+  reserveGeneration: mocks.reserveGeneration,
+  countEventKind: mocks.countEventKind,
+}));
+vi.mock("@/server/ai-report", () => ({ reportAiGeneration: mocks.reportGeneration }));
+vi.mock("@/server/ai/apply-design", () => ({ applyAiDesign: mocks.applyAiDesign }));
+vi.mock("@/server/ai/artifacts", () => ({
+  countEventLogos: mocks.countEventLogos,
+  sweepOrphanUploads: mocks.sweepOrphanUploads,
+  deleteEventLogo: mocks.deleteEventLogo,
+}));
+vi.mock("@/server/storage-cleanup", () => ({ removeObjectsQuietly: mocks.removeObjectsQuietly }));
 vi.mock("@/server/ai/generation-job", () => ({ runGeneration: mocks.runGeneration }));
 vi.mock("@/server/ai/logo", () => ({ finalizeLogoUpload: mocks.finalizeLogoUpload }));
-vi.mock("@/server/db", () => ({ prisma: { aiGeneration: { create: mocks.create } } }));
+vi.mock("@/server/db", () => ({ prisma: { aiGeneration: { create: mocks.create, count: mocks.countRejected } } }));
 vi.mock("@/server/storage", () => ({ AI_BUCKET: "ai-generations", createSignedUploadUrl: mocks.createSignedUploadUrl }));
 
-const { createAiLogoUpload, finalizeAiLogo, startAiGeneration } = await import(
+const { applyAiGeneration, createAiLogoUpload, deleteAiLogo, finalizeAiLogo, reportAiGeneration, startAiGeneration } = await import(
   "@/app/organizer/events/[id]/certificate/ai/actions"
 );
 
@@ -46,6 +72,10 @@ beforeEach(() => {
   mocks.runGeneration.mockResolvedValue(undefined);
   mocks.getAiAccess.mockResolvedValue({ status: "AVAILABLE", remaining: 3 });
   mocks.reserveGeneration.mockResolvedValue({ ok: true, generationId: "gen1", estCostMicros: 1, reused: false });
+  mocks.countRejected.mockResolvedValue(0);
+  mocks.countEventLogos.mockResolvedValue(0);
+  mocks.sweepOrphanUploads.mockResolvedValue(undefined);
+  mocks.countEventKind.mockResolvedValue(1);
 });
 
 describe("startAiGeneration", () => {
@@ -100,6 +130,15 @@ describe("startAiGeneration", () => {
     });
     expect(mocks.reserveGeneration).not.toHaveBeenCalled();
     expect(mocks.after).not.toHaveBeenCalled();
+  });
+
+  it("throttles repeated rejections before recording another row or reserving", async () => {
+    mocks.countRejected.mockResolvedValue(AI_REJECTION_THROTTLE.max);
+    const result = await startAiGeneration("ev1", {}, form({ ...valid, note: "acara bokep kampus" }));
+    expect(result.message).toBe(AI_REJECTION_THROTTLE_MESSAGE);
+    expect(mocks.countRejected.mock.calls[0][0].where).toMatchObject({ userId: "user1", status: "REJECTED" });
+    expect(mocks.create).not.toHaveBeenCalled();
+    expect(mocks.reserveGeneration).not.toHaveBeenCalled();
   });
 
   it("passes a denied reservation message through and schedules nothing", async () => {
@@ -161,6 +200,23 @@ describe("createAiLogoUpload", () => {
     expect(mocks.createSignedUploadUrl).not.toHaveBeenCalled();
   });
 
+  it("refuses a new upload when the event already has the maximum number of logos", async () => {
+    mocks.countEventLogos.mockResolvedValue(AI_LOGO_LIMIT);
+    expect(await createAiLogoUpload("ev1", { contentType: "image/png", size: 100 })).toEqual({ error: AI_LOGO_LIMIT_MESSAGE });
+    expect(mocks.createSignedUploadUrl).not.toHaveBeenCalled();
+  });
+
+  it("counts pending raw uploads toward the logo limit", async () => {
+    await createAiLogoUpload("ev1", { contentType: "image/png", size: 100 });
+    expect(mocks.countEventLogos).toHaveBeenCalledWith("ev1", { includePending: true });
+  });
+
+  it("sweeps orphan raw uploads of the guarded event before signing", async () => {
+    mocks.createSignedUploadUrl.mockResolvedValue("https://storage.test/upload");
+    await createAiLogoUpload("ev1", { contentType: "image/png", size: 100 });
+    expect(mocks.sweepOrphanUploads).toHaveBeenCalledWith("ev1");
+  });
+
   it("signs an upload to a raw path under the guarded event", async () => {
     mocks.createSignedUploadUrl.mockResolvedValue("https://storage.test/upload");
     const result = await createAiLogoUpload("ev1", { contentType: "image/jpeg", size: 1000 });
@@ -179,6 +235,14 @@ describe("finalizeAiLogo", () => {
     expect(mocks.finalizeLogoUpload).not.toHaveBeenCalled();
   });
 
+  it("removes the raw upload and refuses when the logo limit is reached", async () => {
+    mocks.countEventLogos.mockResolvedValue(AI_LOGO_LIMIT);
+    const raw = "events/ev1/upload-0123456789abcdef.png";
+    expect(await finalizeAiLogo("ev1", raw)).toEqual({ error: AI_LOGO_LIMIT_MESSAGE });
+    expect(mocks.removeObjectsQuietly).toHaveBeenCalledWith(expect.any(String), "ai-generations", [raw]);
+    expect(mocks.finalizeLogoUpload).not.toHaveBeenCalled();
+  });
+
   it("finalizes with the event id from the guard and revalidates on success", async () => {
     mocks.finalizeLogoUpload.mockResolvedValue({ ok: true, path: "events/ev1/logo-0123456789abcdef.png" });
     const result = await finalizeAiLogo("ev1", "events/ev1/upload-0123456789abcdef.png");
@@ -191,5 +255,86 @@ describe("finalizeAiLogo", () => {
     mocks.finalizeLogoUpload.mockResolvedValue({ ok: false, error: LOGO_INVALID_MESSAGE });
     expect(await finalizeAiLogo("ev1", "events/ev2/upload-0123456789abcdef.png")).toEqual({ error: LOGO_INVALID_MESSAGE });
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("applyAiGeneration", () => {
+  it("guards ownership, then access, and never applies when AI is hidden", async () => {
+    mocks.getAiAccess.mockResolvedValue({ status: "HIDDEN", message: AI_UNAVAILABLE_MESSAGE });
+    const result = await applyAiGeneration("ev1", "gen1", null, false);
+    expect(result).toEqual({ ok: false, code: AI_UNAVAILABLE_CODE, message: AI_UNAVAILABLE_MESSAGE });
+    expect(mocks.applyAiDesign).not.toHaveBeenCalled();
+  });
+
+  it("answers with the locked message without applying", async () => {
+    mocks.getAiAccess.mockResolvedValue({ status: "LOCKED", message: "terkunci" });
+    expect(await applyAiGeneration("ev1", "gen1", null, false)).toEqual({ ok: false, reason: "LOCKED", message: "terkunci" });
+    expect(mocks.applyAiDesign).not.toHaveBeenCalled();
+  });
+
+  it.each(["PAUSED", "QUOTA", "DAILY"])("still applies a stored result when access is %s", async (status) => {
+    mocks.getAiAccess.mockResolvedValue({ status, message: "x" });
+    mocks.applyAiDesign.mockResolvedValue({ ok: true });
+    expect(await applyAiGeneration("ev1", "gen1", null, false)).toEqual({ ok: true });
+  });
+
+  it("uses the event id from the guard, passes the logo and confirmation, and revalidates", async () => {
+    mocks.applyAiDesign.mockResolvedValue({ ok: true });
+    const logo = "events/ev1/logo-0123456789abcdef.png";
+    expect(await applyAiGeneration("ev1", "gen1", logo, true)).toEqual({ ok: true });
+    expect(mocks.applyAiDesign).toHaveBeenCalledWith("ev1", "gen1", logo, { confirmReplace: true });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/organizer/events/ev1/certificate");
+  });
+
+  it("passes the denial through without revalidating", async () => {
+    mocks.applyAiDesign.mockResolvedValue({ ok: false, reason: "NEEDS_CONFIRM", message: "konfirmasi" });
+    expect(await applyAiGeneration("ev1", "gen1", null, false)).toEqual({
+      ok: false,
+      reason: "NEEDS_CONFIRM",
+      message: "konfirmasi",
+    });
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("reportAiGeneration", () => {
+  it("returns the generic message when AI is hidden", async () => {
+    mocks.getAiAccess.mockResolvedValue({ status: "HIDDEN", message: AI_UNAVAILABLE_MESSAGE });
+    expect(await reportAiGeneration("ev1", "gen1")).toEqual({ ok: false, code: AI_UNAVAILABLE_CODE, message: AI_UNAVAILABLE_MESSAGE });
+    expect(mocks.reportGeneration).not.toHaveBeenCalled();
+  });
+
+  it("reports with the guarded event id and returns the remaining attempts", async () => {
+    mocks.reportGeneration.mockResolvedValue({ ok: true });
+    mocks.countEventKind.mockResolvedValue(2);
+    expect(await reportAiGeneration("ev1", "gen1")).toEqual({ ok: true, remaining: 1 });
+    expect(mocks.reportGeneration).toHaveBeenCalledWith({ generationId: "gen1", eventId: "ev1" });
+  });
+
+  it("returns the denial message for a second report", async () => {
+    mocks.reportGeneration.mockResolvedValue({ ok: false, reason: "REPORT_USED", message: "jatah habis" });
+    expect(await reportAiGeneration("ev1", "gen1")).toEqual({ ok: false, message: "jatah habis" });
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("deleteAiLogo", () => {
+  it("returns the generic message when AI is hidden", async () => {
+    mocks.getAiAccess.mockResolvedValue({ status: "HIDDEN", message: AI_UNAVAILABLE_MESSAGE });
+    expect(await deleteAiLogo("ev1", "events/ev1/logo-0123456789abcdef.png")).toEqual({ error: AI_UNAVAILABLE_MESSAGE });
+    expect(mocks.deleteEventLogo).not.toHaveBeenCalled();
+  });
+
+  it("rejects a path that is not a logo of the event", async () => {
+    mocks.deleteEventLogo.mockResolvedValue(false);
+    expect(await deleteAiLogo("ev1", "events/ev2/logo-0123456789abcdef.png")).toEqual({ error: LOGO_INVALID_MESSAGE });
+    expect(mocks.deleteEventLogo).toHaveBeenCalledWith("ev1", "events/ev2/logo-0123456789abcdef.png");
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("deletes a logo of the event and revalidates", async () => {
+    mocks.deleteEventLogo.mockResolvedValue(true);
+    expect(await deleteAiLogo("ev1", "events/ev1/logo-0123456789abcdef.png")).toEqual({});
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/organizer/events/ev1/certificate/ai");
   });
 });

@@ -29,14 +29,16 @@ const now = new Date("2026-10-12T10:00:00Z");
 const user = { id: "user1" };
 const event = { id: "ev1" };
 
-function makeDb(options: { running?: unknown; latest?: unknown; successes?: unknown[] }) {
+function makeDb(options: { running?: unknown; latest?: unknown; successes?: unknown[]; config?: unknown; reported?: number }) {
   return {
     aiGeneration: {
       findFirst: vi.fn(async (args: { where: { status?: string } }) =>
         args.where.status === "RUNNING" ? (options.running ?? null) : (options.latest ?? null),
       ),
       findMany: vi.fn(async () => options.successes ?? []),
+      count: vi.fn(async () => options.reported ?? 0),
     },
+    certificateConfig: { findUnique: vi.fn(async () => options.config ?? null) },
   } as never;
 }
 
@@ -86,6 +88,20 @@ describe("loadAiOverview", () => {
     expect(mocks.listObjects).toHaveBeenCalledWith("ai-generations", "events/ev1");
   });
 
+  it("reports the active design and whether the report allowance is still unused", async () => {
+    const config = { lockedAt: null, templateSource: "UPLOAD", backgroundPath: "events/ev1/0123456789abcdef.jpg", aiGenerationId: "g1" };
+    const fresh = await loadAiOverview(user, event, makeDb({ config }), now);
+    expect(fresh.design).toEqual({ locked: false, hasCustomBackground: true, activeGenerationId: "g1" });
+    expect(fresh.reportAvailable).toBe(true);
+
+    const locked = await loadAiOverview(user, event, makeDb({ config: { ...config, lockedAt: now }, reported: 1 }), now);
+    expect(locked.design.locked).toBe(true);
+    expect(locked.reportAvailable).toBe(false);
+
+    const none = await loadAiOverview(user, event, makeDb({}), now);
+    expect(none.design).toEqual({ locked: false, hasCustomBackground: false, activeGenerationId: null });
+  });
+
   it("returns the running generation with its phase", async () => {
     const overview = await loadAiOverview(user, event, makeDb({ running: { id: "gen9", phase: "IMAGE" } }), now);
     expect(overview.running).toEqual({ id: "gen9", phase: "IMAGE" });
@@ -109,6 +125,7 @@ describe("loadAiOverview", () => {
             createdAt: new Date("2026-10-12T09:00:00Z"),
             resultPaths: ["events/ev1/cert-g1.jpg", "events/ev1/cert-g1-thumb.jpg"],
             input: { style: "minimal", colorHex: null, note: "" },
+            firstUsedAt: null,
           },
         ],
       }),
@@ -119,7 +136,7 @@ describe("loadAiOverview", () => {
       "events/ev1/logo-bbbbbbbbbbbbbbbb.png",
     ]);
     expect(overview.results).toEqual([
-      { id: "g1", createdAt: "2026-10-12T09:00:00.000Z", styleLabel: "Minimalis", thumbUrl: "https://signed/events/ev1/cert-g1-thumb.jpg" },
+      { id: "g1", createdAt: "2026-10-12T09:00:00.000Z", styleLabel: "Minimalis", thumbUrl: "https://signed/events/ev1/cert-g1-thumb.jpg", used: false },
     ]);
     expect(mocks.createSignedUrls).toHaveBeenCalledWith(
       "ai-generations",

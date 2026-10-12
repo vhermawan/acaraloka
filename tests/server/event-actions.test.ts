@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   update: vi.fn(),
   remove: vi.fn(),
   prune: vi.fn(),
+  removeAi: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -29,6 +30,7 @@ vi.mock("@/server/storage", () => ({
 }));
 vi.mock("@/server/storage-cleanup", () => ({ removeObjectsQuietly: async () => undefined }));
 vi.mock("@/server/certificate-config", () => ({ pruneCertificateBackgrounds: mocks.prune }));
+vi.mock("@/server/ai/artifacts", () => ({ removeAiEventArtifacts: mocks.removeAi }));
 
 const { updateEvent, deleteEvent, setEventPoster, createPosterUpload } = await import(
   "@/app/organizer/events/actions"
@@ -82,6 +84,19 @@ describe("event actions authorization", () => {
     mocks.remove.mockResolvedValue(undefined);
     await expect(deleteEvent("e1")).rejects.toThrow("REDIRECT:/organizer");
     expect(mocks.prune).toHaveBeenCalledWith("e1", null);
+  });
+
+  it("removes the AI generation files of a deleted draft event", async () => {
+    mocks.requireEventOwner.mockResolvedValue({ event: { id: "e1", status: "DRAFT", posterPath: null } });
+    mocks.remove.mockResolvedValue(undefined);
+    await expect(deleteEvent("e1")).rejects.toThrow("REDIRECT:/organizer");
+    expect(mocks.removeAi).toHaveBeenCalledWith("e1");
+  });
+
+  it("does not touch AI files when the event cannot be deleted", async () => {
+    mocks.requireEventOwner.mockResolvedValue({ event: { id: "e1", status: "PUBLISHED" } });
+    await deleteEvent("e1");
+    expect(mocks.removeAi).not.toHaveBeenCalled();
   });
 
   it("rejects poster paths outside the event folder", async () => {

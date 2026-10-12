@@ -3,10 +3,10 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Upload } from "lucide-react";
+import { Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
-import { createAiLogoUpload, finalizeAiLogo } from "@/app/organizer/events/[id]/certificate/ai/actions";
+import { createAiLogoUpload, deleteAiLogo, finalizeAiLogo } from "@/app/organizer/events/[id]/certificate/ai/actions";
 import { Button } from "@/components/ui/button";
 import { LOGO_CONTENT_TYPES, LOGO_INVALID_MESSAGE, LOGO_MAX_BYTES } from "@/lib/ai/generate-input";
 import { cn } from "cn";
@@ -61,6 +61,22 @@ function AiLogoPicker({ eventId, idPrefix, logos, value, onChange, disabled = fa
     }
   }
 
+  async function handleDelete() {
+    if (!value) return;
+    setBusy(true);
+    try {
+      const result = await deleteAiLogo(eventId, value);
+      if (result.error) throw new Error(result.error);
+      onChange(null);
+      toast.success("Logo dihapus.");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Logo belum bisa dihapus. Coba lagi.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <span id={`${idPrefix}-label`} className="text-sm font-medium">
@@ -111,6 +127,12 @@ function AiLogoPicker({ eventId, idPrefix, logos, value, onChange, disabled = fa
           <Upload aria-hidden="true" />
           {busy ? "Memproses..." : "Unggah logo"}
         </Button>
+        {value ? (
+          <Button type="button" variant="ghost" className="h-12 gap-2 px-3" disabled={blocked} onClick={() => void handleDelete()}>
+            <Trash2 aria-hidden="true" />
+            Hapus logo ini
+          </Button>
+        ) : null}
       </div>
       <p className="text-xs text-muted-foreground">
         PNG atau JPG, maksimal 2 MB, logo transparan disarankan. Logo tidak dikirim ke AI. Logo bisa diganti atau dihapus

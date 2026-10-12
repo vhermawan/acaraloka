@@ -105,6 +105,7 @@ export default async function CertificatePage({ params }: PageProps<"/organizer/
           initialLayout={config.layout}
           signers={signers.map((signer) => ({ name: signer.name, title: signer.title }))}
           locked={locked}
+          aiGenerated={hasBackground && config.aiGenerationId !== null}
           pageWidth={config.pageWidth}
           pageHeight={config.pageHeight}
           backgroundUrl={

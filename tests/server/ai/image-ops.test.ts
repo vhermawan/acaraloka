@@ -1,5 +1,3 @@
-import { randomBytes } from "node:crypto";
-
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 
@@ -14,6 +12,20 @@ import {
   readImageDimensions,
   sampleAverageColor,
 } from "@/server/ai/image-ops";
+
+const NOISE_TIMEOUT_MS = 60_000;
+
+function seededNoise(length: number, seed: number): Buffer {
+  const bytes = Buffer.alloc(length);
+  let state = seed >>> 0;
+  for (let index = 0; index < length; index += 1) {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let mixed = Math.imul(state ^ (state >>> 15), state | 1);
+    mixed ^= mixed + Math.imul(mixed ^ (mixed >>> 7), mixed | 61);
+    bytes[index] = ((mixed ^ (mixed >>> 14)) >>> 0) & 0xff;
+  }
+  return bytes;
+}
 
 async function solid(width: number, height: number, color: string, format: "png" | "jpeg" = "png") {
   const image = sharp({ create: { width, height, channels: 3, background: color } });
@@ -46,9 +58,9 @@ describe("normalizeCertificate", () => {
     expect(sample.b).toBeLessThan(60);
   });
 
-  it("lowers JPEG quality to fit the byte limit", async () => {
+  it("lowers JPEG quality to fit the byte limit", { timeout: NOISE_TIMEOUT_MS }, async () => {
     const noise = new Uint8Array(
-      await sharp(randomBytes(1200 * 850 * 3), { raw: { width: 1200, height: 850, channels: 3 } })
+      await sharp(seededNoise(1200 * 850 * 3, 1), { raw: { width: 1200, height: 850, channels: 3 } })
         .png()
         .toBuffer(),
     );
@@ -59,9 +71,9 @@ describe("normalizeCertificate", () => {
     expect(tight.bytes.byteLength).toBeLessThan(generous.bytes.byteLength);
   });
 
-  it("rejects an output that cannot fit the byte limit", async () => {
+  it("rejects an output that cannot fit the byte limit", { timeout: NOISE_TIMEOUT_MS }, async () => {
     const noise = new Uint8Array(
-      await sharp(randomBytes(800 * 566 * 3), { raw: { width: 800, height: 566, channels: 3 } })
+      await sharp(seededNoise(800 * 566 * 3, 2), { raw: { width: 800, height: 566, channels: 3 } })
         .png()
         .toBuffer(),
     );
@@ -195,9 +207,9 @@ describe("compositeLogo", () => {
     expect(leftEdge.r).toBeLessThan(30);
   });
 
-  it("fails when the result cannot fit the byte limit", async () => {
+  it("fails when the result cannot fit the byte limit", { timeout: NOISE_TIMEOUT_MS }, async () => {
     const noise = new Uint8Array(
-      await sharp(randomBytes(1200 * 850 * 3), { raw: { width: 1200, height: 850, channels: 3 } }).jpeg().toBuffer(),
+      await sharp(seededNoise(1200 * 850 * 3, 1), { raw: { width: 1200, height: 850, channels: 3 } }).jpeg().toBuffer(),
     );
     const logo = new Uint8Array(await sharp({ create: { width: 100, height: 100, channels: 3, background: "#000" } }).png().toBuffer());
     await expect(compositeLogo(noise, logo, slot, 1000)).rejects.toMatchObject({ code: "TOO_LARGE" });

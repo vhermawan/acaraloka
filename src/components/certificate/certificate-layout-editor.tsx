@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Tabs } from "@base-ui/react/tabs";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ExternalLink, Minus, Plus } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ExternalLink, Minus, Plus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { saveLayout } from "@/app/organizer/events/[id]/certificate/actions";
@@ -46,6 +46,7 @@ const LABEL_KEYS: LabelKey[] = ["heading", "recipientPrefix", "eventPrefix"];
 
 const INK_HEX = "#1c1c1f";
 const MUTED_HEX = "#616166";
+const MUTED_INK_PERCENT = 75;
 
 const FONT_ROLES = Object.keys(FONT_ROLE_LABELS) as FontRole[];
 
@@ -158,6 +159,7 @@ type CertificateLayoutEditorProps = {
   pageWidth: number;
   pageHeight: number;
   backgroundUrl: string | null;
+  aiGenerated?: boolean;
 };
 
 function CertificateLayoutEditor({
@@ -168,6 +170,7 @@ function CertificateLayoutEditor({
   pageWidth,
   pageHeight,
   backgroundUrl,
+  aiGenerated = false,
 }: CertificateLayoutEditorProps) {
   const [layout, setLayout] = useState(initialLayout);
   const [savedLayout, setSavedLayout] = useState(initialLayout);
@@ -179,6 +182,10 @@ function CertificateLayoutEditor({
   const customBackground = backgroundUrl !== null;
   const { theme } = layout;
   const accent = ACCENT_COLORS[theme.accent].hex;
+  const inkText = layout.inkColor ?? INK_HEX;
+  const inkMuted = layout.inkColor
+    ? `color-mix(in srgb, ${layout.inkColor} ${MUTED_INK_PERCENT}%, transparent)`
+    : MUTED_HEX;
   const headingFont = fontStyle(theme.fonts.heading, "bold");
   const nameFont = fontStyle(theme.fonts.name, "bold");
   const headingRegularFont = fontStyle(theme.fonts.heading, "regular");
@@ -264,6 +271,12 @@ function CertificateLayoutEditor({
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-8">
       <div className="flex flex-col gap-3">
+        {aiGenerated ? (
+          <span className="inline-flex w-fit items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs text-muted-foreground">
+            <Sparkles className="size-3.5" aria-hidden="true" />
+            Dibuat dengan AI
+          </span>
+        ) : null}
         <div
           className="relative w-full overflow-hidden rounded-md border border-border bg-white text-neutral-900 shadow-sm"
           style={{
@@ -358,7 +371,7 @@ function CertificateLayoutEditor({
                   top: `calc(${element.y * 100}% - ${offset}cqw)`,
                   transform: TRANSLATE[element.align],
                   fontSize: `${size * scale}cqw`,
-                  color: label.color ?? MUTED_HEX,
+                  color: label.color ?? inkMuted,
                   ...headingRegularFont,
                 }}
               >
@@ -385,7 +398,7 @@ function CertificateLayoutEditor({
                   top: `${element.y * 100}%`,
                   transform: TRANSLATE[element.align],
                   fontSize: `${element.fontSize * scale}cqw`,
-                  color: element.color ?? (key === "recipientName" || key === "eventTitle" ? INK_HEX : MUTED_HEX),
+                  color: element.color ?? (key === "recipientName" || key === "eventTitle" ? inkText : inkMuted),
                   ...(key === "recipientName" ? nameFont : key === "eventTitle" ? bodyBoldFont : bodyFont),
                 }}
               >
@@ -411,12 +424,20 @@ function CertificateLayoutEditor({
                   left: `${block.x * 100}%`,
                   top: `${block.y * 100}%`,
                   fontSize: `${block.fontSize * scale}cqw`,
+                  ...(layout.inkColor ? { color: inkText } : {}),
                   ...bodyFont,
                 }}
               >
-                <span className="w-full border-t border-neutral-500" />
+                <span
+                  className={cn("w-full border-t", layout.inkColor ? "border-current" : "border-neutral-500")}
+                />
                 <span className="truncate" style={bodyBoldFont}>{signer?.name ?? "Nama Penandatangan"}</span>
-                <span className="truncate text-neutral-600">{signer?.title ?? "Jabatan"}</span>
+                <span
+                  className={cn("truncate", !layout.inkColor && "text-neutral-600")}
+                  style={layout.inkColor ? { color: inkMuted } : undefined}
+                >
+                  {signer?.title ?? "Jabatan"}
+                </span>
               </button>
             );
           })}
@@ -439,8 +460,8 @@ function CertificateLayoutEditor({
             <span className="text-[1.2cqw] text-neutral-700">QR</span>
           </button>
           <p
-            className="pointer-events-none absolute bottom-[6%] left-1/2 -translate-x-1/2 text-neutral-600"
-            style={{ fontSize: `${8 * scale}cqw`, ...bodyFont }}
+            className={cn("pointer-events-none absolute bottom-[6%] left-1/2 -translate-x-1/2", !layout.inkColor && "text-neutral-600")}
+            style={{ fontSize: `${8 * scale}cqw`, ...(layout.inkColor ? { color: inkMuted } : {}), ...bodyFont }}
           >
             {CERTIFICATE_CREDIT}
           </p>

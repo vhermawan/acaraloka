@@ -46,6 +46,8 @@ export default async function AiCertificatePage({ params }: PageProps<"/organize
           defaults={overview.defaults}
           results={overview.results}
           logos={overview.logos}
+          design={overview.design}
+          reportAvailable={overview.reportAvailable}
         />
       )}
     </div>
