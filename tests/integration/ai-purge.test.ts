@@ -2,6 +2,8 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { PrismaClient } from "@/generated/prisma/client";
+import { aiDesignBriefSchema } from "@/lib/ai/design-brief";
+import { presetBriefFor } from "@/lib/ai/style-presets";
 
 const store = vi.hoisted(() => new Map<string, string>());
 
@@ -9,6 +11,9 @@ vi.mock("@/server/storage", () => {
   const key = (bucket: string, path: string) => `${bucket}/${path}`;
   return {
     AI_BUCKET: "ai-generations",
+    CERTIFICATE_BACKGROUND_BUCKET: "certificate-backgrounds",
+    downloadObject: async () => new Uint8Array(),
+    uploadObject: async () => undefined,
     listObjects: async (bucket: string, prefix: string) =>
       [...store.keys()].filter((entry) => entry.startsWith(`${bucket}/${prefix.replace(/\/+$/, "")}/`)).map((entry) => entry.slice(bucket.length + 1)),
     removeObjects: async (bucket: string, paths: string[]) => {
@@ -20,6 +25,7 @@ vi.mock("@/server/storage", () => {
 vi.mock("@/server/error-log", () => ({ recordError: async () => undefined }));
 
 const { purgeAiArtifacts } = await import("@/server/ai/purge");
+const { applyAiDesign } = await import("@/server/ai/apply-design");
 
 const runId = `itpg${Date.now()}`;
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL!, max: 4 }) });
@@ -137,5 +143,29 @@ describe("purgeAiArtifacts against Postgres", () => {
     expect(filesOf(eventId)).toHaveLength(3);
     expect((await db.aiGeneration.findUniqueOrThrow({ where: { id: genId } })).purgedAt).toBeNull();
     await db.certificateConfig.delete({ where: { eventId } });
+  });
+
+  it("refuses to apply a result that purge already claimed and leaves the config untouched", async () => {
+    const eventId = await createEvent(40);
+    const brief = aiDesignBriefSchema.parse(presetBriefFor("minimal", null));
+    const generation = await db.aiGeneration.create({
+      data: {
+        eventId,
+        userId,
+        kind: "CERTIFICATE",
+        status: "SUCCEEDED",
+        input: {},
+        brief,
+        promptVersion: "test",
+        resultPaths: [`events/${eventId}/cert-x.jpg`],
+        purgedAt: new Date(),
+      },
+    });
+    const before = await db.certificateConfig.findUnique({ where: { eventId } });
+
+    expect(await applyAiDesign(eventId, generation.id, null, {}, db)).toMatchObject({ ok: false, reason: "NOT_AVAILABLE" });
+
+    expect(await db.certificateConfig.findUnique({ where: { eventId } })).toEqual(before);
+    expect((await db.aiGeneration.findUniqueOrThrow({ where: { id: generation.id } })).firstUsedAt).toBeNull();
   });
 });
