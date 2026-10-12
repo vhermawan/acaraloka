@@ -43,11 +43,12 @@ const percent = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 });
 
 export default async function AdminAiPage() {
   await requireAdmin();
-  const [summary, generations, allowlist] = await Promise.all([
+  const [summary, recent, allowlist] = await Promise.all([
     getAdminAiSummary(),
     listRecentAiGenerations(),
     listAiAllowlist(),
   ]);
+  const { rows: generations, thumbsFailed } = recent;
 
   return (
     <div className="flex flex-col gap-8">
@@ -62,6 +63,9 @@ export default async function AdminAiPage() {
             {summary.trialEndsOn ? `, trial berakhir ${summary.trialEndsOn}` : ""}
           </span>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Dijeda otomatis bila sisa cap tidak cukup untuk satu generate, jadi status bisa Dijeda sebelum biaya mencapai 100%.
+        </p>
       </header>
 
       <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2">
@@ -124,6 +128,7 @@ export default async function AdminAiPage() {
         <h2 id="ai-generations-heading" className="text-lg font-semibold">
           50 generate terbaru
         </h2>
+        {thumbsFailed ? <p className="text-sm text-muted-foreground">Thumbnail gagal dimuat.</p> : null}
         {generations.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
             Belum ada generate AI.

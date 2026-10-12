@@ -32,7 +32,7 @@ beforeEach(() => {
     todayCount: 0,
     globalDailyLimit: 40,
   });
-  mocks.listRecentAiGenerations.mockResolvedValue([]);
+  mocks.listRecentAiGenerations.mockResolvedValue({ rows: [], thumbsFailed: false });
   mocks.listAiAllowlist.mockResolvedValue([]);
 });
 

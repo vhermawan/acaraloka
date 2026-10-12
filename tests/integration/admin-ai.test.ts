@@ -114,7 +114,7 @@ describe("getAdminAiSummary", () => {
 
 describe("listRecentAiGenerations", () => {
   it("returns newest first with account, event, used and reported flags", async () => {
-    const rows = (await listRecentAiGenerations(db)).filter((row) => row.userEmail.startsWith(runId));
+    const rows = (await listRecentAiGenerations(db)).rows.filter((row) => row.userEmail.startsWith(runId));
     expect(rows.map((row) => row.costUsd)).toEqual([0.3, 0.2, 0.1, 0.9]);
     expect(rows[0]).toMatchObject({ reported: true, used: false, eventTitle: `Acara ${runId}`, thumbUrl: null });
     expect(rows[1]).toMatchObject({ used: true, reported: false });
@@ -122,7 +122,7 @@ describe("listRecentAiGenerations", () => {
   });
 
   it("never returns more than 50 rows", async () => {
-    expect((await listRecentAiGenerations(db)).length).toBeLessThanOrEqual(50);
+    expect((await listRecentAiGenerations(db)).rows.length).toBeLessThanOrEqual(50);
   });
 });
 

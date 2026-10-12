@@ -7,6 +7,7 @@ import { env, getAiLimits } from "@/lib/env";
 import { countGlobalToday, isCapReached } from "@/server/ai-quota";
 import { prisma } from "@/server/db";
 import { AI_BUCKET, createSignedUrls } from "@/server/storage";
+import { reportCleanupFailure } from "@/server/storage-cleanup";
 
 export const ADMIN_AI_RECENT_LIMIT = 50;
 export const ADMIN_AI_THUMB_TTL_SECONDS = 300;
@@ -76,16 +77,21 @@ export type AdminAiGenerationRow = {
 
 async function signThumbs(rows: { id: string; eventId: string | null; status: string; purgedAt: Date | null }[]) {
   const targets = rows.filter((row) => row.status === "SUCCEEDED" && row.eventId && !row.purgedAt);
+  if (targets.length === 0) return { urls: new Map<string, string | null>(), failed: false };
   const paths = targets.map((row) => aiThumbPath(row.eventId as string, row.id));
   try {
     const signed = await createSignedUrls(AI_BUCKET, paths, ADMIN_AI_THUMB_TTL_SECONDS);
-    return new Map(targets.map((row) => [row.id, signed.get(aiThumbPath(row.eventId as string, row.id)) ?? null]));
-  } catch {
-    return new Map<string, string | null>();
+    return {
+      urls: new Map(targets.map((row) => [row.id, signed.get(aiThumbPath(row.eventId as string, row.id)) ?? null])),
+      failed: false,
+    };
+  } catch (error) {
+    await reportCleanupFailure("admin.ai.thumbs", error, { bucket: AI_BUCKET });
+    return { urls: new Map<string, string | null>(), failed: true };
   }
 }
 
-export async function listRecentAiGenerations(db: PrismaClient = prisma): Promise<AdminAiGenerationRow[]> {
+export async function listRecentAiGenerations(db: PrismaClient = prisma): Promise<{ rows: AdminAiGenerationRow[]; thumbsFailed: boolean }> {
   const rows = await db.aiGeneration.findMany({
     orderBy: { createdAt: "desc" },
     take: ADMIN_AI_RECENT_LIMIT,
@@ -106,7 +112,7 @@ export async function listRecentAiGenerations(db: PrismaClient = prisma): Promis
   });
   const thumbs = await signThumbs(rows);
 
-  return rows.map((row) => ({
+  const mapped = rows.map((row) => ({
     id: row.id,
     createdAt: row.createdAt,
     eventTitle: row.event?.title ?? null,
@@ -116,10 +122,11 @@ export async function listRecentAiGenerations(db: PrismaClient = prisma): Promis
     status: row.status,
     failureCode: row.failureCode,
     costUsd: row.costMicros / 1_000_000,
-    thumbUrl: thumbs.get(row.id) ?? null,
+    thumbUrl: thumbs.urls.get(row.id) ?? null,
     used: row.firstUsedAt !== null,
     reported: row.reportedAt !== null,
   }));
+  return { rows: mapped, thumbsFailed: thumbs.failed };
 }
 
 export type AdminAiAllowlistRow = {
