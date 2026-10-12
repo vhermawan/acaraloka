@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   remove: vi.fn(),
   prune: vi.fn(),
   removeAi: vi.fn(),
+  reportCleanupFailure: vi.fn(async () => undefined),
   create: vi.fn(),
   count: vi.fn(),
   updateMany: vi.fn(),
@@ -36,7 +37,10 @@ vi.mock("@/server/storage", () => ({
   createSignedUploadUrl: mocks.signedUpload,
   removeObjects: async () => undefined,
 }));
-vi.mock("@/server/storage-cleanup", () => ({ removeObjectsQuietly: async () => undefined }));
+vi.mock("@/server/storage-cleanup", () => ({
+  removeObjectsQuietly: async () => undefined,
+  reportCleanupFailure: mocks.reportCleanupFailure,
+}));
 vi.mock("@/server/cancellation", () => ({ cancelEvent: mocks.cancelEvent }));
 vi.mock("@/server/email-schedule", () => ({ scheduleEmailDrain: mocks.scheduleEmailDrain }));
 vi.mock("@/server/certificate-config", () => ({ pruneCertificateBackgrounds: mocks.prune }));
@@ -69,6 +73,7 @@ const validForm = {
 beforeEach(() => {
   vi.clearAllMocks();
   for (const mock of [mocks.update, mocks.remove, mocks.create, mocks.count, mocks.cancelEvent]) mock.mockReset();
+  mocks.removeAi.mockReset();
   mocks.signedUpload.mockImplementation(async (_bucket: string, path: string) => `https://storage.test/${path}?token=t`);
 });
 
@@ -194,6 +199,16 @@ describe("deleteEvent failures", () => {
     mocks.remove.mockRejectedValue(failure);
     expect(await deleteEvent("e1")).toEqual({ error: ACTION_ERROR_MESSAGE });
     expect(mocks.recordError).toHaveBeenCalledWith({ source: "action.deleteEvent", error: failure });
+  });
+
+  it("still redirects and only reports when post-delete cleanup throws", async () => {
+    const failure = new Error("storage down");
+    mocks.requireEventOwner.mockResolvedValue({ event: { id: "e1", status: "DRAFT", posterPath: null } });
+    mocks.remove.mockResolvedValue(undefined);
+    mocks.removeAi.mockRejectedValue(failure);
+    await expect(deleteEvent("e1")).rejects.toThrow("REDIRECT:/organizer");
+    expect(mocks.reportCleanupFailure).toHaveBeenCalledWith("event.delete.cleanup", failure, { eventId: "e1" });
+    expect(mocks.recordError).not.toHaveBeenCalled();
   });
 
   it("does not log the redirect after a successful delete", async () => {

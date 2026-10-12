@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
@@ -128,6 +128,12 @@ const routeHandlers = routeFiles.flatMap((file) =>
 );
 
 describe("authorization inventory", () => {
+  it("only references test files that exist", () => {
+    const referenced = [...new Set(doc.match(/tests\/[\w./-]+\.test\.ts/g) ?? [])];
+    expect(referenced.length).toBeGreaterThan(0);
+    for (const file of referenced) expect(existsSync(join(root, file)), file).toBe(true);
+  });
+
   it("keeps every server action file under src/actions", () => {
     expect(stray).toEqual([]);
   });

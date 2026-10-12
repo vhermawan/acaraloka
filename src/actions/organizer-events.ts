@@ -20,7 +20,7 @@ import { setFlash } from "@/server/flash";
 import { scheduleEmailDrain } from "@/server/email-schedule";
 import { prisma } from "@/server/db";
 import { POSTER_BUCKET, createSignedUploadUrl } from "@/server/storage";
-import { removeObjectsQuietly } from "@/server/storage-cleanup";
+import { removeObjectsQuietly, reportCleanupFailure } from "@/server/storage-cleanup";
 import { removeAiEventArtifacts } from "@/server/ai/artifacts";
 import { pruneCertificateBackgrounds } from "@/server/certificate-config";
 
@@ -96,9 +96,13 @@ export async function deleteEvent(eventId: string): Promise<{ error?: string }> 
     if (event.status !== "DRAFT") return { error: "Hanya acara draf yang bisa dihapus." };
 
     await prisma.event.delete({ where: { id: event.id } });
-    if (event.posterPath) await removeObjectsQuietly("event.delete.poster", POSTER_BUCKET, [event.posterPath]);
-    await pruneCertificateBackgrounds(event.id, null);
-    await removeAiEventArtifacts(event.id);
+    try {
+      if (event.posterPath) await removeObjectsQuietly("event.delete.poster", POSTER_BUCKET, [event.posterPath]);
+      await pruneCertificateBackgrounds(event.id, null);
+      await removeAiEventArtifacts(event.id);
+    } catch (error) {
+      await reportCleanupFailure("event.delete.cleanup", error, { eventId: event.id });
+    }
 
     revalidatePath("/organizer", "layout");
     redirect("/organizer");
