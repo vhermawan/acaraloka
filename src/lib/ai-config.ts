@@ -33,6 +33,7 @@ export const AI_DENIAL_MESSAGES = {
   DAILY_LIMIT: `Batas ${AI_QUOTA.perAccountDay} desain AI per hari sudah tercapai. Coba lagi besok mulai pukul 00.00 WIB.`,
   CAP: "Fitur AI sedang dijeda sementara karena kapasitas bulan ini sudah penuh. Kamu tetap bisa memakai template bawaan atau upload latar sendiri.",
   GLOBAL_DAILY: "Kapasitas AI hari ini sudah penuh. Kuota tidak berkurang. Coba lagi besok.",
+  IDEMPOTENCY_MISMATCH: "Permintaan tidak valid. Muat ulang halaman lalu coba lagi.",
   LOCKED: "Desain sudah terkunci karena ada tanda tangan. Buka kunci di langkah 01 untuk membuat desain baru.",
 } as const;
 

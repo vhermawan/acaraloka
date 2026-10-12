@@ -185,6 +185,27 @@ describe("reserveGeneration per event and kind", () => {
   });
 });
 
+describe("reserveGeneration idempotency scope", () => {
+  it("refuses a key that belongs to another event or kind", async () => {
+    const user = await createUser("idem-scope");
+    const eventA = await createEvent("PUBLISHED", user);
+    const eventB = await createEvent("PUBLISHED", user);
+    const base = { userId: user, input: { style: "x" }, promptVersion: "test", idempotencyKey: "shared" };
+    const first = await reserveGeneration({ ...base, eventId: eventA, kind: "CERTIFICATE" }, { db, limits: roomyLimits });
+    expect(first).toMatchObject({ ok: true });
+
+    expect(await reserveGeneration({ ...base, eventId: eventB, kind: "CERTIFICATE" }, { db, limits: roomyLimits })).toMatchObject({
+      ok: false,
+      reason: "IDEMPOTENCY_MISMATCH",
+    });
+    expect(await reserveGeneration({ ...base, eventId: eventA, kind: "POSTER" }, { db, limits: roomyLimits })).toMatchObject({
+      ok: false,
+      reason: "IDEMPOTENCY_MISMATCH",
+    });
+    expect(await db.aiGeneration.count({ where: { eventId: eventB } })).toBe(0);
+  });
+});
+
 describe("reserveGeneration other limits", () => {
   it("caps an account at 15 per WIB day across events under parallel load", async () => {
     const user = await createUser("daily");
@@ -262,6 +283,7 @@ describe("reserveGeneration other limits", () => {
         status: "RUNNING",
         input: {},
         promptVersion: "test",
+        estCostMicros: EST,
         startedAt: new Date(Date.now() - 10 * 60_000),
       },
     });
@@ -270,7 +292,8 @@ describe("reserveGeneration other limits", () => {
     const swept = await db.aiGeneration.findUniqueOrThrow({ where: { id: stale.id } });
 
     expect(result).toMatchObject({ ok: true });
-    expect(swept).toMatchObject({ status: "FAILED", failureCode: "STALE" });
+    expect(swept).toMatchObject({ status: "FAILED", failureCode: "STALE", costMicros: stale.estCostMicros });
+    expect(swept.costMicros).toBeGreaterThan(0);
     expect(swept.finishedAt).not.toBeNull();
   });
 });

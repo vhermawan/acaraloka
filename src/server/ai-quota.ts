@@ -25,11 +25,19 @@ export type AiDb = PrismaClient | Prisma.TransactionClient;
 const COUNTED_STATUSES = ["SUCCEEDED", "RUNNING"] as const;
 
 export async function sweepStaleGenerations(db: AiDb, now: Date = new Date()) {
-  const result = await db.aiGeneration.updateMany({
+  const stale = await db.aiGeneration.findMany({
     where: { status: "RUNNING", startedAt: { lt: new Date(now.getTime() - AI_STALE_AFTER_MS) } },
-    data: { status: "FAILED", failureCode: "STALE", finishedAt: now },
+    select: { id: true, estCostMicros: true },
   });
-  return result.count;
+  let swept = 0;
+  for (const row of stale) {
+    const result = await db.aiGeneration.updateMany({
+      where: { id: row.id, status: "RUNNING" },
+      data: { status: "FAILED", failureCode: "STALE", finishedAt: now, costMicros: row.estCostMicros },
+    });
+    swept += result.count;
+  }
+  return swept;
 }
 
 export async function monthlySpendMicros(db: AiDb, now: Date) {
@@ -117,8 +125,11 @@ export async function reserveGeneration(input: ReserveInput, options: ReserveOpt
         if (input.idempotencyKey) {
           const existing = await tx.aiGeneration.findUnique({
             where: { userId_idempotencyKey: { userId: input.userId, idempotencyKey: input.idempotencyKey } },
-            select: { id: true, estCostMicros: true },
+            select: { id: true, estCostMicros: true, eventId: true, kind: true },
           });
+          if (existing && (existing.eventId !== input.eventId || existing.kind !== input.kind)) {
+            return denied("IDEMPOTENCY_MISMATCH");
+          }
           if (existing) {
             return { ok: true, generationId: existing.id, estCostMicros: existing.estCostMicros, reused: true };
           }
