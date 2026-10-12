@@ -7,11 +7,13 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("next/navigation", () => ({
+vi.mock("next/navigation", async () => ({
+  ...(await import("../mocks/next-navigation")).nextNavigationMock,
   notFound: () => {
     throw new Error("NOT_FOUND_PAGE");
   },
 }));
+vi.mock("@/server/error-log", () => ({ recordError: vi.fn(async () => undefined) }));
 vi.mock("@/server/authz", () => ({ requireAdmin: mocks.requireAdmin }));
 vi.mock("@/server/admin-organizers", () => ({
   listAdminOrganizers: mocks.listAdminOrganizers,

@@ -15,7 +15,7 @@ import { safeRedirectPath } from "@/lib/safe-redirect";
 import { getSession } from "@/lib/session";
 import { hasAcceptedCurrentTerms } from "@/server/authz";
 
-import { acceptTerms } from "./actions";
+import { acceptTerms } from "@/actions/legal";
 
 export const metadata: Metadata = {
   title: "Persetujuan",

@@ -6,7 +6,7 @@ import { Circle, CircleCheck } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "cn";
 
-import { publishEvent } from "@/app/organizer/events/actions";
+import { publishEvent } from "@/actions/organizer-events";
 import { Button } from "@/components/ui/button";
 import type { PublishRequirement } from "@/lib/event-publish";
 

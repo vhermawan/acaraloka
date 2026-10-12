@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TERMS_VERSION } from "@/lib/legal";
 
 const mocks = vi.hoisted(() => ({
+  recordError: vi.fn(async () => undefined),
   getSession: vi.fn(),
   findOrganizer: vi.fn(),
   findEvent: vi.fn(),
@@ -16,16 +17,10 @@ function recorded() {
   });
 }
 
+vi.mock("next/navigation", async () => (await import("../mocks/next-navigation")).nextNavigationMock);
+vi.mock("@/server/error-log", () => ({ recordError: mocks.recordError }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/flash", () => ({ setFlash: vi.fn() }));
-vi.mock("next/navigation", () => ({
-  redirect: (url: string) => {
-    throw new Error(`REDIRECT:${url}`);
-  },
-  notFound: () => {
-    throw new Error("NOT_FOUND");
-  },
-}));
 vi.mock("@/lib/session", () => ({ getSession: mocks.getSession }));
 vi.mock("@/server/db", () => ({
   prisma: new Proxy(
@@ -74,20 +69,20 @@ vi.mock("@/server/registration", () => ({ createRegistration: recorded() }));
 vi.mock("@/server/public-event", () => ({ getPublicEvent: recorded() }));
 vi.mock("@/server/registration-form", () => ({ getRegistrationFields: recorded() }));
 
-const eventActions = await import("@/app/organizer/events/actions");
-const ticketActions = await import("@/app/organizer/events/[id]/tickets/actions");
-const formActions = await import("@/app/organizer/events/[id]/form/actions");
-const participantActions = await import("@/app/organizer/events/[id]/participants/actions");
-const checkinActions = await import("@/app/organizer/events/[id]/checkin/actions");
-const certificateActions = await import("@/app/organizer/events/[id]/certificate/actions");
-const aiActions = await import("@/app/organizer/events/[id]/certificate/ai/actions");
-const adminActions = await import("@/app/admin/events/actions");
-const adminUserActions = await import("@/app/admin/users/actions");
-const adminEmailActions = await import("@/app/admin/email/actions");
-const myTicketActions = await import("@/app/me/tickets/[id]/actions");
-const registerActions = await import("@/app/e/[slug]/register/actions");
-const organizerRegisterActions = await import("@/app/organizer/register/actions");
-const legalActions = await import("@/app/legal/accept/actions");
+const eventActions = await import("@/actions/organizer-events");
+const ticketActions = await import("@/actions/event-tickets");
+const formActions = await import("@/actions/event-form");
+const participantActions = await import("@/actions/event-participants");
+const checkinActions = await import("@/actions/event-checkin");
+const certificateActions = await import("@/actions/event-certificate");
+const aiActions = await import("@/actions/event-certificate-ai");
+const adminActions = await import("@/actions/admin-events");
+const adminUserActions = await import("@/actions/admin-users");
+const adminEmailActions = await import("@/actions/admin-email");
+const myTicketActions = await import("@/actions/my-tickets");
+const registerActions = await import("@/actions/event-registration");
+const organizerRegisterActions = await import("@/actions/organizer-register");
+const legalActions = await import("@/actions/legal");
 
 type Call = [string, () => Promise<unknown>];
 

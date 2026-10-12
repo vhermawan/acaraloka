@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Info } from "lucide-react";
 import { toast } from "sonner";
 
-import { issueEventCertificates } from "@/app/organizer/events/[id]/certificate/actions";
+import { issueEventCertificates } from "@/actions/event-certificate";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

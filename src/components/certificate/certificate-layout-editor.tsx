@@ -5,7 +5,7 @@ import { Tabs } from "@base-ui/react/tabs";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ExternalLink, Minus, Plus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
-import { saveLayout } from "@/app/organizer/events/[id]/certificate/actions";
+import { saveLayout } from "@/actions/event-certificate";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { WEB_FONTS } from "@/components/certificate/certificate-web-fonts";

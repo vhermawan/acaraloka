@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MapPin } from "lucide-react";
 
-import { getPlaceAddress, searchPlaces } from "@/app/organizer/events/place-actions";
+import { getPlaceAddress, searchPlaces } from "@/actions/places";
 import { Input } from "@/components/ui/input";
 
 const DEBOUNCE_MS = 300;

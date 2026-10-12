@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { applyAiGeneration, reportAiGeneration } from "@/app/organizer/events/[id]/certificate/ai/actions";
+import { applyAiGeneration, reportAiGeneration } from "@/actions/event-certificate-ai";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

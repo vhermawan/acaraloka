@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
-import type { AiAllowlistState } from "@/app/admin/ai/actions";
+import type { AiAllowlistState } from "@/actions/admin-ai";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";

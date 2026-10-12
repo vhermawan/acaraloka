@@ -4,7 +4,7 @@ import { useActionState, useEffect } from "react";
 import { toast } from "sonner";
 import { cn } from "cn";
 
-import type { TicketFormState } from "@/app/organizer/events/[id]/tickets/actions";
+import type { TicketFormState } from "@/actions/event-tickets";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";

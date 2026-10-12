@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { cancelEventAction, updateEvent } from "@/app/organizer/events/actions";
+import { cancelEventAction, updateEvent } from "@/actions/organizer-events";
 import { CancelEventDialog } from "@/components/events/cancel-event-dialog";
 import { DeleteEventButton } from "@/components/events/delete-event-button";
 import { EventForm } from "@/components/events/event-form";

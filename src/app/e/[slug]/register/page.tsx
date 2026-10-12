@@ -11,7 +11,7 @@ import { prisma } from "@/server/db";
 import { getPublicEvent } from "@/server/public-event";
 import { getRegistrationFields } from "@/server/registration-form";
 
-import { registerForEvent } from "./actions";
+import { registerForEvent } from "@/actions/event-registration";
 
 export const metadata: Metadata = {
   title: "Daftar acara",

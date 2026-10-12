@@ -13,7 +13,7 @@ vi.mock("@/server/admin-ai", () => ({
   listRecentAiGenerations: mocks.listRecentAiGenerations,
   listAiAllowlist: mocks.listAiAllowlist,
 }));
-vi.mock("@/app/admin/ai/actions", () => ({
+vi.mock("@/actions/admin-ai", () => ({
   addAiAllowlistAction: vi.fn(),
   removeAiAllowlistAction: vi.fn(),
 }));

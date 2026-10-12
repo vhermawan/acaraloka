@@ -9,7 +9,7 @@ import {
   emailSignerLink,
   regenerateLink,
   type SignerFormState,
-} from "@/app/organizer/events/[id]/certificate/actions";
+} from "@/actions/event-certificate";
 import { ConfirmActionButton } from "@/components/events/confirm-action-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

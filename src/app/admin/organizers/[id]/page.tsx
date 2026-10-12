@@ -22,7 +22,7 @@ import { formatEventDateTime } from "@/lib/timezone";
 import { getAdminOrganizerDetail } from "@/server/admin-organizers";
 import { requireAdmin } from "@/server/authz";
 
-import { disableUserAction, enableUserAction } from "../../users/actions";
+import { disableUserAction, enableUserAction } from "@/actions/admin-users";
 
 export const metadata: Metadata = {
   title: "Detail panitia",

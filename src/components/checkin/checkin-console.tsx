@@ -9,7 +9,7 @@ import {
   checkInByCode,
   checkInByRegistration,
   undoParticipantCheckIn,
-} from "@/app/organizer/events/[id]/checkin/actions";
+} from "@/actions/event-checkin";
 import { CheckInResultOverlay, VALID_AUTO_DISMISS_MS } from "@/components/checkin/checkin-result-overlay";
 import { CheckInSearch } from "@/components/checkin/checkin-search";
 import { playFeedback, unlockAudio } from "@/components/checkin/checkin-feedback";

@@ -1,10 +1,11 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
 const appDir = join(root, "src/app");
+const actionsDir = join(root, "src/actions");
 const doc = readFileSync(join(root, "docs/security/authorization.md"), "utf8");
 
 function walk(dir: string): string[] {
@@ -13,12 +14,17 @@ function walk(dir: string): string[] {
   );
 }
 
-const files = walk(appDir).map((file) => relative(root, file));
+const appFiles = walk(appDir).map((file) => relative(root, file));
+const actionDirFiles = walk(actionsDir).map((file) => relative(root, file));
+const files = [...appFiles, ...actionDirFiles];
 const read = (file: string) => readFileSync(join(root, file), "utf8");
 
-const actionFiles = files.filter((file) => /\.tsx?$/.test(file) && /^\s*["']use server["']/.test(read(file)));
-const routeFiles = files.filter((file) => file.endsWith("/route.ts"));
-const pageFiles = files.filter((file) => file.endsWith("/page.tsx"));
+const isUseServer = (file: string) => /\.tsx?$/.test(file) && /^\s*["']use server["']/.test(read(file));
+const actionFiles = actionDirFiles.filter(isUseServer);
+const stray = appFiles.filter(isUseServer);
+const ACTION_RUNNERS = new Set(["runAction", "runLoggedAction"]);
+const routeFiles = appFiles.filter((file) => file.endsWith("/route.ts"));
+const pageFiles = appFiles.filter((file) => file.endsWith("/page.tsx"));
 const protectedPages = pageFiles.filter((file) => /^src\/app\/(me|organizer|admin)\//.test(file));
 
 const GUARD_PATTERN = /require(Participant|Organizer|EventOwner|Admin|User)\(/;
@@ -89,6 +95,11 @@ function firstAwaitedCall(body: ts.Node | undefined): string | null {
   let result: string | null = null;
   const visit = (node: ts.Node) => {
     if (result !== null) return;
+    if (ts.isCallExpression(node) && ACTION_RUNNERS.has(calleeName(node))) {
+      const callback = node.arguments[node.arguments.length - 1];
+      if (ts.isArrowFunction(callback)) ts.forEachChild(callback.body, visit);
+      return;
+    }
     if (ts.isAwaitExpression(node) && ts.isCallExpression(node.expression)) {
       result = calleeName(node.expression);
       return;
@@ -117,6 +128,29 @@ const routeHandlers = routeFiles.flatMap((file) =>
 );
 
 describe("authorization inventory", () => {
+  it("only references test files that exist", () => {
+    const referenced = [...new Set(doc.match(/tests\/[\w./-]+\.test\.ts/g) ?? [])];
+    expect(referenced.length).toBeGreaterThan(0);
+    for (const file of referenced) expect(existsSync(join(root, file)), file).toBe(true);
+  });
+
+  it("keeps every server action file under src/actions", () => {
+    expect(stray).toEqual([]);
+  });
+
+  it.each(actions.map((action) => [`${action.file}#${action.name}`, action] as const))(
+    "%s runs inside the shared error handler",
+    (_label, action) => {
+      let wrapped = false;
+      const visit = (node: ts.Node) => {
+        if (ts.isCallExpression(node) && ACTION_RUNNERS.has(calleeName(node))) wrapped = true;
+        ts.forEachChild(node, visit);
+      };
+      if (action.body) visit(action.body);
+      expect(wrapped).toBe(true);
+    },
+  );
+
   it("finds the files and exports it is supposed to audit", () => {
     expect(actionFiles.length).toBeGreaterThan(0);
     expect(actions.length).toBeGreaterThanOrEqual(actionRows.length);

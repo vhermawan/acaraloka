@@ -25,7 +25,7 @@ import { formatDateTime } from "@/lib/format";
 import { parsePage } from "@/lib/participants";
 import { getEmailOverview, listEmailOutbox } from "@/server/admin-email";
 import { requireAdmin } from "@/server/authz";
-import { drainQueueAction } from "./actions";
+import { drainQueueAction } from "@/actions/admin-email";
 
 export const metadata: Metadata = {
   title: "Email",

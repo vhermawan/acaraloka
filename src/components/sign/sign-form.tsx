@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { declineSigning, submitSignature } from "@/app/sign/[token]/actions";
+import { declineSigning, submitSignature } from "@/actions/signing";
 import { SignaturePad, type SignaturePadHandle } from "@/components/sign/signature-pad";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";

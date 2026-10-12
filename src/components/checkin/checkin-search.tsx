@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { searchParticipants } from "@/app/organizer/events/[id]/checkin/actions";
+import { searchParticipants } from "@/actions/event-checkin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 

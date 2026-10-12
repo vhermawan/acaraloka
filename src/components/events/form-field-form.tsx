@@ -4,7 +4,7 @@ import { useActionState, useEffect } from "react";
 import { useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
-import type { FormFieldState } from "@/app/organizer/events/[id]/form/actions";
+import type { FormFieldState } from "@/actions/event-form";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";

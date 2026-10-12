@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { cancelParticipant } from "@/app/organizer/events/[id]/participants/actions";
+import { cancelParticipant } from "@/actions/event-participants";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

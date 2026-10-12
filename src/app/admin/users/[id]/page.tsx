@@ -29,7 +29,7 @@ import { formatEventDateTime } from "@/lib/timezone";
 import { getAdminUserDetail } from "@/server/admin-users";
 import { requireAdmin } from "@/server/authz";
 
-import { disableUserAction, enableUserAction } from "../actions";
+import { disableUserAction, enableUserAction } from "@/actions/admin-users";
 
 export const metadata: Metadata = {
   title: "Detail pengguna",

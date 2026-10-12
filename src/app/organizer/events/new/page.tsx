@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { createEvent } from "@/app/organizer/events/actions";
+import { createEvent } from "@/actions/organizer-events";
 import { EventForm } from "@/components/events/event-form";
 import { requireOrganizer } from "@/server/authz";
 import { placesEnabled } from "@/server/places";
