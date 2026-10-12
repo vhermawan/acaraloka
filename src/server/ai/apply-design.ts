@@ -72,7 +72,11 @@ export async function applyAiDesign(
   try {
     const [original, logo] = await Promise.all([
       downloadObject(AI_BUCKET, sourcePath),
-      logoPath ? downloadObject(AI_BUCKET, logoPath) : Promise.resolve(null),
+      logoPath
+        ? downloadObject(AI_BUCKET, logoPath).catch(() => {
+            throw new Abort("INVALID");
+          })
+        : Promise.resolve(null),
     ]);
     const slot = LAYOUT_PRESETS[brief.data.layoutPreset].logoSlot;
     const bytes = logo ? await compositeLogo(original, logo, slot, BACKGROUND_MAX_BYTES) : original;
@@ -97,8 +101,14 @@ export async function applyAiDesign(
 
         const current = await tx.certificateConfig.findUnique({
           where: { eventId },
-          select: { aiGenerationId: true, layout: true },
+          select: { aiGenerationId: true, layout: true, templateSource: true, backgroundPath: true },
         });
+        const replaces =
+          current?.templateSource === "UPLOAD" &&
+          current.backgroundPath !== null &&
+          current.aiGenerationId !== generationId;
+        if (replaces && !options.confirmReplace) throw new Abort("NEEDS_CONFIRM");
+
         const data: Prisma.CertificateConfigUncheckedUpdateManyInput = {
           templateSource: "UPLOAD",
           backgroundPath: targetPath,

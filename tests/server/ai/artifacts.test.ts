@@ -41,6 +41,15 @@ describe("countEventLogos", () => {
     expect(await countEventLogos("ev1")).toBe(2);
     expect(mocks.listObjectEntries).toHaveBeenCalledWith("ai-generations", "events/ev1");
   });
+
+  it("also counts pending raw uploads when asked", async () => {
+    mocks.listObjectEntries.mockResolvedValue([
+      { path: "events/ev1/logo-aaaaaaaaaaaaaaaa.png", createdAt: null },
+      { path: "events/ev1/upload-cccccccccccccccc.png", createdAt: null },
+      { path: "events/ev2/upload-dddddddddddddddd.png", createdAt: null },
+    ]);
+    expect(await countEventLogos("ev1", { includePending: true })).toBe(2);
+  });
 });
 
 describe("sweepOrphanUploads", () => {

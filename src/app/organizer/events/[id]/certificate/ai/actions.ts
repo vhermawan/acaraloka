@@ -59,7 +59,9 @@ export async function createAiLogoUpload(
     return { error: LOGO_INVALID_MESSAGE };
   }
   await sweepOrphanUploads(event.id);
-  if ((await countEventLogos(event.id)) >= AI_LOGO_LIMIT) return { error: AI_LOGO_LIMIT_MESSAGE };
+  if ((await countEventLogos(event.id, { includePending: true })) >= AI_LOGO_LIMIT) {
+    return { error: AI_LOGO_LIMIT_MESSAGE };
+  }
   const extension = LOGO_CONTENT_TYPES[file.contentType as keyof typeof LOGO_CONTENT_TYPES];
   const path = aiRawLogoPath(event.id, randomBytes(8).toString("hex"), extension);
   const uploadUrl = await createSignedUploadUrl(AI_BUCKET, path);

@@ -206,6 +206,11 @@ describe("createAiLogoUpload", () => {
     expect(mocks.createSignedUploadUrl).not.toHaveBeenCalled();
   });
 
+  it("counts pending raw uploads toward the logo limit", async () => {
+    await createAiLogoUpload("ev1", { contentType: "image/png", size: 100 });
+    expect(mocks.countEventLogos).toHaveBeenCalledWith("ev1", { includePending: true });
+  });
+
   it("sweeps orphan raw uploads of the guarded event before signing", async () => {
     mocks.createSignedUploadUrl.mockResolvedValue("https://storage.test/upload");
     await createAiLogoUpload("ev1", { contentType: "image/png", size: 100 });

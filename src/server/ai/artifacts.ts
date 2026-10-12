@@ -7,9 +7,12 @@ import { removeObjectsQuietly, reportCleanupFailure } from "@/server/storage-cle
 
 const eventPrefix = (eventId: string) => `events/${eventId}`;
 
-export async function countEventLogos(eventId: string): Promise<number> {
+export async function countEventLogos(eventId: string, options: { includePending?: boolean } = {}): Promise<number> {
   const entries = await listObjectEntries(AI_BUCKET, eventPrefix(eventId));
-  return entries.filter((entry) => isAiLogoPathFor(eventId, entry.path)).length;
+  return entries.filter(
+    (entry) =>
+      isAiLogoPathFor(eventId, entry.path) || (options.includePending === true && isAiRawLogoPathFor(eventId, entry.path)),
+  ).length;
 }
 
 export async function sweepOrphanUploads(eventId: string, now: Date = new Date()): Promise<void> {
