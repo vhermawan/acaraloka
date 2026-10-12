@@ -5,6 +5,7 @@ import { env } from "@/lib/env";
 export const POSTER_BUCKET = "posters";
 export const SIGNATURE_BUCKET = "signatures";
 export const CERTIFICATE_BACKGROUND_BUCKET = "certificate-backgrounds";
+export const AI_BUCKET = "ai-generations";
 
 function storageConfig() {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -95,4 +96,28 @@ export async function downloadObject(bucket: string, path: string): Promise<Uint
     throw new Error(`Gagal mengunduh berkas (${response.status}): ${await response.text()}`);
   }
   return new Uint8Array(await response.arrayBuffer());
+}
+
+export async function createSignedUrls(
+  bucket: string,
+  paths: string[],
+  expiresInSeconds: number,
+): Promise<Map<string, string>> {
+  const urls = new Map<string, string>();
+  if (paths.length === 0) return urls;
+  const { baseUrl, key } = storageConfig();
+  const response = await fetch(`${baseUrl}/object/sign/${bucket}`, {
+    method: "POST",
+    headers: { ...authHeaders(key), "Content-Type": "application/json" },
+    body: JSON.stringify({ expiresIn: expiresInSeconds, paths }),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`Gagal membuat signed URL (${response.status}): ${await response.text()}`);
+  }
+  const entries = (await response.json()) as { path: string; signedURL: string | null; error: string | null }[];
+  for (const entry of entries) {
+    if (entry.signedURL && !entry.error) urls.set(entry.path, `${baseUrl}${entry.signedURL}`);
+  }
+  return urls;
 }

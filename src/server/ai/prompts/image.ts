@@ -4,7 +4,7 @@ import { LAYOUT_PRESETS, percent, type Rect } from "@/lib/ai/layout-presets";
 import { STYLE_FRAGMENTS } from "@/server/ai/prompts/styles";
 import type { PromptSpec } from "@/server/ai/types";
 
-export const IMAGE_PROMPT_VERSION = "m2-1";
+export const IMAGE_PROMPT_VERSION = "m3-1";
 
 function span(rect: Rect) {
   return {
@@ -22,7 +22,7 @@ export function safeAreaSentence(rect: Rect): string {
 
 export function logoSlotSentence(rect: Rect): string {
   const area = span(rect);
-  return `Keep the top-center area from ${area.left}% to ${area.right}% of the width and from ${area.top}% to ${area.bottom}% of the height plain for an emblem added later.`;
+  return `Reserve an empty zone at the top center, from ${area.left}% to ${area.right}% of the width and from ${area.top}% to ${area.bottom}% of the height. Inside this zone and in a small margin around it paint only the same plain background surface: no frame, box, outline, circle, badge, shield, seal or placeholder shape, and the border ornaments along the top edge must stop before the zone and resume after it.`;
 }
 
 export function imagePrompt({ style, brief }: PromptSpec): string {
@@ -38,7 +38,7 @@ export function imagePrompt({ style, brief }: PromptSpec): string {
     logoSlotSentence(preset.logoSlot),
     "The central area is a smooth, plain, low-contrast surface with nothing in it, reserved for text that will be added later.",
     "For religious or cultural themes use only abstract geometric patterns, such as Islamic 8-point or 12-point star tessellations, or neutral decorative motifs. Never draw six-pointed stars or hexagrams.",
-    "Do NOT draw any text, letters, numbers, words, monograms, logos, emblems, seals, stamps, signatures, QR codes, watermarks, people or faces.",
+    "Do NOT draw any text, letters, numbers, words, monograms, logos, emblems, seals, stamps, signatures, QR codes, watermarks, people, faces, empty frames or placeholder boxes.",
     "No mockup, no perspective, no paper photo, no drop shadow.",
   ].join("\n");
 }

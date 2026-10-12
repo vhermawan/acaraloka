@@ -71,6 +71,7 @@ export function toCertificateLayout(
       fontSize: preset.signerFontSize,
     })),
     verifyQr: preset.verifyQr,
+    inkColor: color,
   });
 }
 

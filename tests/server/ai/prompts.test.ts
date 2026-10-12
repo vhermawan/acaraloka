@@ -23,6 +23,15 @@ describe("imagePrompt", () => {
     expect(prompt).toContain(logoSlotSentence(preset.logoSlot));
   });
 
+  it.each(LAYOUT_PRESET_KEYS)("keeps the logo slot of %s a plain surface without any frame", (key) => {
+    const sentence = logoSlotSentence(LAYOUT_PRESETS[key].logoSlot);
+    expect(sentence).toMatch(/Reserve an empty zone at the top center/);
+    expect(sentence).toMatch(/no frame, box, outline, circle, badge, shield, seal or placeholder shape/);
+    expect(sentence).toMatch(/border ornaments along the top edge must stop before the zone/);
+    const prompt = imagePrompt({ style: "minimal", brief: { ...presetBriefFor("minimal", null), layoutPreset: key } });
+    expect(prompt).toMatch(/empty frames or placeholder boxes/);
+  });
+
   it("derives percentages from the preset rectangles", () => {
     expect(safeAreaSentence({ x: 0.1, y: 0.2, width: 0.8, height: 0.68 })).toBe(
       "Keep the rectangle from 10% to 90% of the width and from 20% to 88% of the height completely plain; ornaments live only outside it.",

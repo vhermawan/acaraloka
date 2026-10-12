@@ -140,6 +140,7 @@ export const certificateLayoutSchema = z.object({
   eventDate: textElement,
   signers: z.array(signerBlock).length(MAX_SIGNERS),
   verifyQr: qrElement,
+  inkColor: hexColor.nullable().default(null),
 });
 
 export type CertificateLayout = z.infer<typeof certificateLayoutSchema>;
@@ -192,6 +193,7 @@ export function defaultCertificateLayout(signerCount = 1): CertificateLayout {
       fontSize: 11,
     })),
     verifyQr: { x: 0.885, y: 0.8, size: 0.1 },
+    inkColor: null,
   };
 }
 

@@ -31,6 +31,13 @@ const buckets = [
     file_size_limit: 3 * 1024 * 1024,
     allowed_mime_types: ["image/jpeg", "image/png"],
   },
+  {
+    id: "ai-generations",
+    name: "ai-generations",
+    public: false,
+    file_size_limit: 5 * 1024 * 1024,
+    allowed_mime_types: ["image/jpeg", "image/png", "image/webp"],
+  },
 ];
 
 const headers = { Authorization: `Bearer ${key}`, apikey: key, "Content-Type": "application/json" };

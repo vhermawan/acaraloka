@@ -54,6 +54,16 @@ function pick(custom: string | null, fallback: Color): Color {
   return custom ? hexColor(custom) : fallback;
 }
 
+export type InkPalette = { text: Color; muted: Color; mutedOpacity: number | undefined };
+
+const THEMED_MUTED_OPACITY = 0.75;
+
+export function inkPalette(layout: Pick<CertificateLayout, "inkColor">): InkPalette {
+  if (!layout.inkColor) return { text: INK, muted: MUTED, mutedOpacity: undefined };
+  const color = hexColor(layout.inkColor);
+  return { text: color, muted: color, mutedOpacity: THEMED_MUTED_OPACITY };
+}
+
 function accentColor(theme: CertificateTheme) {
   const hex = ACCENT_COLORS[theme.accent].hex;
   return rgb(
@@ -108,7 +118,15 @@ export function fitFontSize(text: string, font: PDFFont, size: number, maxWidth:
 function drawAligned(
   page: PDFPage,
   rawText: string,
-  options: { x: number; y: number; size: number; font: PDFFont; align: TextAlign; color?: ReturnType<typeof rgb> },
+  options: {
+    x: number;
+    y: number;
+    size: number;
+    font: PDFFont;
+    align: TextAlign;
+    color?: ReturnType<typeof rgb>;
+    opacity?: number;
+  },
 ) {
   const text = sanitizeForFont(rawText, options.font);
   const width = options.font.widthOfTextAtSize(text, options.size);
@@ -120,6 +138,7 @@ function drawAligned(
     size: options.size,
     font: options.font,
     color: options.color ?? INK,
+    opacity: options.opacity,
   });
 }
 
@@ -224,7 +243,7 @@ async function drawBackground(pdf: PDFDocument, page: PDFPage, background: NonNu
   page.drawImage(image, { x: 0, y: 0, width, height });
 }
 
-function drawQr(page: PDFPage, url: string, layout: CertificateLayout["verifyQr"], font: PDFFont) {
+function drawQr(page: PDFPage, url: string, layout: CertificateLayout["verifyQr"], font: PDFFont, ink: InkPalette) {
   const { width: pageWidth } = page.getSize();
   const qr = QRCode.create(url, { errorCorrectionLevel: "M" });
   const count = qr.modules.size;
@@ -246,7 +265,8 @@ function drawQr(page: PDFPage, url: string, layout: CertificateLayout["verifyQr"
     size: 7,
     font,
     align: "center",
-    color: MUTED,
+    color: ink.muted,
+    opacity: ink.mutedOpacity,
   });
 }
 
@@ -266,6 +286,7 @@ export async function renderCertificatePdf(
   const page = pdf.addPage([pageWidth, pageHeight]);
   const fonts = await loadThemeFonts(pdf, layout.theme);
   const accent = accentColor(layout.theme);
+  const ink = inkPalette(layout);
 
   if (template.background) {
     await drawBackground(pdf, page, template.background);
@@ -365,7 +386,8 @@ export async function renderCertificatePdf(
       start: { x: point.x - signatureBox.width / 2, y: lineY },
       end: { x: point.x + signatureBox.width / 2, y: lineY },
       thickness: 0.75,
-      color: MUTED,
+      color: ink.muted,
+      opacity: ink.mutedOpacity,
     });
     drawAligned(page, signer.name, {
       x: point.x,
@@ -373,6 +395,7 @@ export async function renderCertificatePdf(
       size: block.fontSize,
       font: fonts.body.bold,
       align: "center",
+      color: ink.text,
     });
     drawAligned(page, signer.title, {
       x: point.x,
@@ -380,11 +403,12 @@ export async function renderCertificatePdf(
       size: Math.max(8, block.fontSize - 2),
       font: fonts.body.regular,
       align: "center",
-      color: MUTED,
+      color: ink.muted,
+      opacity: ink.mutedOpacity,
     });
   }
 
-  drawQr(page, data.verifyUrl, layout.verifyQr, fonts.body.regular);
+  drawQr(page, data.verifyUrl, layout.verifyQr, fonts.body.regular, ink);
 
   drawAligned(page, CERTIFICATE_CREDIT, {
     x: pageWidth / 2,
@@ -392,7 +416,8 @@ export async function renderCertificatePdf(
     size: 8,
     font: fonts.body.regular,
     align: "center",
-    color: MUTED,
+    color: ink.muted,
+    opacity: ink.mutedOpacity,
   });
 
   if (options.watermark) {
