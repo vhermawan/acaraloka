@@ -63,7 +63,7 @@ describe("GET status", () => {
   it("looks the generation up by id and the guarded event only, and 404s for another event", async () => {
     mocks.findFirst.mockResolvedValue(null);
     await expect(status(new Request("http://x"), context("ev1", "gen-of-other-event"))).rejects.toThrow("NOT_FOUND");
-    expect(mocks.findFirst.mock.calls[0][0].where).toEqual({ id: "gen-of-other-event", eventId: "ev1", kind: "CERTIFICATE" });
+    expect(mocks.findFirst.mock.calls[0][0].where).toEqual({ id: "gen-of-other-event", eventId: "ev1", kind: "CERTIFICATE", purgedAt: null });
   });
 
   it("sweeps stale rows lazily and returns the running phase with no-store", async () => {

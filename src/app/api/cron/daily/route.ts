@@ -2,7 +2,9 @@ import { isAuthorizedCronRequest } from "@/lib/cron-auth";
 import { OUTBOX_RETENTION_MS } from "@/lib/email-outbox";
 import { env } from "@/lib/env";
 import { prisma } from "@/server/db";
+import { purgeAiArtifacts } from "@/server/ai/purge";
 import { drainOutbox, purgeOldOutbox } from "@/server/email-outbox";
+import { reportCleanupFailure } from "@/server/storage-cleanup";
 
 export const maxDuration = 300;
 
@@ -20,5 +22,10 @@ export async function GET(request: Request) {
   const deletedEmails = await purgeOldOutbox(prisma, new Date(Date.now() - OUTBOX_RETENTION_MS));
   const email = env.EMAIL_ENABLED ? await drainOutbox() : null;
 
-  return Response.json({ ok: true, deletedErrorLogs, deletedEmails, email });
+  const ai = await purgeAiArtifacts(prisma).catch(async (error) => {
+    await reportCleanupFailure("cron.daily.ai", error, {});
+    return null;
+  });
+
+  return Response.json({ ok: true, deletedErrorLogs, deletedEmails, email, ai });
 }

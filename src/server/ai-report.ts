@@ -21,7 +21,7 @@ export async function reportAiGeneration(
     return await db.$transaction(
       async (tx): Promise<ReportResult> => {
         const generation = await tx.aiGeneration.findFirst({
-          where: { id: input.generationId, eventId: input.eventId },
+          where: { id: input.generationId, eventId: input.eventId, purgedAt: null },
           select: { kind: true },
         });
         if (!generation) return denied("NOT_AVAILABLE");
