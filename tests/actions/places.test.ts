@@ -26,6 +26,28 @@ beforeEach(() => {
   mocks.requireOrganizer.mockResolvedValue({ user: { id: "u1" } });
 });
 
+describe("place actions on unexpected failures", () => {
+  it("returns FAILED and records the error when searching", async () => {
+    const failure = new Error("network down");
+    mocks.autocompletePlaces.mockRejectedValue(failure);
+    await expect(searchPlaces("gedung sate", TOKEN)).resolves.toEqual({ ok: false, error: "FAILED" });
+    expect(mocks.recordError).toHaveBeenCalledWith({ source: "action.searchPlaces", error: failure });
+  });
+
+  it("returns FAILED and records the error when fetching an address", async () => {
+    const failure = new Error("network down");
+    mocks.fetchPlaceAddress.mockRejectedValue(failure);
+    await expect(getPlaceAddress("ChIJabcdefghij", TOKEN)).resolves.toEqual({ ok: false, error: "FAILED" });
+    expect(mocks.recordError).toHaveBeenCalledWith({ source: "action.getPlaceAddress", error: failure });
+  });
+
+  it("does not log a guard redirect", async () => {
+    mocks.requireOrganizer.mockRejectedValue(new Error("REDIRECT:/organizer/login"));
+    await expect(searchPlaces("gedung sate", TOKEN)).rejects.toThrow("REDIRECT");
+    expect(mocks.recordError).not.toHaveBeenCalled();
+  });
+});
+
 describe("place actions", () => {
   it("rejects callers without an organizer session before touching Google", async () => {
     mocks.requireOrganizer.mockRejectedValue(new Error("REDIRECT:/organizer/login"));

@@ -17,6 +17,7 @@ vi.mock("@/server/ai-allowlist", () => ({
   removeAiAllowlist: mocks.removeAiAllowlist,
 }));
 
+const { ACTION_ERROR_MESSAGE } = await import("@/actions/_lib/handle-action-error");
 const { addAiAllowlistAction, removeAiAllowlistAction } = await import("@/actions/admin-ai");
 
 function form(email: string) {
@@ -37,11 +38,35 @@ describe("ai allowlist actions for non-admins", () => {
   it("blocks adding without touching the database", async () => {
     await expect(addAiAllowlistAction({}, form("a@b.test"))).rejects.toThrow("NOT_FOUND");
     expect(mocks.addAiAllowlist).not.toHaveBeenCalled();
+    expect(mocks.recordError).not.toHaveBeenCalled();
   });
 
   it("blocks removing without touching the database", async () => {
     await expect(removeAiAllowlistAction("u1")).rejects.toThrow("NOT_FOUND");
     expect(mocks.removeAiAllowlist).not.toHaveBeenCalled();
+  });
+});
+
+describe("ai allowlist actions on unexpected failures", () => {
+  beforeEach(() => {
+    mocks.requireAdmin.mockResolvedValue({ id: "admin1", role: "ADMIN" });
+  });
+
+  it("returns a friendly error, keeps the email and records the failure when adding", async () => {
+    const failure = new Error("db down");
+    mocks.addAiAllowlist.mockRejectedValue(failure);
+    expect(await addAiAllowlistAction({}, form("a@b.test"))).toEqual({
+      error: ACTION_ERROR_MESSAGE,
+      values: { email: "a@b.test" },
+    });
+    expect(mocks.recordError).toHaveBeenCalledWith({ source: "action.addAiAllowlistAction", error: failure });
+  });
+
+  it("returns a friendly error and records the failure when removing", async () => {
+    const failure = new Error("db down");
+    mocks.removeAiAllowlist.mockRejectedValue(failure);
+    expect(await removeAiAllowlistAction("u1")).toEqual({ error: ACTION_ERROR_MESSAGE });
+    expect(mocks.recordError).toHaveBeenCalledWith({ source: "action.removeAiAllowlistAction", error: failure });
   });
 });
 

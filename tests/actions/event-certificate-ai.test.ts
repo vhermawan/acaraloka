@@ -55,6 +55,7 @@ vi.mock("@/server/ai/logo", () => ({ finalizeLogoUpload: mocks.finalizeLogoUploa
 vi.mock("@/server/db", () => ({ prisma: { aiGeneration: { create: mocks.create, count: mocks.countRejected } } }));
 vi.mock("@/server/storage", () => ({ AI_BUCKET: "ai-generations", createSignedUploadUrl: mocks.createSignedUploadUrl }));
 
+const { ACTION_ERROR_MESSAGE } = await import("@/actions/_lib/handle-action-error");
 const { applyAiGeneration, createAiLogoUpload, deleteAiLogo, finalizeAiLogo, reportAiGeneration, startAiGeneration } = await import(
   "@/actions/event-certificate-ai"
 );
@@ -339,5 +340,46 @@ describe("deleteAiLogo", () => {
     mocks.deleteEventLogo.mockResolvedValue(true);
     expect(await deleteAiLogo("ev1", "events/ev1/logo-0123456789abcdef.png")).toEqual({});
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/organizer/events/ev1/certificate/ai");
+  });
+});
+
+describe("unexpected failures", () => {
+  const failure = new Error("backend down");
+
+  beforeEach(() => {
+    mocks.getAiAccess.mockRejectedValue(failure);
+  });
+
+  it("returns a friendly error for the upload actions and records each failure", async () => {
+    expect(await createAiLogoUpload("ev1", { contentType: "image/png", size: 100 })).toEqual({ error: ACTION_ERROR_MESSAGE });
+    expect(await finalizeAiLogo("ev1", "events/ev1/upload-0123456789abcdef.png")).toEqual({ error: ACTION_ERROR_MESSAGE });
+    expect(await deleteAiLogo("ev1", "events/ev1/logo-0123456789abcdef.png")).toEqual({ error: ACTION_ERROR_MESSAGE });
+    expect(mocks.recordError.mock.calls.map((call) => (call[0] as { source: string }).source)).toEqual([
+      "action.createAiLogoUpload",
+      "action.finalizeAiLogo",
+      "action.deleteAiLogo",
+    ]);
+  });
+
+  it("returns a friendly message with the typed values when starting a generation fails", async () => {
+    const result = await startAiGeneration("ev1", {}, form(valid));
+    expect(result).toEqual({ message: ACTION_ERROR_MESSAGE, values: valid });
+    expect(mocks.recordError).toHaveBeenCalledWith({ source: "action.startAiGeneration", error: failure });
+    expect(mocks.reserveGeneration).not.toHaveBeenCalled();
+  });
+
+  it("returns a friendly failed state for apply and report", async () => {
+    expect(await applyAiGeneration("ev1", "gen1", null, false)).toEqual({ ok: false, message: ACTION_ERROR_MESSAGE });
+    expect(await reportAiGeneration("ev1", "gen1")).toEqual({ ok: false, message: ACTION_ERROR_MESSAGE });
+    expect(mocks.recordError).toHaveBeenCalledWith({ source: "action.applyAiGeneration", error: failure });
+    expect(mocks.recordError).toHaveBeenCalledWith({ source: "action.reportAiGeneration", error: failure });
+  });
+
+  it("keeps a failing job store from leaking into the user message", async () => {
+    mocks.getAiAccess.mockResolvedValue({ status: "AVAILABLE", remaining: 3 });
+    mocks.reserveGeneration.mockRejectedValue(new Error("secret internal detail"));
+    const result = await startAiGeneration("ev1", {}, form(valid));
+    expect(result.message).toBe(ACTION_ERROR_MESSAGE);
+    expect(mocks.after).not.toHaveBeenCalled();
   });
 });
