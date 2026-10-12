@@ -55,6 +55,18 @@ enum EmailStatus {
   FAILED
 }
 
+enum AiKind {
+  CERTIFICATE
+  POSTER
+}
+
+enum AiGenerationStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+  REJECTED
+}
+
 model OrganizerProfile {
   userId       String   @id @map("user_id")
   orgName      String   @map("org_name")
@@ -100,6 +112,7 @@ model Event {
   signers           Signer[]
   certificates      Certificate[]
   certificateConfig CertificateConfig?
+  aiGenerations     AiGeneration[]
 
   @@index([organizerId])
   @@index([publishedAt])
@@ -184,13 +197,16 @@ model CertificateConfig {
   pageWidth      Float                     @map("page_width")
   pageHeight     Float                     @map("page_height")
   layout         Json
+  aiGenerationId String?                   @map("ai_generation_id")
   lockedAt       DateTime?                 @map("locked_at") @db.Timestamptz(3)
   firstIssuedAt  DateTime?                 @map("first_issued_at") @db.Timestamptz(3)
   createdAt      DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event        Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  aiGeneration AiGeneration? @relation(fields: [aiGenerationId], references: [id], onDelete: SetNull)
 
+  @@index([aiGenerationId])
   @@map("certificate_configs")
 }
 
@@ -237,6 +253,54 @@ model Certificate {
   @@unique([eventId, seq])
   @@index([eventId])
   @@map("certificates")
+}
+
+model AiGeneration {
+  id             String             @id @default(cuid())
+  eventId        String?            @map("event_id")
+  userId         String             @map("user_id")
+  kind           AiKind
+  status         AiGenerationStatus @default(RUNNING)
+  phase          String?
+  failureCode    String?            @map("failure_code")
+  idempotencyKey String?            @map("idempotency_key")
+  input          Json
+  brief          Json?
+  briefSource    String?            @map("brief_source")
+  promptVersion  String             @map("prompt_version")
+  provider       String?
+  model          String?
+  estCostMicros  Int                @default(0) @map("est_cost_micros")
+  costMicros     Int                @default(0) @map("cost_micros")
+  resultPaths    String[]           @default([]) @map("result_paths")
+  width          Int?
+  height         Int?
+  startedAt      DateTime           @default(now()) @map("started_at") @db.Timestamptz(3)
+  finishedAt     DateTime?          @map("finished_at") @db.Timestamptz(3)
+  firstUsedAt    DateTime?          @map("first_used_at") @db.Timestamptz(3)
+  reportedAt     DateTime?          @map("reported_at") @db.Timestamptz(3)
+  purgedAt       DateTime?          @map("purged_at") @db.Timestamptz(3)
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  event              Event?              @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  user               User                @relation(fields: [userId], references: [id])
+  certificateConfigs CertificateConfig[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([eventId, kind, status])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("ai_generations")
+}
+
+model AiAllowlist {
+  userId    String   @id @map("user_id")
+  addedById String   @map("added_by_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ai_allowlist")
 }
 
 model AuditLog {
@@ -306,6 +370,8 @@ model User {
   accounts         Account[]
   organizerProfile OrganizerProfile?
   registrations    Registration[]
+  aiGenerations    AiGeneration[]
+  aiAllowlist      AiAllowlist?
 
   @@unique([email])
   @@index([createdAt])

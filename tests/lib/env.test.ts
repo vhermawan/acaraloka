@@ -19,6 +19,19 @@ const ENV_KEYS = [
   "EMAIL_FROM",
   "EMAIL_REPLY_TO",
   "EMAIL_DAILY_BUDGET",
+  "AI_ENABLED",
+  "AI_MONTHLY_CAP_USD",
+  "AI_TRIAL_CAP_USD",
+  "AI_TRIAL_ENDS_ON",
+  "AI_GENERATION_DEADLINE_MS",
+  "AI_GLOBAL_DAILY_LIMIT",
+  "AI_IMAGE_PROVIDER",
+  "AI_TEXT_PROVIDER",
+  "GOOGLE_VERTEX_PROJECT",
+  "GOOGLE_VERTEX_LOCATION",
+  "GOOGLE_VERTEX_SA_KEY_B64",
+  "VERTEX_IMAGE_MODEL",
+  "VERTEX_TEXT_MODEL",
   "VERCEL_ENV",
   "VERCEL_URL",
 ] as const;
@@ -180,5 +193,84 @@ describe("email env", () => {
       replyTo: "halo@acaraloka.test",
       dailyBudget: 50,
     });
+  });
+});
+
+describe("ai env", () => {
+  it("mematikan AI dan memakai default aman saat variabel kosong", async () => {
+    const { env, getAiLimits } = await import("@/lib/env");
+
+    expect(env.AI_ENABLED).toBe(false);
+    expect(env.AI_IMAGE_PROVIDER).toBe("vertex");
+    expect(env.AI_TEXT_PROVIDER).toBe("vertex");
+    expect(env.GOOGLE_VERTEX_LOCATION).toBe("global");
+    expect(env.VERTEX_IMAGE_MODEL).toBe("gemini-nano-banana-2.1");
+    expect(env.VERTEX_TEXT_MODEL).toBe("gemini-3.1-flash-lite");
+    expect(getAiLimits()).toEqual({
+      monthlyCapUsd: 10,
+      trialCapUsd: 30,
+      trialEndsOn: null,
+      globalDailyLimit: 40,
+      deadlineMs: 60_000,
+    });
+  });
+
+  it("melempar error saat AI_ENABLED=true tanpa kredensial Vertex", async () => {
+    process.env.AI_ENABLED = "true";
+    process.env.GOOGLE_VERTEX_PROJECT = "proyek-uji";
+
+    await expect(import("@/lib/env")).rejects.toThrow(/GOOGLE_VERTEX_SA_KEY_B64/);
+  });
+
+  it("melempar error saat AI_ENABLED=true tanpa project Vertex", async () => {
+    process.env.AI_ENABLED = "true";
+    process.env.GOOGLE_VERTEX_SA_KEY_B64 = "c2VjcmV0";
+
+    await expect(import("@/lib/env")).rejects.toThrow(/GOOGLE_VERTEX_PROJECT/);
+  });
+
+  it("menerima AI aktif dengan kredensial lengkap dan membaca batas kustom", async () => {
+    process.env.AI_ENABLED = "true";
+    process.env.GOOGLE_VERTEX_PROJECT = "proyek-uji";
+    process.env.GOOGLE_VERTEX_SA_KEY_B64 = "c2VjcmV0";
+    process.env.AI_MONTHLY_CAP_USD = "12.5";
+    process.env.AI_TRIAL_CAP_USD = "25";
+    process.env.AI_TRIAL_ENDS_ON = "2027-01-31";
+    process.env.AI_GLOBAL_DAILY_LIMIT = "20";
+    process.env.AI_GENERATION_DEADLINE_MS = "45000";
+
+    const { env, getAiLimits } = await import("@/lib/env");
+
+    expect(env.AI_ENABLED).toBe(true);
+    expect(getAiLimits()).toEqual({
+      monthlyCapUsd: 12.5,
+      trialCapUsd: 25,
+      trialEndsOn: "2027-01-31",
+      globalDailyLimit: 20,
+      deadlineMs: 45_000,
+    });
+  });
+
+  it("menolak tanggal akhir trial yang tidak valid", async () => {
+    process.env.AI_TRIAL_ENDS_ON = "31-01-2027";
+
+    await expect(import("@/lib/env")).rejects.toThrow(/AI_TRIAL_ENDS_ON/);
+  });
+
+  it("menolak cap negatif dan deadline di luar rentang", async () => {
+    process.env.AI_MONTHLY_CAP_USD = "-1";
+    await expect(import("@/lib/env")).rejects.toThrow(/AI_MONTHLY_CAP_USD/);
+
+    vi.resetModules();
+    delete process.env.AI_MONTHLY_CAP_USD;
+    process.env.AI_GENERATION_DEADLINE_MS = "500";
+    await expect(import("@/lib/env")).rejects.toThrow(/AI_GENERATION_DEADLINE_MS/);
+  });
+
+  it("tidak membocorkan nilai kredensial di pesan error", async () => {
+    process.env.AI_ENABLED = "true";
+    process.env.GOOGLE_VERTEX_SA_KEY_B64 = "rahasia-sangat";
+
+    await expect(import("@/lib/env")).rejects.not.toThrow(/rahasia-sangat/);
   });
 });
