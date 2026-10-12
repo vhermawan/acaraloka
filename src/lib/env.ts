@@ -63,6 +63,27 @@ const envSchema = z.object({
   EMAIL_FROM: z.string().min(3).optional(),
   EMAIL_REPLY_TO: z.string().email().optional(),
   EMAIL_DAILY_BUDGET: z.coerce.number().int().min(1).max(100).default(95),
+
+  AI_ENABLED: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+  AI_MONTHLY_CAP_USD: z.coerce.number().positive().default(10),
+  AI_TRIAL_CAP_USD: z.coerce.number().positive().default(30),
+  AI_TRIAL_ENDS_ON: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)))
+    .optional(),
+  AI_GENERATION_DEADLINE_MS: z.coerce.number().int().min(10_000).max(110_000).default(60_000),
+  AI_GLOBAL_DAILY_LIMIT: z.coerce.number().int().min(1).default(40),
+  AI_IMAGE_PROVIDER: z.enum(["vertex"]).default("vertex"),
+  AI_TEXT_PROVIDER: z.enum(["vertex"]).default("vertex"),
+  GOOGLE_VERTEX_PROJECT: z.string().min(1).optional(),
+  GOOGLE_VERTEX_LOCATION: z.string().min(1).default("global"),
+  GOOGLE_VERTEX_SA_KEY_B64: z.string().min(1).optional(),
+  VERTEX_IMAGE_MODEL: z.string().min(1).default("gemini-nano-banana-2.1"),
+  VERTEX_TEXT_MODEL: z.string().min(1).default("gemini-3.1-flash-lite"),
 });
 
 function loadEnv() {
@@ -88,6 +109,19 @@ function loadEnv() {
     EMAIL_FROM: process.env.EMAIL_FROM?.trim() || undefined,
     EMAIL_REPLY_TO: process.env.EMAIL_REPLY_TO?.trim() || undefined,
     EMAIL_DAILY_BUDGET: process.env.EMAIL_DAILY_BUDGET?.trim() || undefined,
+    AI_ENABLED: process.env.AI_ENABLED?.trim() || undefined,
+    AI_MONTHLY_CAP_USD: process.env.AI_MONTHLY_CAP_USD?.trim() || undefined,
+    AI_TRIAL_CAP_USD: process.env.AI_TRIAL_CAP_USD?.trim() || undefined,
+    AI_TRIAL_ENDS_ON: process.env.AI_TRIAL_ENDS_ON?.trim() || undefined,
+    AI_GENERATION_DEADLINE_MS: process.env.AI_GENERATION_DEADLINE_MS?.trim() || undefined,
+    AI_GLOBAL_DAILY_LIMIT: process.env.AI_GLOBAL_DAILY_LIMIT?.trim() || undefined,
+    AI_IMAGE_PROVIDER: process.env.AI_IMAGE_PROVIDER?.trim() || undefined,
+    AI_TEXT_PROVIDER: process.env.AI_TEXT_PROVIDER?.trim() || undefined,
+    GOOGLE_VERTEX_PROJECT: process.env.GOOGLE_VERTEX_PROJECT?.trim() || undefined,
+    GOOGLE_VERTEX_LOCATION: process.env.GOOGLE_VERTEX_LOCATION?.trim() || undefined,
+    GOOGLE_VERTEX_SA_KEY_B64: process.env.GOOGLE_VERTEX_SA_KEY_B64?.trim() || undefined,
+    VERTEX_IMAGE_MODEL: process.env.VERTEX_IMAGE_MODEL?.trim() || undefined,
+    VERTEX_TEXT_MODEL: process.env.VERTEX_TEXT_MODEL?.trim() || undefined,
   });
 
   if (!parsed.success) {
@@ -107,6 +141,15 @@ function loadEnv() {
   if (parsed.data.EMAIL_ENABLED && (!parsed.data.RESEND_API_KEY || !parsed.data.EMAIL_FROM)) {
     throw new Error(
       "EMAIL_ENABLED=true butuh RESEND_API_KEY dan EMAIL_FROM. Isi keduanya, atau set EMAIL_ENABLED=false.",
+    );
+  }
+
+  if (
+    parsed.data.AI_ENABLED &&
+    (!parsed.data.GOOGLE_VERTEX_PROJECT || !parsed.data.GOOGLE_VERTEX_SA_KEY_B64)
+  ) {
+    throw new Error(
+      "AI_ENABLED=true butuh GOOGLE_VERTEX_PROJECT dan GOOGLE_VERTEX_SA_KEY_B64. Isi keduanya, atau set AI_ENABLED=false.",
     );
   }
 
@@ -149,4 +192,16 @@ export function getEmailConfig() {
   }
 
   return { apiKey: RESEND_API_KEY, from: EMAIL_FROM, replyTo: EMAIL_REPLY_TO, dailyBudget: EMAIL_DAILY_BUDGET };
+}
+
+export function getAiLimits() {
+  const { AI_MONTHLY_CAP_USD, AI_TRIAL_CAP_USD, AI_TRIAL_ENDS_ON, AI_GLOBAL_DAILY_LIMIT, AI_GENERATION_DEADLINE_MS } = env;
+
+  return {
+    monthlyCapUsd: AI_MONTHLY_CAP_USD,
+    trialCapUsd: AI_TRIAL_CAP_USD,
+    trialEndsOn: AI_TRIAL_ENDS_ON ?? null,
+    globalDailyLimit: AI_GLOBAL_DAILY_LIMIT,
+    deadlineMs: AI_GENERATION_DEADLINE_MS,
+  };
 }
