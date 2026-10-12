@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultCertificateLayout } from "@/lib/certificate-layout";
 
 const mocks = vi.hoisted(() => ({
-  recordError: vi.fn(async () => undefined),
+  recordError: vi.fn(async (input: { source: string; error: unknown }) => void input),
   requireEventOwner: vi.fn(),
   revokeCertificate: vi.fn(),
   issueCertificates: vi.fn(),
@@ -188,7 +188,7 @@ describe("background actions", () => {
     expect(await actions.createBackgroundUpload("e1", upload)).toEqual({ error: ACTION_ERROR_MESSAGE });
     expect(await actions.applyBackground("e1", "x")).toEqual({ error: ACTION_ERROR_MESSAGE });
     expect(await actions.removeBackground("e1")).toEqual({ error: ACTION_ERROR_MESSAGE });
-    expect(mocks.recordError.mock.calls.map((call) => (call[0] as { source: string }).source)).toEqual([
+    expect(mocks.recordError.mock.calls.map((call) => call[0].source)).toEqual([
       "action.createBackgroundUpload",
       "action.applyBackground",
       "action.removeBackground",

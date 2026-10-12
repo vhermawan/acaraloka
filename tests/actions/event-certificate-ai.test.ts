@@ -12,7 +12,7 @@ import { AI_BLOCKLIST_MESSAGE, LOGO_INVALID_MESSAGE } from "@/lib/ai/generate-in
 import { isAiRawLogoPathFor } from "@/lib/ai/paths";
 
 const mocks = vi.hoisted(() => ({
-  recordError: vi.fn(async () => undefined),
+  recordError: vi.fn(async (input: { source: string; error: unknown }) => void input),
   requireEventOwner: vi.fn(),
   getAiAccess: vi.fn(),
   reserveGeneration: vi.fn(),
@@ -354,7 +354,7 @@ describe("unexpected failures", () => {
     expect(await createAiLogoUpload("ev1", { contentType: "image/png", size: 100 })).toEqual({ error: ACTION_ERROR_MESSAGE });
     expect(await finalizeAiLogo("ev1", "events/ev1/upload-0123456789abcdef.png")).toEqual({ error: ACTION_ERROR_MESSAGE });
     expect(await deleteAiLogo("ev1", "events/ev1/logo-0123456789abcdef.png")).toEqual({ error: ACTION_ERROR_MESSAGE });
-    expect(mocks.recordError.mock.calls.map((call) => (call[0] as { source: string }).source)).toEqual([
+    expect(mocks.recordError.mock.calls.map((call) => call[0].source)).toEqual([
       "action.createAiLogoUpload",
       "action.finalizeAiLogo",
       "action.deleteAiLogo",
