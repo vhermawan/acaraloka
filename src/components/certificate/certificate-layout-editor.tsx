@@ -692,7 +692,7 @@ function CertificateLayoutEditor({
                   type="button"
                   variant="ghost"
                   className="h-10 px-3"
-                  onClick={() => setLayout((current) => ({ ...defaultCertificateLayout(signerCount), theme: current.theme, labels: current.labels, heading: { ...defaultCertificateLayout(signerCount).heading, visible: current.heading.visible } }))}
+                  onClick={() => setLayout((current) => ({ ...defaultCertificateLayout(signerCount), theme: current.theme, labels: current.labels, heading: { ...defaultCertificateLayout(signerCount).heading, visible: current.heading.visible }, inkColor: current.inkColor }))}
                 >
                   Kembalikan posisi awal
                 </Button>

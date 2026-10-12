@@ -8,11 +8,15 @@ import type { Rect } from "@/lib/ai/layout-presets";
 export const A4_LANDSCAPE = { width: 2480, height: 1754 } as const;
 export const MAX_INPUT_PIXELS = 64_000_000;
 export const JPEG_QUALITIES = [88, 80, 72, 64, 56, 48] as const;
+export const THUMBNAIL_WIDTH = 480;
+export const LOGO_MIN_SIDE = 64;
+export const LOGO_MAX_SIDE = 4096;
+export const LOGO_OUTPUT_SIDE = 1024;
 
 export class ImageOpsError extends Error {
   constructor(
     message: string,
-    readonly code: "UNREADABLE" | "TOO_LARGE",
+    readonly code: "UNREADABLE" | "TOO_LARGE" | "BAD_DIMENSIONS",
   ) {
     super(message);
     this.name = "ImageOpsError";
@@ -101,4 +105,76 @@ export async function sampleAverageColor(input: Uint8Array, area: Rect): Promise
   const [red, green, blue] = channels;
   if (!red || !green || !blue) throw new ImageOpsError("Image has no color channels", "UNREADABLE");
   return { r: Math.round(red.mean), g: Math.round(green.mean), b: Math.round(blue.mean) };
+}
+
+export async function makeThumbnail(input: Uint8Array, width: number = THUMBNAIL_WIDTH): Promise<Uint8Array> {
+  try {
+    const output = await open(input)
+      .resize({ width, withoutEnlargement: true })
+      .flatten({ background: "#ffffff" })
+      .jpeg({ quality: 78, mozjpeg: true })
+      .toBuffer();
+    return new Uint8Array(output);
+  } catch {
+    throw new ImageOpsError("Image cannot be processed", "UNREADABLE");
+  }
+}
+
+export type NormalizedLogo = { bytes: Uint8Array; width: number; height: number };
+
+export async function normalizeLogo(input: Uint8Array): Promise<NormalizedLogo> {
+  const source = await readImageDimensions(input);
+  if (source.format !== "png" && source.format !== "jpeg") {
+    throw new ImageOpsError("Logo must be PNG or JPEG", "UNREADABLE");
+  }
+  if (Math.min(source.width, source.height) < LOGO_MIN_SIDE || Math.max(source.width, source.height) > LOGO_MAX_SIDE) {
+    throw new ImageOpsError("Logo dimensions are out of range", "BAD_DIMENSIONS");
+  }
+  try {
+    const { data, info } = await open(input)
+      .rotate()
+      .resize({ width: LOGO_OUTPUT_SIDE, height: LOGO_OUTPUT_SIDE, fit: "inside", withoutEnlargement: true })
+      .png({ compressionLevel: 9 })
+      .toBuffer({ resolveWithObject: true });
+    return { bytes: new Uint8Array(data), width: info.width, height: info.height };
+  } catch {
+    throw new ImageOpsError("Logo cannot be processed", "UNREADABLE");
+  }
+}
+
+export async function compositeLogo(
+  background: Uint8Array,
+  logo: Uint8Array,
+  slot: Rect,
+  maxBytes: number,
+): Promise<Uint8Array> {
+  const { width, height } = await readImageDimensions(background);
+  const slotLeft = Math.round(slot.x * width);
+  const slotTop = Math.round(slot.y * height);
+  const slotWidth = Math.max(1, Math.round(slot.width * width));
+  const slotHeight = Math.max(1, Math.round(slot.height * height));
+
+  try {
+    const { data, info } = await open(logo)
+      .resize({ width: slotWidth, height: slotHeight, fit: "inside" })
+      .png()
+      .toBuffer({ resolveWithObject: true });
+    const prepared = open(background)
+      .rotate()
+      .flatten({ background: "#ffffff" })
+      .composite([
+        {
+          input: data,
+          left: slotLeft + Math.floor((slotWidth - info.width) / 2),
+          top: slotTop + Math.floor((slotHeight - info.height) / 2),
+        },
+      ]);
+    for (const quality of JPEG_QUALITIES) {
+      const output = await prepared.clone().jpeg({ quality, mozjpeg: true }).toBuffer();
+      if (output.byteLength <= maxBytes) return new Uint8Array(output);
+    }
+  } catch {
+    throw new ImageOpsError("Logo cannot be composited", "UNREADABLE");
+  }
+  throw new ImageOpsError(`Image still exceeds ${maxBytes} bytes at the lowest JPEG quality`, "TOO_LARGE");
 }

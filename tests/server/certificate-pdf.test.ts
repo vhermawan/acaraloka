@@ -13,6 +13,7 @@ import { loadThemeFonts } from "@/server/certificate-fonts";
 import {
   DEFAULT_TEMPLATE,
   fitFontSize,
+  inkPalette,
   renderCertificatePdf,
   sanitizeForFont,
   type CertificateTemplate,
@@ -255,5 +256,43 @@ describe("uploaded background", () => {
   it("keeps the default A4 template when none is given", async () => {
     const pdf = await PDFDocument.load(await renderCertificatePdf(defaultCertificateLayout(1), data, { template: DEFAULT_TEMPLATE }));
     expect(Math.round(pdf.getPage(0).getSize().height)).toBe(595);
+  });
+});
+
+function occurrences(text: string, needle: string): number {
+  return text.split(needle).length - 1;
+}
+
+describe("color-aware ink", () => {
+  const lastSigner = { name: "Dr. Budi Santoso", title: "Ketua Pelaksana", signaturePng: null };
+  const plainData = { ...data, signers: [lastSigner] };
+
+  it("keeps the legacy ink and muted grey when the layout has no ink color", () => {
+    const palette = inkPalette(defaultCertificateLayout(1));
+    expect(palette.mutedOpacity).toBeUndefined();
+    expect(palette.text).toEqual({ type: "RGB", red: 0.11, green: 0.11, blue: 0.12 });
+    expect(palette.muted).toEqual({ type: "RGB", red: 0.38, green: 0.38, blue: 0.4 });
+  });
+
+  it("moves signer name, title, line, QR caption and credit to the layout ink color", async () => {
+    const options = { template: uploadTemplate("a4") };
+    const base = await pageContent(await renderCertificatePdf(defaultCertificateLayout(1), plainData, options));
+    const themed = await pageContent(
+      await renderCertificatePdf({ ...defaultCertificateLayout(1), inkColor: "#ffffff" }, plainData, options),
+    );
+    expect(base).not.toContain(" GS");
+    expect(themed).toContain(" GS");
+    expect(themed).toContain(hex(plainData.signers[0].name));
+    expect(occurrences(themed, "1 1 1 RG") - occurrences(base, "1 1 1 RG")).toBe(5);
+    expect(occurrences(base, "0.38 0.38 0.4 RG") - occurrences(themed, "0.38 0.38 0.4 RG")).toBe(4);
+    expect(occurrences(base, "0.11 0.11 0.12 RG") - occurrences(themed, "0.11 0.11 0.12 RG")).toBe(1);
+  });
+
+  it("renders identically for a layout without inkColor and one with inkColor null", async () => {
+    const legacy: Record<string, unknown> = { ...defaultCertificateLayout(2) };
+    delete legacy.inkColor;
+    const a = await pageContent(await renderCertificatePdf(parseCertificateLayout(legacy), data, { template: uploadTemplate("a4") }));
+    const b = await pageContent(await renderCertificatePdf({ ...defaultCertificateLayout(2), inkColor: null }, data, { template: uploadTemplate("a4") }));
+    expect(a).toBe(b);
   });
 });

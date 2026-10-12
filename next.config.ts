@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/organizer/events/*/certificate/preview": ["./assets/fonts/**/*"],
+    "/organizer/events/*/certificate/ai/*/preview": ["./assets/fonts/**/*"],
     "/sign/*/preview": ["./assets/fonts/**/*"],
     "/me/certificates/*/pdf": ["./assets/fonts/**/*"],
   },

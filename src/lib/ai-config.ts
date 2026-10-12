@@ -120,3 +120,28 @@ export function imageCostMicros(
   if (usage.imageOutputTokens <= 0) return fallbackMicros;
   return tokensToMicros(usage.promptTokens, rates.imageInput) + tokensToMicros(usage.imageOutputTokens, rates.imageOutput);
 }
+
+export const AI_FAILURE_MESSAGES = {
+  TECHNICAL: "Desain belum berhasil dibuat. Kuota tidak berkurang. Coba lagi sebentar lagi.",
+  BUSY: "Layanan AI sedang sibuk. Kuota tidak berkurang. Coba lagi beberapa menit lagi.",
+  NOTE_REJECTED: "Keterangan tambahan tidak bisa diproses. Ubah keterangan lalu coba lagi. Kuota tidak berkurang.",
+} as const;
+
+export type AiFailureKind = keyof typeof AI_FAILURE_MESSAGES;
+
+export function failureKindFor(status: string, failureCode: string | null): AiFailureKind {
+  if (status === "REJECTED") return "NOTE_REJECTED";
+  if (failureCode === "VENDOR_CAPACITY") return "BUSY";
+  return "TECHNICAL";
+}
+
+export const AI_PHASES = ["BRIEF", "IMAGE", "FINALIZE"] as const;
+export type AiPhase = (typeof AI_PHASES)[number];
+
+export const AI_PHASE_LABELS: Record<AiPhase, string> = {
+  BRIEF: "Menyusun tata letak",
+  IMAGE: "Membuat latar",
+  FINALIZE: "Menyiapkan pratinjau",
+};
+
+export const AI_STATUS_POLL_MS = 2_500;

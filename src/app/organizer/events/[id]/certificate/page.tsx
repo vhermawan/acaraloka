@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Lock } from "lucide-react";
 
+import { AiSourceCard } from "@/components/certificate/ai/ai-source-card";
 import { BackgroundPanel } from "@/components/certificate/background-panel";
 import { CertificateLayoutEditor } from "@/components/certificate/certificate-layout-editor";
 import { CertificateStep } from "@/components/certificate/certificate-step";
@@ -11,6 +12,7 @@ import { UnlockDesignButton } from "@/components/certificate/unlock-design-butto
 import { issueBlocker } from "@/lib/certificate-issue";
 import { env } from "@/lib/env";
 import { signerLinkState } from "@/lib/validation/signer";
+import { getAiAccess } from "@/server/ai-access";
 import { requireEventOwner } from "@/server/authz";
 import { getOrCreateCertificateConfig } from "@/server/certificate-config";
 import { certificateIssueStats, listEventCertificates } from "@/server/certificates";
@@ -22,8 +24,8 @@ export const metadata: Metadata = {
 
 export default async function CertificatePage({ params }: PageProps<"/organizer/events/[id]/certificate">) {
   const { id } = await params;
-  const { event } = await requireEventOwner(id);
-  const [config, signers, stats, certificates] = await Promise.all([
+  const { user, event } = await requireEventOwner(id);
+  const [config, signers, stats, certificates, aiAccess] = await Promise.all([
     getOrCreateCertificateConfig(event.id),
     prisma.signer.findMany({
       where: { eventId: event.id },
@@ -31,6 +33,7 @@ export default async function CertificatePage({ params }: PageProps<"/organizer/
     }),
     certificateIssueStats(event.id),
     listEventCertificates(event.id),
+    getAiAccess(user, { eventId: event.id, kind: "CERTIFICATE" }),
   ]);
 
   const signerRows = signers.map((signer) => ({
@@ -95,6 +98,7 @@ export default async function CertificatePage({ params }: PageProps<"/organizer/
         }
         aside={locked && !everIssued && !closed ? <UnlockDesignButton eventId={event.id} /> : null}
       >
+        <AiSourceCard eventId={event.id} access={aiAccess} />
         <BackgroundPanel eventId={event.id} hasBackground={hasBackground} locked={locked} closed={closed} />
         <CertificateLayoutEditor
           eventId={event.id}

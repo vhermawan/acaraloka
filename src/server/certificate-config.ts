@@ -204,9 +204,10 @@ export function sampleRenderData(
   event: { title: string; startAt: Date; timezone: string },
   organizerName: string,
   signers: { name: string; title: string; signaturePng?: Uint8Array | null }[],
+  options: { recipientName?: string } = {},
 ): CertificateRenderData {
   return {
-    recipientName: "Nama Lengkap Peserta",
+    recipientName: options.recipientName ?? "Nama Lengkap Peserta",
     certificateNumber: SAMPLE_CERTIFICATE_NUMBER,
     eventTitle: event.title,
     eventDate: formatCertificateDate(event.startAt, event.timezone),

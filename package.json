@@ -16,7 +16,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "storage:setup": "tsx scripts/setup-storage.mts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "ai:demo": "tsx --conditions=react-server scripts/ai-demo.mts"
+    "ai:demo": "tsx --conditions=react-server scripts/ai-demo.mts",
+    "ai:allow": "tsx --conditions=react-server scripts/ai-allow.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

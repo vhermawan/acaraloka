@@ -64,6 +64,7 @@ describe("toCertificateLayout", () => {
     expect(layout.recipientName).toMatchObject({ x: preset.recipientName.x, y: preset.recipientName.y, color: "#14532d" });
     expect(layout.eventDate.color).toBe("#14532d");
     expect(layout.labels.recipientPrefix.color).toBe("#14532d");
+    expect(layout.inkColor).toBe("#14532d");
     expect(layout.theme).toMatchObject({ accent: "forest", fonts: validBrief.fonts });
     expect(layout.signers.slice(0, 2).map((signer) => signer.x)).toEqual([0.33, 0.67]);
     expect(certificateLayoutSchema.safeParse(layout).success).toBe(true);

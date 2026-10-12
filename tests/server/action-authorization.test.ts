@@ -80,6 +80,7 @@ const formActions = await import("@/app/organizer/events/[id]/form/actions");
 const participantActions = await import("@/app/organizer/events/[id]/participants/actions");
 const checkinActions = await import("@/app/organizer/events/[id]/checkin/actions");
 const certificateActions = await import("@/app/organizer/events/[id]/certificate/actions");
+const aiActions = await import("@/app/organizer/events/[id]/certificate/ai/actions");
 const adminActions = await import("@/app/admin/events/actions");
 const adminUserActions = await import("@/app/admin/users/actions");
 const adminEmailActions = await import("@/app/admin/email/actions");
@@ -118,6 +119,9 @@ const ownerActions: Call[] = [
   ],
   ["applyBackground", () => certificateActions.applyBackground("e1", "events/e1/0123456789abcdef.png")],
   ["removeBackground", () => certificateActions.removeBackground("e1")],
+  ["createAiLogoUpload", () => aiActions.createAiLogoUpload("e1", { contentType: "image/png", size: 10 })],
+  ["finalizeAiLogo", () => aiActions.finalizeAiLogo("e1", "events/e1/upload-0123456789abcdef.png")],
+  ["startAiGeneration", () => aiActions.startAiGeneration("e1", {}, form())],
   ["createSigner", () => certificateActions.createSigner("e1", {}, form())],
   ["regenerateLink", () => certificateActions.regenerateLink("e1", "s1")],
   ["emailSignerLink", () => certificateActions.emailSignerLink("e1", "s1")],
