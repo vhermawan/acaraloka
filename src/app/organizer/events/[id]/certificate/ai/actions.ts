@@ -110,6 +110,6 @@ export async function startAiGeneration(
   if (!reserved.ok) return { message: reserved.message, values };
 
   const generationId = reserved.generationId;
-  after(() => runGeneration(generationId));
+  after(() => runGeneration(generationId).catch(() => undefined));
   return { generationId, values };
 }

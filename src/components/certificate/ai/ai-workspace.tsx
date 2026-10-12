@@ -12,7 +12,13 @@ import { AiLogoPicker, type LogoOption } from "@/components/certificate/ai/ai-lo
 import { AiProgress } from "@/components/certificate/ai/ai-progress";
 import { AiResult, type ResultOption } from "@/components/certificate/ai/ai-result";
 import { Button } from "@/components/ui/button";
-import { AI_STATUS_POLL_MS, AI_UNAVAILABLE_CODE, type AiPhase } from "@/lib/ai-config";
+import {
+  AI_POLL_LOST_MESSAGE,
+  AI_POLL_MAX_FAILURES,
+  AI_STATUS_POLL_MS,
+  AI_UNAVAILABLE_CODE,
+  type AiPhase,
+} from "@/lib/ai-config";
 import type { StoredInput } from "@/lib/ai/generate-input";
 import type { AiStatusPayload } from "@/lib/ai/status";
 
@@ -58,7 +64,7 @@ function AiWorkspace({
   const router = useRouter();
   const [state, formAction, pending] = useActionState<AiStartState, FormData>(startAiGeneration.bind(null, eventId), {});
   const [finished, setFinished] = useState<string[]>([]);
-  const [outcome, setOutcome] = useState<{ id: string; message: string } | null>(null);
+  const [outcome, setOutcome] = useState<{ id: string; message: string; lost?: boolean } | null>(null);
   const [phase, setPhase] = useState<AiPhase | null>(running?.phase ?? null);
   const [chosenId, setChosenId] = useState<string | null>(null);
   const [logoPath, setLogoPath] = useState<string | null>(null);
@@ -76,6 +82,14 @@ function AiWorkspace({
     if (!generationId) return;
     let cancelled = false;
     let inFlight = false;
+    let failures = 0;
+    const markFailure = () => {
+      failures += 1;
+      if (failures < AI_POLL_MAX_FAILURES) return;
+      cancelled = true;
+      setFinished((current) => [...current, generationId]);
+      setOutcome({ id: generationId, message: AI_POLL_LOST_MESSAGE, lost: true });
+    };
 
     const poll = async () => {
       if (inFlight) return;
@@ -84,9 +98,14 @@ function AiWorkspace({
         const response = await fetch(`/organizer/events/${eventId}/certificate/ai/${generationId}/status`, {
           cache: "no-store",
         });
-        if (!response.ok || cancelled) return;
+        if (cancelled) return;
+        if (!response.ok || response.redirected) {
+          markFailure();
+          return;
+        }
         const payload = (await response.json()) as AiStatusPayload;
         if (cancelled) return;
+        failures = 0;
         if (payload.status === "RUNNING") {
           setPhase(payload.phase);
           return;
@@ -100,7 +119,7 @@ function AiWorkspace({
         }
         router.refresh();
       } catch {
-        return;
+        markFailure();
       } finally {
         inFlight = false;
       }
@@ -137,7 +156,11 @@ function AiWorkspace({
       {shownFailure ? (
         <Notice tone="error">
           <p>{shownFailure.message}</p>
-          {formEnabled ? (
+          {"lost" in shownFailure && shownFailure.lost ? (
+            <Button type="button" variant="outline" size="sm" className="mt-3 h-9 px-3" onClick={() => window.location.reload()}>
+              Muat ulang halaman
+            </Button>
+          ) : formEnabled ? (
             <Button type="button" variant="outline" size="sm" className="mt-3 h-9 px-3" onClick={retry}>
               Coba lagi
             </Button>

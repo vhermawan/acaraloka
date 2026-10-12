@@ -145,3 +145,7 @@ export const AI_PHASE_LABELS: Record<AiPhase, string> = {
 };
 
 export const AI_STATUS_POLL_MS = 2_500;
+
+export const AI_POLL_MAX_FAILURES = 3;
+export const AI_POLL_LOST_MESSAGE =
+  "Status desain tidak bisa dimuat. Sesi mungkin habis atau koneksi bermasalah. Muat ulang halaman untuk melihat hasilnya; proses tetap berjalan dan kuota tidak terpotong bila gagal.";

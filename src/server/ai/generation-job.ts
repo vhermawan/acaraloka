@@ -81,7 +81,7 @@ function presetOutcome(input: BriefInput, fallbackReason: BriefOutcome["fallback
   };
 }
 
-export async function runGeneration(generationId: string, deps: JobDeps = defaultJobDeps()): Promise<void> {
+async function executeGeneration(generationId: string, deps: JobDeps): Promise<void> {
   const { db } = deps;
   const row = await db.aiGeneration.findUnique({
     where: { id: generationId },
@@ -172,6 +172,7 @@ export async function runGeneration(generationId: string, deps: JobDeps = defaul
 
     if (!(await alive("FINALIZE"))) return;
     let background: Uint8Array;
+    let finalSize: { width: number; height: number };
     let finalBrief: AiDesignBrief;
     try {
       const normalized = await normalizeCertificate(original.bytes, BACKGROUND_MAX_BYTES);
@@ -185,6 +186,7 @@ export async function runGeneration(generationId: string, deps: JobDeps = defaul
       if (invalid) throw new ImageOpsError(invalid, "UNREADABLE");
 
       background = normalized.bytes;
+      finalSize = { width: normalized.width, height: normalized.height };
       const preset = LAYOUT_PRESETS[briefOutcome.brief.layoutPreset];
       const sample = await sampleAverageColor(background, preset.safeArea);
       finalBrief = aiDesignBriefSchema.parse(withReadableText(briefOutcome.brief, sample).brief);
@@ -213,8 +215,8 @@ export async function runGeneration(generationId: string, deps: JobDeps = defaul
         model: provider.model,
         costMicros: briefOutcome.costMicros + original.costMicros,
         resultPaths: [resultPath, thumbPath],
-        width: original.width,
-        height: original.height,
+        width: finalSize.width,
+        height: finalSize.height,
         finishedAt: new Date(deps.now()),
       },
     });
@@ -229,5 +231,21 @@ export async function runGeneration(generationId: string, deps: JobDeps = defaul
       provider,
     }).catch(() => undefined);
     await report("ai.generation.job", error, "error");
+  }
+}
+
+export async function runGeneration(generationId: string, deps?: JobDeps): Promise<void> {
+  try {
+    await executeGeneration(generationId, deps ?? defaultJobDeps());
+  } catch (error) {
+    await (deps?.db ?? prisma).aiGeneration
+      .updateMany({
+        where: { id: generationId, status: "RUNNING" },
+        data: { status: "FAILED", failureCode: "INTERNAL_ERROR", finishedAt: new Date() },
+      })
+      .catch(() => undefined);
+    await recordError({ source: "ai.generation.job", level: "error", error, context: { generationId } }).catch(
+      () => undefined,
+    );
   }
 }

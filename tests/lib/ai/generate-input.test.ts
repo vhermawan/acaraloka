@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { AI_FAILURE_MESSAGES, failureKindFor } from "@/lib/ai-config";
+import { AI_FAILURE_MESSAGES, AI_POLL_LOST_MESSAGE, AI_POLL_MAX_FAILURES, failureKindFor } from "@/lib/ai-config";
 import { generateInputSchema, storedInputSchema, toStoredInput } from "@/lib/ai/generate-input";
 import {
   aiLogoPath,
@@ -90,5 +90,12 @@ describe("failure messages and status payload", () => {
     const payload = aiStatusPayload({ status: "REJECTED", phase: "IMAGE", failureCode: "VENDOR_SAFETY" });
     expect(payload).toEqual({ status: "REJECTED", message: AI_FAILURE_MESSAGES.NOTE_REJECTED });
     expect(AI_FAILURE_MESSAGES.NOTE_REJECTED).toMatch(/Kuota tidak berkurang/);
+  });
+});
+
+describe("polling loss", () => {
+  it("stops after a few consecutive failures and tells the organizer to reload", () => {
+    expect(AI_POLL_MAX_FAILURES).toBe(3);
+    expect(AI_POLL_LOST_MESSAGE).toMatch(/Muat ulang halaman/);
   });
 });

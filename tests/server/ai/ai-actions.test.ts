@@ -43,6 +43,7 @@ const valid = { style: "formal-campus", colorHex: "", note: "" };
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.requireEventOwner.mockResolvedValue(owner);
+  mocks.runGeneration.mockResolvedValue(undefined);
   mocks.getAiAccess.mockResolvedValue({ status: "AVAILABLE", remaining: 3 });
   mocks.reserveGeneration.mockResolvedValue({ ok: true, generationId: "gen1", estCostMicros: 1, reused: false });
 });
@@ -128,6 +129,12 @@ describe("startAiGeneration", () => {
     expect(mocks.runGeneration).not.toHaveBeenCalled();
     await mocks.after.mock.calls[0][0]();
     expect(mocks.runGeneration).toHaveBeenCalledWith("gen1");
+  });
+
+  it("keeps the scheduled job from producing an unhandled rejection", async () => {
+    mocks.runGeneration.mockRejectedValue(new Error("boom"));
+    await startAiGeneration("ev1", {}, form(valid));
+    await expect(mocks.after.mock.calls[0][0]()).resolves.toBeUndefined();
   });
 
   it("allows an empty note and color", async () => {

@@ -122,8 +122,8 @@ describe("runGeneration success", () => {
       model: "image-model",
       costMicros: 51_000,
       resultPaths: ["events/ev1/cert-gen1.jpg", "events/ev1/cert-gen1-thumb.jpg"],
-      width: 2528,
-      height: 1696,
+      width: 2480,
+      height: 1754,
     });
   });
 
@@ -303,6 +303,21 @@ describe("runGeneration failures", () => {
     await runGeneration("gen1", deps);
     expect(imageGenerate).not.toHaveBeenCalled();
     expect(generateJson).not.toHaveBeenCalled();
+  });
+
+  it("marks the row FAILED and records an error when loading the row throws", async () => {
+    const { deps, db, updates } = await setup();
+    db.aiGeneration.findUnique.mockRejectedValueOnce(new Error("db down"));
+    await expect(runGeneration("gen1", deps)).resolves.toBeUndefined();
+    expect(updates.at(-1)).toMatchObject({ where: { id: "gen1", status: "RUNNING" }, data: { status: "FAILED", failureCode: "INTERNAL_ERROR" } });
+    expect(mocks.recordError).toHaveBeenCalledWith(expect.objectContaining({ source: "ai.generation.job", level: "error" }));
+  });
+
+  it("never rejects even when the failure bookkeeping also fails", async () => {
+    const { deps, db } = await setup({ input: { bogus: true } });
+    db.aiGeneration.updateMany.mockRejectedValue(new Error("db down"));
+    mocks.recordError.mockRejectedValueOnce(new Error("log down"));
+    await expect(runGeneration("gen1", deps)).resolves.toBeUndefined();
   });
 
   it("does nothing for an unknown generation or one without an event", async () => {
