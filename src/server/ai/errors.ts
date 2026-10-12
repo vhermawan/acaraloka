@@ -53,6 +53,12 @@ function messageOf(error: unknown): string {
 
 const SAFETY_PATTERN = /safety|prohibited|blocked|recitation/i;
 
+function hasSafetySignal(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const record = error as { finishReason?: unknown; blockReason?: unknown };
+  return [record.finishReason, record.blockReason].some((value) => typeof value === "string" && SAFETY_PATTERN.test(value));
+}
+
 export function toProviderError(error: unknown): AiProviderError {
   if (error instanceof AiProviderError) return error;
   const status = statusOf(error);
@@ -65,7 +71,7 @@ export function toProviderError(error: unknown): AiProviderError {
     return new AiProviderError(message, "RETRYABLE", status);
   }
   if (status !== null && status >= 400) {
-    return new AiProviderError(message, SAFETY_PATTERN.test(raw) && status === 400 ? "SAFETY" : "CONFIG", status);
+    return new AiProviderError(message, hasSafetySignal(error) ? "SAFETY" : "CONFIG", status);
   }
   return new AiProviderError(message, "RETRYABLE", status);
 }

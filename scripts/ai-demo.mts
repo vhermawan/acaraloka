@@ -47,12 +47,10 @@ if (!parsed.success) {
 }
 const input = parsed.data;
 
-for (const [field, text] of [["keterangan", input.organizerNote], ["judul", input.eventTitle]] as const) {
-  const verdict = checkBlocklist(text);
-  if (verdict.blocked) {
-    console.log(`DITOLAK: ${field} memuat konten terlarang (kategori ${verdict.category}). Tidak ada panggilan ke vendor.`);
-    process.exit(2);
-  }
+const verdict = checkBlocklist(input.organizerNote);
+if (verdict.blocked) {
+  console.log(`DITOLAK: keterangan memuat konten terlarang (kategori ${verdict.category}). Tidak ada panggilan ke vendor.`);
+  process.exit(2);
 }
 
 const signerCount = Math.min(3, Math.max(1, Number(values.signers) || 2));

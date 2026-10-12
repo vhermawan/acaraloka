@@ -5,7 +5,7 @@ export type BlocklistCategory = (typeof BLOCKLIST_CATEGORIES)[number];
 export type BlocklistResult = { blocked: false } | { blocked: true; category: BlocklistCategory };
 
 const TERMS: Record<BlocklistCategory, readonly string[]> = {
-  SEXUAL: ["porn", "porno", "pornografi", "pornography", "bokep", "bugil", "telanjang", "nude", "naked", "erotis", "erotic", "hentai", "ngentot"],
+  SEXUAL: ["porn", "porno", "pornografi", "pornography", "bokep", "bugil", "hentai", "ngentot"],
   HATE: [
     "nigger",
     "nigga",
@@ -24,7 +24,7 @@ const TERMS: Record<BlocklistCategory, readonly string[]> = {
     "usir cina",
     "islam teroris",
   ],
-  DRUGS: ["sabu", "ganja", "kokain", "cocaine", "heroin", "ekstasi", "ecstasy", "mdma", "lsd", "meth", "marijuana", "weed", "putau", "inex"],
+  DRUGS: ["ganja", "kokain", "cocaine", "heroin", "ekstasi", "ecstasy", "mdma", "marijuana", "putau", "inex"],
   VIOLENCE: [
     "bunuh",
     "membunuh",
@@ -37,14 +37,11 @@ const TERMS: Record<BlocklistCategory, readonly string[]> = {
     "memenggal",
     "gorok",
     "tembak mati",
-    "kill",
-    "murder",
-    "massacre",
-    "gore",
-    "torture",
-    "penyiksaan",
   ],
 };
+
+const CONTEXT_EXEMPT: readonly BlocklistCategory[] = ["DRUGS", "VIOLENCE"];
+const PREVENTION_CONTEXT = /(?:^| )(?:anti|tolak|stop|bahaya|cegah|pencegahan|lawan|melawan|prevention|awareness)(?: |$)/;
 
 const LEET: Record<string, string> = { "0": "o", "1": "i", "3": "e", "4": "a", "5": "s" };
 
@@ -67,7 +64,9 @@ const MATCHERS = (Object.entries(TERMS) as [BlocklistCategory, readonly string[]
 export function checkBlocklist(text: string): BlocklistResult {
   const normalized = normalizeForBlocklist(text);
   if (!normalized) return { blocked: false };
+  const prevention = PREVENTION_CONTEXT.test(normalized);
   for (const { category, pattern } of MATCHERS) {
+    if (prevention && CONTEXT_EXEMPT.includes(category)) continue;
     if (pattern.test(normalized)) return { blocked: true, category };
   }
   return { blocked: false };

@@ -65,6 +65,20 @@ describe("normalizeCertificate", () => {
     await expect(normalizeCertificate(noise, 10_000)).rejects.toMatchObject({ name: "ImageOpsError", code: "TOO_LARGE" });
   });
 
+  it("crops after applying EXIF orientation 5-8", async () => {
+    const input = new Uint8Array(
+      await sharp({ create: { width: 1600, height: 900, channels: 3, background: "#336699" } })
+        .jpeg()
+        .withMetadata({ orientation: 6 })
+        .toBuffer(),
+    );
+    const result = await normalizeCertificate(input, BACKGROUND_MAX_BYTES);
+    expect(result.source).toMatchObject({ width: 900, height: 1600 });
+    expect([result.width, result.height]).toEqual([2480, 1754]);
+    const meta = await sharp(result.bytes).metadata();
+    expect([meta.width, meta.height]).toEqual([2480, 1754]);
+  });
+
   it("rejects bytes that are not an image", async () => {
     await expect(normalizeCertificate(new Uint8Array([1, 2, 3, 4]), BACKGROUND_MAX_BYTES)).rejects.toBeInstanceOf(ImageOpsError);
   });

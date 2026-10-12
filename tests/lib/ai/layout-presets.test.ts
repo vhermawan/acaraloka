@@ -113,6 +113,15 @@ describe("layout presets", () => {
     }
   });
 
+  it.each(LAYOUT_PRESET_KEYS)("%s keeps the QR outside the safe area", (key) => {
+    const preset = LAYOUT_PRESETS[key];
+    const brief = { ...presetBriefFor("minimal", null), layoutPreset: key };
+    for (const count of [1, 2, 3]) {
+      const layout = toCertificateLayout(brief, defaultCertificateLayout(count), count);
+      expect(overlaps(layoutBoxes(layout, count).qr, asBox("safe", preset.safeArea)), `${key}/${count}`).toBe(false);
+    }
+  });
+
   it("covers every style with a preset that exists", () => {
     for (const style of STYLE_KEYS) {
       expect(LAYOUT_PRESET_KEYS).toContain(presetBriefFor(style, null).layoutPreset);

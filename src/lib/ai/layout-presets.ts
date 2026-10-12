@@ -29,7 +29,7 @@ export const LAYOUT_PRESETS: Record<LayoutPresetKey, LayoutPreset> = {
   "centered-classic": {
     key: "centered-classic",
     logoSlot: LOGO_SLOT,
-    safeArea: { x: 0.1, y: 0.2, width: 0.8, height: 0.68 },
+    safeArea: { x: 0.1, y: 0.2, width: 0.76, height: 0.68 },
     heading: { visible: true, x: 0.5, y: 0.25, fontSize: 38, align: "center" },
     certificateNumber: { x: 0.5, y: 0.33, fontSize: 10, align: "center", color: null },
     recipientName: { x: 0.5, y: 0.47, fontSize: 36, align: "center", color: null },
@@ -43,7 +43,7 @@ export const LAYOUT_PRESETS: Record<LayoutPresetKey, LayoutPreset> = {
   "centered-airy": {
     key: "centered-airy",
     logoSlot: LOGO_SLOT,
-    safeArea: { x: 0.08, y: 0.18, width: 0.84, height: 0.72 },
+    safeArea: { x: 0.08, y: 0.18, width: 0.78, height: 0.72 },
     heading: { visible: true, x: 0.5, y: 0.27, fontSize: 34, align: "center" },
     certificateNumber: { x: 0.5, y: 0.35, fontSize: 10, align: "center", color: null },
     recipientName: { x: 0.5, y: 0.5, fontSize: 40, align: "center", color: null },

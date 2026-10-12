@@ -36,7 +36,12 @@ export async function readImageDimensions(input: Uint8Array): Promise<{ width: n
   try {
     const meta = await open(input).metadata();
     if (!meta.width || !meta.height) throw new ImageOpsError("Image has no readable dimensions", "UNREADABLE");
-    return { width: meta.width, height: meta.height, format: meta.format ?? "unknown" };
+    const swapped = (meta.orientation ?? 1) >= 5;
+    return {
+      width: swapped ? meta.height : meta.width,
+      height: swapped ? meta.width : meta.height,
+      format: meta.format ?? "unknown",
+    };
   } catch (error) {
     if (error instanceof ImageOpsError) throw error;
     throw new ImageOpsError("Image cannot be decoded", "UNREADABLE");
