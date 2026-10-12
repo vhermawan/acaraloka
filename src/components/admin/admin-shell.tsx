@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Building2, CalendarDays, LayoutDashboard, Mail, TriangleAlert, Users, type LucideIcon } from "lucide-react";
+import { Building2, CalendarDays, LayoutDashboard, Mail, Sparkles, TriangleAlert, Users, type LucideIcon } from "lucide-react";
 
 import { AppShell, NavItem, SidebarLogo, UserBlock } from "@/components/layout/shell-parts";
 
@@ -23,6 +23,7 @@ const ADMIN_NAV: AdminNavEntry[] = [
   { href: "/admin/organizers", label: "Panitia", icon: Building2, ready: true },
   { href: "/admin/events", label: "Acara", icon: CalendarDays, ready: true },
   { href: "/admin/email", label: "Email", icon: Mail, ready: true },
+  { href: "/admin/ai", label: "AI", icon: Sparkles, ready: true },
   { href: "/admin/logs", label: "Log error", icon: TriangleAlert, ready: true },
 ];
 

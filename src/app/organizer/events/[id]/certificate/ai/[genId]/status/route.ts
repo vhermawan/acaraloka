@@ -22,7 +22,7 @@ export async function GET(
 
   await sweepStaleGenerations(prisma);
   const generation = await prisma.aiGeneration.findFirst({
-    where: { id: genId, eventId: event.id, kind: "CERTIFICATE" },
+    where: { id: genId, eventId: event.id, kind: "CERTIFICATE", purgedAt: null },
     select: { status: true, phase: true, failureCode: true },
   });
   if (!generation) notFound();
