@@ -86,3 +86,37 @@ export function usdToMicros(usd: number): number {
 export function estimateGenerationMicros(pricing: AiPricing = AI_PRICING): number {
   return pricing.imageMicros * pricing.maxImageAttempts + pricing.briefMicros;
 }
+
+export const AI_TOKEN_RATES_MICROS_PER_MILLION = {
+  textInput: 250_000,
+  textOutput: 1_500_000,
+  imageInput: 500_000,
+  imageOutput: 30_000_000,
+} as const;
+
+export type AiTokenUsage = {
+  promptTokens: number;
+  outputTokens: number;
+  thoughtTokens: number;
+  imageOutputTokens: number;
+};
+
+function tokensToMicros(tokens: number, ratePerMillion: number): number {
+  return Math.round((tokens * ratePerMillion) / 1_000_000);
+}
+
+export function textCostMicros(usage: AiTokenUsage, rates = AI_TOKEN_RATES_MICROS_PER_MILLION): number {
+  return (
+    tokensToMicros(usage.promptTokens, rates.textInput) +
+    tokensToMicros(usage.outputTokens + usage.thoughtTokens, rates.textOutput)
+  );
+}
+
+export function imageCostMicros(
+  usage: AiTokenUsage,
+  rates = AI_TOKEN_RATES_MICROS_PER_MILLION,
+  fallbackMicros: number = AI_PRICING.imageMicros,
+): number {
+  if (usage.imageOutputTokens <= 0) return fallbackMicros;
+  return tokensToMicros(usage.promptTokens, rates.imageInput) + tokensToMicros(usage.imageOutputTokens, rates.imageOutput);
+}
