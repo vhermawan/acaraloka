@@ -7,14 +7,7 @@ const state = vi.hoisted(() => ({ userId: "" }));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/flash", () => ({ setFlash: vi.fn() }));
-vi.mock("next/navigation", () => ({
-  redirect: (url: string) => {
-    throw new Error(`REDIRECT:${url}`);
-  },
-  notFound: () => {
-    throw new Error("NOT_FOUND");
-  },
-}));
+vi.mock("next/navigation", async () => (await import("../mocks/next-navigation")).nextNavigationMock);
 vi.mock("@/server/email-schedule", () => ({ scheduleEmailDrain: vi.fn() }));
 vi.mock("@/server/authz", async () => {
   const { prisma } = await import("@/server/db");
@@ -32,13 +25,13 @@ vi.mock("@/server/authz", async () => {
 });
 
 const { prisma: db } = await import("@/server/db");
-const ticketActions = await import("@/app/organizer/events/[id]/tickets/actions");
-const formActions = await import("@/app/organizer/events/[id]/form/actions");
-const participantActions = await import("@/app/organizer/events/[id]/participants/actions");
-const checkinActions = await import("@/app/organizer/events/[id]/checkin/actions");
-const certificateActions = await import("@/app/organizer/events/[id]/certificate/actions");
-const eventActions = await import("@/app/organizer/events/actions");
-const myTicketActions = await import("@/app/me/tickets/[id]/actions");
+const ticketActions = await import("@/actions/event-tickets");
+const formActions = await import("@/actions/event-form");
+const participantActions = await import("@/actions/event-participants");
+const checkinActions = await import("@/actions/event-checkin");
+const certificateActions = await import("@/actions/event-certificate");
+const eventActions = await import("@/actions/organizer-events");
+const myTicketActions = await import("@/actions/my-tickets");
 
 const runId = `itidor-${Date.now()}`;
 const attackerId = `${runId}-attacker`;

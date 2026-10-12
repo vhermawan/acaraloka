@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
-import { createAiLogoUpload, deleteAiLogo, finalizeAiLogo } from "@/app/organizer/events/[id]/certificate/ai/actions";
+import { createAiLogoUpload, deleteAiLogo, finalizeAiLogo } from "@/actions/event-certificate-ai";
 import { Button } from "@/components/ui/button";
 import { LOGO_CONTENT_TYPES, LOGO_INVALID_MESSAGE, LOGO_MAX_BYTES } from "@/lib/ai/generate-input";
 import { cn } from "cn";

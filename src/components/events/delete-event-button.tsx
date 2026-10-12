@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { deleteEvent } from "@/app/organizer/events/actions";
+import { deleteEvent } from "@/actions/organizer-events";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

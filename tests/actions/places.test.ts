@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  recordError: vi.fn(async () => undefined),
   requireOrganizer: vi.fn(),
   autocompletePlaces: vi.fn(),
   fetchPlaceAddress: vi.fn(),
 }));
 
+vi.mock("next/navigation", async () => (await import("../mocks/next-navigation")).nextNavigationMock);
+vi.mock("@/server/error-log", () => ({ recordError: mocks.recordError }));
 vi.mock("@/server/authz", () => ({ requireOrganizer: mocks.requireOrganizer }));
 vi.mock("@/server/places", () => ({
   MIN_QUERY_LENGTH: 3,
@@ -14,7 +17,7 @@ vi.mock("@/server/places", () => ({
   fetchPlaceAddress: mocks.fetchPlaceAddress,
 }));
 
-const { searchPlaces, getPlaceAddress } = await import("@/app/organizer/events/place-actions");
+const { searchPlaces, getPlaceAddress } = await import("@/actions/places");
 
 const TOKEN = "11111111-2222-3333-4444-555555555555";
 

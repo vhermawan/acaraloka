@@ -2,7 +2,7 @@
 
 import { useActionState, useMemo } from "react";
 
-import type { CancelEventState } from "@/app/organizer/events/actions";
+import type { CancelEventState } from "@/actions/organizer-events";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ImageIcon, Upload } from "lucide-react";
 import { toast } from "sonner";
 
-import { createPosterUpload, setEventPoster } from "@/app/organizer/events/actions";
+import { createPosterUpload, setEventPoster } from "@/actions/organizer-events";
 import { Button } from "@/components/ui/button";
 import { POSTER_CONTENT_TYPES, validatePosterFile } from "@/lib/validation/event";
 

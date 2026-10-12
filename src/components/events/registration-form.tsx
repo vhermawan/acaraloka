@@ -2,7 +2,7 @@
 
 import { useActionState, useMemo } from "react";
 
-import type { RegisterState } from "@/app/e/[slug]/register/actions";
+import type { RegisterState } from "@/actions/event-registration";
 import { Button } from "@/components/ui/button";
 import {
   Field,

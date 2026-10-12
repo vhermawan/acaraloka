@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { cancelMyRegistration } from "@/app/me/tickets/[id]/actions";
+import { cancelMyRegistration } from "@/actions/my-tickets";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

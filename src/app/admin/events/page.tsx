@@ -20,7 +20,7 @@ import { formatEventDateTime } from "@/lib/timezone";
 import { requireAdmin } from "@/server/authz";
 import { listAdminEvents } from "@/server/admin-events";
 
-import { disableEventAction, enableEventAction } from "./actions";
+import { disableEventAction, enableEventAction } from "@/actions/admin-events";
 
 export const metadata: Metadata = {
   title: "Acara",

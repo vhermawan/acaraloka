@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  recordError: vi.fn(async () => undefined),
   requireEventOwner: vi.fn(),
   revokeCertificate: vi.fn(),
 }));
 
+vi.mock("next/navigation", async () => (await import("../mocks/next-navigation")).nextNavigationMock);
+vi.mock("@/server/error-log", () => ({ recordError: mocks.recordError }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/authz", () => ({ requireEventOwner: mocks.requireEventOwner }));
 vi.mock("@/server/certificates", () => ({
@@ -20,7 +23,7 @@ vi.mock("@/server/signers", () => ({
 vi.mock("@/server/certificate-config", () => ({ saveCertificateLayout: vi.fn() }));
 vi.mock("@/server/db", () => ({ prisma: {} }));
 
-const { revokeEventCertificate } = await import("@/app/organizer/events/[id]/certificate/actions");
+const { revokeEventCertificate } = await import("@/actions/event-certificate");
 
 beforeEach(() => {
   vi.clearAllMocks();

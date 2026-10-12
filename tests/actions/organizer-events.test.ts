@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  recordError: vi.fn(async () => undefined),
   requireEventOwner: vi.fn(),
   requireOrganizer: vi.fn(),
   update: vi.fn(),
@@ -9,13 +10,10 @@ const mocks = vi.hoisted(() => ({
   removeAi: vi.fn(),
 }));
 
+vi.mock("next/navigation", async () => (await import("../mocks/next-navigation")).nextNavigationMock);
+vi.mock("@/server/error-log", () => ({ recordError: mocks.recordError }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/flash", () => ({ setFlash: vi.fn() }));
-vi.mock("next/navigation", () => ({
-  redirect: (url: string) => {
-    throw new Error(`REDIRECT:${url}`);
-  },
-}));
 vi.mock("@/server/authz", () => ({
   requireEventOwner: mocks.requireEventOwner,
   requireOrganizer: mocks.requireOrganizer,
@@ -33,7 +31,7 @@ vi.mock("@/server/certificate-config", () => ({ pruneCertificateBackgrounds: moc
 vi.mock("@/server/ai/artifacts", () => ({ removeAiEventArtifacts: mocks.removeAi }));
 
 const { updateEvent, deleteEvent, setEventPoster, createPosterUpload } = await import(
-  "@/app/organizer/events/actions"
+  "@/actions/organizer-events"
 );
 
 function formData(values: Record<string, string>) {

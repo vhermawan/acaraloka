@@ -8,14 +8,7 @@ const files = vi.hoisted(() => new Map<string, Uint8Array>());
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/server/flash", () => ({ setFlash: vi.fn() }));
 vi.mock("next/headers", () => ({ headers: async () => new Headers({ "user-agent": "vitest" }) }));
-vi.mock("next/navigation", () => ({
-  redirect: (url: string) => {
-    throw new Error(`REDIRECT:${url}`);
-  },
-  notFound: () => {
-    throw new Error("NOT_FOUND");
-  },
-}));
+vi.mock("next/navigation", async () => (await import("../mocks/next-navigation")).nextNavigationMock);
 vi.mock("@/server/email-schedule", () => ({ scheduleEmailDrain: vi.fn() }));
 vi.mock("@/lib/session", () => ({
   getSession: async () => ({ user: { id: state.userId, role: state.role, disabledAt: null } }),
@@ -48,12 +41,12 @@ vi.mock("@/server/authz", async () => {
 });
 
 const { prisma: db } = await import("@/server/db");
-const { registerForEvent } = await import("@/app/e/[slug]/register/actions");
-const { checkInByCode } = await import("@/app/organizer/events/[id]/checkin/actions");
+const { registerForEvent } = await import("@/actions/event-registration");
+const { checkInByCode } = await import("@/actions/event-checkin");
 const { createSigner, issueEventCertificates, revokeEventCertificate } = await import(
-  "@/app/organizer/events/[id]/certificate/actions"
+  "@/actions/event-certificate"
 );
-const { submitSignature } = await import("@/app/sign/[token]/actions");
+const { submitSignature } = await import("@/actions/signing");
 const { GET: downloadCertificate } = await import("@/app/me/certificates/[number]/pdf/route");
 const { default: VerifyCertificatePage } = await import("@/app/v/[number]/page");
 const { TicketQr } = await import("@/components/tickets/ticket-qr");

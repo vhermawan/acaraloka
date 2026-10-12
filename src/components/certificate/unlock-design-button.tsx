@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { unlockDesign } from "@/app/organizer/events/[id]/certificate/actions";
+import { unlockDesign } from "@/actions/event-certificate";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

@@ -10,7 +10,7 @@ import { FORM_FIELD_TYPES, type FormFieldTypeKey } from "@/lib/validation/form-f
 import { requireEventOwner } from "@/server/authz";
 import { prisma } from "@/server/db";
 
-import { createFormField, deleteFormField, moveFormField, updateFormField } from "./actions";
+import { createFormField, deleteFormField, moveFormField, updateFormField } from "@/actions/event-form";
 
 export const metadata: Metadata = {
   title: "Formulir acara",

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
-import { applyBackground, createBackgroundUpload, removeBackground } from "@/app/organizer/events/[id]/certificate/actions";
+import { applyBackground, createBackgroundUpload, removeBackground } from "@/actions/event-certificate";
 import { Button } from "@/components/ui/button";
 import {
   BACKGROUND_CONTENT_TYPES,

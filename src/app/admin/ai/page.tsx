@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatDateTime } from "@/lib/format";
 import { getAdminAiSummary, listAiAllowlist, listRecentAiGenerations, type AdminAiStatus } from "@/server/admin-ai";
 import { requireAdmin } from "@/server/authz";
-import { addAiAllowlistAction, removeAiAllowlistAction } from "./actions";
+import { addAiAllowlistAction, removeAiAllowlistAction } from "@/actions/admin-ai";
 
 export const metadata: Metadata = {
   title: "AI",

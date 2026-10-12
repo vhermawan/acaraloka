@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react";
 
-import type { DisableUserState } from "@/app/admin/users/actions";
+import type { DisableUserState } from "@/actions/admin-users";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

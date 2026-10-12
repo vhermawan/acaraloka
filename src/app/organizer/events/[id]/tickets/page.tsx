@@ -7,7 +7,7 @@ import { TicketTypeForm } from "@/components/events/ticket-type-form";
 import { requireEventOwner } from "@/server/authz";
 import { prisma } from "@/server/db";
 
-import { createTicketType, deleteTicketType, updateTicketType } from "./actions";
+import { createTicketType, deleteTicketType, updateTicketType } from "@/actions/event-tickets";
 
 export const metadata: Metadata = {
   title: "Tiket acara",

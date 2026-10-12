@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { ACTION_ERROR_MESSAGE, ACTION_FAILED, runAction } from "@/actions/_lib/handle-action-error";
 import { disableReasonSchema } from "@/lib/validation/event-disable";
 import { requireAdmin } from "@/server/authz";
 import { disableUser, enableUser } from "@/server/admin-users";
@@ -31,25 +32,29 @@ export async function disableUserAction(
   _prev: DisableUserState,
   formData: FormData,
 ): Promise<DisableUserState> {
-  const admin = await requireAdmin();
   const values = { reason: String(formData.get("reason") ?? "") };
-  const parsed = disableReasonSchema.safeParse(values.reason);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message, values };
+  return runAction("action.disableUserAction", { error: ACTION_ERROR_MESSAGE, values }, async () => {
+    const admin = await requireAdmin();
+    const parsed = disableReasonSchema.safeParse(values.reason);
+    if (!parsed.success) return { error: parsed.error.issues[0]?.message, values };
 
-  const result = await disableUser({ userId, actorId: admin.id, reason: parsed.data });
-  if (!result.ok) return { error: DISABLE_ERRORS[result.reason], values };
+    const result = await disableUser({ userId, actorId: admin.id, reason: parsed.data });
+    if (!result.ok) return { error: DISABLE_ERRORS[result.reason], values };
 
-  revalidateUser(userId);
-  return { done: true };
+    revalidateUser(userId);
+    return { done: true };
+  });
 }
 
 export async function enableUserAction(userId: string): Promise<{ error?: string }> {
-  const admin = await requireAdmin();
-  const result = await enableUser({ userId, actorId: admin.id });
-  if (!result.ok) {
-    return { error: result.reason === "NOT_FOUND" ? "Pengguna tidak ditemukan." : "Pengguna ini tidak sedang dinonaktifkan." };
-  }
+  return runAction("action.enableUserAction", ACTION_FAILED, async () => {
+    const admin = await requireAdmin();
+    const result = await enableUser({ userId, actorId: admin.id });
+    if (!result.ok) {
+      return { error: result.reason === "NOT_FOUND" ? "Pengguna tidak ditemukan." : "Pengguna ini tidak sedang dinonaktifkan." };
+    }
 
-  revalidateUser(userId);
-  return {};
+    revalidateUser(userId);
+    return {};
+  });
 }

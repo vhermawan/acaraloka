@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Controller, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
-import type { EventFormState } from "@/app/organizer/events/actions";
+import type { EventFormState } from "@/actions/organizer-events";
 import { DateTimePicker } from "@/components/events/date-time-picker";
 import { Button } from "@/components/ui/button";
 import {

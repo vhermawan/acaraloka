@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react";
 
-import type { DisableEventState } from "@/app/admin/events/actions";
+import type { DisableEventState } from "@/actions/admin-events";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

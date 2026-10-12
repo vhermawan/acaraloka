@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
-import { startAiGeneration, type AiStartState } from "@/app/organizer/events/[id]/certificate/ai/actions";
+import { startAiGeneration, type AiStartState } from "@/actions/event-certificate-ai";
 import { AiForm } from "@/components/certificate/ai/ai-form";
 import { AiLogoPicker, type LogoOption } from "@/components/certificate/ai/ai-logo-picker";
 import { AiProgress } from "@/components/certificate/ai/ai-progress";

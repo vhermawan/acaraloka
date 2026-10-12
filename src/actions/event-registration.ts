@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { ACTION_ERROR_MESSAGE, runAction } from "@/actions/_lib/handle-action-error";
 import { buildRegistrationSchema } from "@/lib/validation/registration";
 import { canRegisterFreeTicket, requireUser } from "@/server/authz";
 import { getPublicEvent } from "@/server/public-event";
@@ -25,33 +26,36 @@ const REJECTION_MESSAGES = {
 } as const;
 
 export async function registerForEvent(slug: string, _prev: RegisterState, formData: FormData): Promise<RegisterState> {
-  const user = await requireUser({ next: `/e/${slug}/register` });
   const values = Object.fromEntries(
     [...formData.entries()].filter(([key]) => !key.startsWith("$")).map(([key, value]) => [key, String(value)]),
   );
 
-  if (user.role !== "PARTICIPANT") return { message: REJECTION_MESSAGES.NON_PARTICIPANT_ACCOUNT, values };
+  return runAction("action.registerForEvent", { message: ACTION_ERROR_MESSAGE, values }, async () => {
+    const user = await requireUser({ next: `/e/${slug}/register` });
 
-  if (!canRegisterFreeTicket(user)) {
-    return { message: "Verifikasi email akunmu dulu sebelum mendaftar.", values };
-  }
+    if (user.role !== "PARTICIPANT") return { message: REJECTION_MESSAGES.NON_PARTICIPANT_ACCOUNT, values };
 
-  const event = await getPublicEvent(slug);
-  if (!event) return { message: REJECTION_MESSAGES.CLOSED, values };
+    if (!canRegisterFreeTicket(user)) {
+      return { message: "Verifikasi email akunmu dulu sebelum mendaftar.", values };
+    }
 
-  const fields = await getRegistrationFields(event.id);
-  const schema = buildRegistrationSchema(
-    fields,
-    event.ticketTypes.map((ticket) => ticket.id),
-  );
-  const parsed = schema.safeParse(values);
-  if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors, values };
+    const event = await getPublicEvent(slug);
+    if (!event) return { message: REJECTION_MESSAGES.CLOSED, values };
 
-  const result = await createRegistration({ ...parsed.data, eventId: event.id, userId: user.id });
-  if (!result.ok) return { message: REJECTION_MESSAGES[result.reason], values };
+    const fields = await getRegistrationFields(event.id);
+    const schema = buildRegistrationSchema(
+      fields,
+      event.ticketTypes.map((ticket) => ticket.id),
+    );
+    const parsed = schema.safeParse(values);
+    if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors, values };
 
-  scheduleEmailDrain();
-  revalidatePath(`/e/${slug}`);
-  await setFlash("registration-created");
-  redirect(`/me/tickets/${result.registrationId}`);
+    const result = await createRegistration({ ...parsed.data, eventId: event.id, userId: user.id });
+    if (!result.ok) return { message: REJECTION_MESSAGES[result.reason], values };
+
+    scheduleEmailDrain();
+    revalidatePath(`/e/${slug}`);
+    await setFlash("registration-created");
+    redirect(`/me/tickets/${result.registrationId}`);
+  });
 }

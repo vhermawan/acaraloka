@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
   getOrCreate: vi.fn(),
   validate: vi.fn(),
   prune: vi.fn(),
-  recordError: vi.fn(),
+  recordError: vi.fn(async () => undefined),
 }));
 
 vi.mock("@/server/db", () => ({ prisma: {} }));

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  recordError: vi.fn(async () => undefined),
   requireEventOwner: vi.fn(),
   findSignerByToken: vi.fn(),
   signWithToken: vi.fn(),
@@ -14,13 +15,10 @@ const mocks = vi.hoisted(() => ({
   purge: vi.fn(),
 }));
 
+vi.mock("next/navigation", async () => (await import("../mocks/next-navigation")).nextNavigationMock);
+vi.mock("@/server/error-log", () => ({ recordError: mocks.recordError }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/headers", () => ({ headers: async () => new Headers({ "user-agent": "vitest" }) }));
-vi.mock("next/navigation", () => ({
-  notFound: () => {
-    throw new Error("NOT_FOUND");
-  },
-}));
 vi.mock("@/server/authz", () => ({ requireEventOwner: mocks.requireEventOwner }));
 vi.mock("@/server/signers", () => ({
   findSignerByToken: mocks.findSignerByToken,
@@ -47,7 +45,7 @@ vi.mock("@/lib/env", () => ({
   },
 }));
 
-const signActions = await import("@/app/sign/[token]/actions");
+const signActions = await import("@/actions/signing");
 const { GET: signPreview } = await import("@/app/sign/[token]/preview/route");
 const { GET: organizerPreview } = await import("@/app/organizer/events/[id]/certificate/preview/route");
 const { GET: cron } = await import("@/app/api/cron/daily/route");

@@ -3,7 +3,7 @@
 import { LoaderCircle, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
 
-import type { AiStartState } from "@/app/organizer/events/[id]/certificate/ai/actions";
+import type { AiStartState } from "@/actions/event-certificate-ai";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";

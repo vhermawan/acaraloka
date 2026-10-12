@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  recordError: vi.fn(async () => undefined),
   requireAdmin: vi.fn(),
   addAiAllowlist: vi.fn(),
   removeAiAllowlist: vi.fn(),
   revalidatePath: vi.fn(),
 }));
 
+vi.mock("next/navigation", async () => (await import("../mocks/next-navigation")).nextNavigationMock);
+vi.mock("@/server/error-log", () => ({ recordError: mocks.recordError }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("@/server/authz", () => ({ requireAdmin: mocks.requireAdmin }));
 vi.mock("@/server/ai-allowlist", () => ({
@@ -14,7 +17,7 @@ vi.mock("@/server/ai-allowlist", () => ({
   removeAiAllowlist: mocks.removeAiAllowlist,
 }));
 
-const { addAiAllowlistAction, removeAiAllowlistAction } = await import("@/app/admin/ai/actions");
+const { addAiAllowlistAction, removeAiAllowlistAction } = await import("@/actions/admin-ai");
 
 function form(email: string) {
   const data = new FormData();

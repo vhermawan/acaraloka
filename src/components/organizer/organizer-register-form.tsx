@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 
-import { registerOrganizer, type OrganizerRegisterState } from "@/app/organizer/register/actions";
+import { registerOrganizer, type OrganizerRegisterState } from "@/actions/organizer-register";
 import { Button } from "@/components/ui/button";
 import {
   Field,

@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import { revokeEventCertificate } from "@/app/organizer/events/[id]/certificate/actions";
+import { revokeEventCertificate } from "@/actions/event-certificate";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {

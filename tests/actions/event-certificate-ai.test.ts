@@ -12,6 +12,7 @@ import { AI_BLOCKLIST_MESSAGE, LOGO_INVALID_MESSAGE } from "@/lib/ai/generate-in
 import { isAiRawLogoPathFor } from "@/lib/ai/paths";
 
 const mocks = vi.hoisted(() => ({
+  recordError: vi.fn(async () => undefined),
   requireEventOwner: vi.fn(),
   getAiAccess: vi.fn(),
   reserveGeneration: vi.fn(),
@@ -31,6 +32,8 @@ const mocks = vi.hoisted(() => ({
   removeObjectsQuietly: vi.fn(),
 }));
 
+vi.mock("next/navigation", async () => (await import("../mocks/next-navigation")).nextNavigationMock);
+vi.mock("@/server/error-log", () => ({ recordError: mocks.recordError }));
 vi.mock("next/server", () => ({ after: mocks.after }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("@/server/authz", () => ({ requireEventOwner: mocks.requireEventOwner }));
@@ -53,7 +56,7 @@ vi.mock("@/server/db", () => ({ prisma: { aiGeneration: { create: mocks.create, 
 vi.mock("@/server/storage", () => ({ AI_BUCKET: "ai-generations", createSignedUploadUrl: mocks.createSignedUploadUrl }));
 
 const { applyAiGeneration, createAiLogoUpload, deleteAiLogo, finalizeAiLogo, reportAiGeneration, startAiGeneration } = await import(
-  "@/app/organizer/events/[id]/certificate/ai/actions"
+  "@/actions/event-certificate-ai"
 );
 
 const owner = { user: { id: "user1" }, event: { id: "ev1" }, organizer: {} };
