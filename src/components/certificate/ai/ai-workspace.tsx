@@ -21,6 +21,7 @@ import {
 } from "@/lib/ai-config";
 import type { StoredInput } from "@/lib/ai/generate-input";
 import type { AiStatusPayload } from "@/lib/ai/status";
+import type { AiDesignState } from "@/server/ai/overview";
 
 const FORM_ID = "ai-generate-form";
 
@@ -35,6 +36,8 @@ type AiWorkspaceProps = {
   defaults: StoredInput;
   results: ResultOption[];
   logos: LogoOption[];
+  design: AiDesignState;
+  reportAvailable: boolean;
 };
 
 function Notice({ children, tone = "warning" }: { children: React.ReactNode; tone?: "warning" | "error" }) {
@@ -60,6 +63,8 @@ function AiWorkspace({
   defaults,
   results,
   logos,
+  design,
+  reportAvailable,
 }: AiWorkspaceProps) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState<AiStartState, FormData>(startAiGeneration.bind(null, eventId), {});
@@ -179,6 +184,8 @@ function AiWorkspace({
           logos={logos}
           logoPath={selectedLogo}
           onLogoChange={setLogoPath}
+          design={design}
+          reportAvailable={reportAvailable}
         />
       ) : null}
 

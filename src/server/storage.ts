@@ -50,10 +50,12 @@ export async function removeObjects(bucket: string, paths: string[]): Promise<vo
 
 const LIST_PAGE_SIZE = 100;
 
-export async function listObjects(bucket: string, prefix: string): Promise<string[]> {
+export type ObjectEntry = { path: string; createdAt: Date | null };
+
+export async function listObjectEntries(bucket: string, prefix: string): Promise<ObjectEntry[]> {
   const { baseUrl, key } = storageConfig();
   const folder = prefix.replace(/\/+$/, "");
-  const paths: string[] = [];
+  const entries: ObjectEntry[] = [];
   for (let offset = 0; ; offset += LIST_PAGE_SIZE) {
     const response = await fetch(`${baseUrl}/object/list/${bucket}`, {
       method: "POST",
@@ -64,12 +66,18 @@ export async function listObjects(bucket: string, prefix: string): Promise<strin
     if (!response.ok) {
       throw new Error(`Gagal membaca daftar berkas (${response.status}): ${await response.text()}`);
     }
-    const page = (await response.json()) as { name: string; id: string | null }[];
+    const page = (await response.json()) as { name: string; id: string | null; created_at?: string | null }[];
     for (const entry of page) {
-      if (entry.id !== null) paths.push(`${folder}/${entry.name}`);
+      if (entry.id === null) continue;
+      const createdAt = entry.created_at ? new Date(entry.created_at) : null;
+      entries.push({ path: `${folder}/${entry.name}`, createdAt: createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt : null });
     }
-    if (page.length < LIST_PAGE_SIZE) return paths;
+    if (page.length < LIST_PAGE_SIZE) return entries;
   }
+}
+
+export async function listObjects(bucket: string, prefix: string): Promise<string[]> {
+  return (await listObjectEntries(bucket, prefix)).map((entry) => entry.path);
 }
 
 export function publicObjectUrl(bucket: string, path: string): string {

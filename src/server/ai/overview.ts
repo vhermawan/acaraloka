@@ -19,7 +19,18 @@ import { reportCleanupFailure } from "@/server/storage-cleanup";
 export const AI_SIGNED_URL_TTL_SECONDS = 600;
 const FAILURE_VISIBLE_MS = 30 * 60 * 1000;
 
-export type AiResultItem = { id: string; createdAt: string; styleLabel: string; thumbUrl: string | null };
+export type AiResultItem = {
+  id: string;
+  createdAt: string;
+  styleLabel: string;
+  thumbUrl: string | null;
+  used: boolean;
+};
+export type AiDesignState = {
+  locked: boolean;
+  hasCustomBackground: boolean;
+  activeGenerationId: string | null;
+};
 export type AiLogoItem = { path: string; url: string | null };
 export type AiFailureItem = { id: string; message: string };
 
@@ -32,7 +43,11 @@ export type AiOverview = {
   defaults: StoredInput;
   results: AiResultItem[];
   logos: AiLogoItem[];
+  design: AiDesignState;
+  reportAvailable: boolean;
 };
+
+const NO_DESIGN: AiDesignState = { locked: false, hasCustomBackground: false, activeGenerationId: null };
 
 const FALLBACK_DEFAULTS: StoredInput = { style: DEFAULT_STYLE, colorHex: null, note: "" };
 
@@ -56,12 +71,14 @@ export async function loadAiOverview(
     defaults: FALLBACK_DEFAULTS,
     results: [],
     logos: [],
+    design: NO_DESIGN,
+    reportAvailable: false,
   };
   if (access.status === "HIDDEN") return empty;
 
   await sweepStaleGenerations(db, now);
 
-  const [eventCount, dayCount, running, latest, successes] = await Promise.all([
+  const [eventCount, dayCount, running, latest, successes, config, reported] = await Promise.all([
     countEventKind(db, event.id, "CERTIFICATE"),
     countAccountToday(db, user.id, now),
     db.aiGeneration.findFirst({
@@ -77,8 +94,13 @@ export async function loadAiOverview(
       where: { eventId: event.id, kind: "CERTIFICATE", status: "SUCCEEDED", reportedAt: null, purgedAt: null },
       orderBy: { createdAt: "desc" },
       take: MAX_RESULT_HISTORY,
-      select: { id: true, createdAt: true, resultPaths: true, input: true },
+      select: { id: true, createdAt: true, resultPaths: true, input: true, firstUsedAt: true },
     }),
+    db.certificateConfig.findUnique({
+      where: { eventId: event.id },
+      select: { lockedAt: true, templateSource: true, backgroundPath: true, aiGenerationId: true },
+    }),
+    db.aiGeneration.count({ where: { eventId: event.id, kind: "CERTIFICATE", reportedAt: { not: null } } }),
   ]);
 
   const logoPaths = await listObjects(AI_BUCKET, `events/${event.id}`)
@@ -120,8 +142,15 @@ export async function loadAiOverview(
         createdAt: row.createdAt.toISOString(),
         styleLabel: input.success ? STYLE_LABELS[input.data.style] : "Desain AI",
         thumbUrl: (row.resultPaths[1] && urls.get(row.resultPaths[1])) || null,
+        used: row.firstUsedAt !== null,
       };
     }),
     logos: logoPaths.map((path) => ({ path, url: urls.get(path) ?? null })),
+    design: {
+      locked: config?.lockedAt != null,
+      hasCustomBackground: config?.templateSource === "UPLOAD" && config.backgroundPath !== null,
+      activeGenerationId: config?.aiGenerationId ?? null,
+    },
+    reportAvailable: reported === 0,
   };
 }

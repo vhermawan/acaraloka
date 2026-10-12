@@ -46,6 +46,23 @@ export const AI_REPORT_MESSAGES = {
 
 export type AiReportDenial = keyof typeof AI_REPORT_MESSAGES;
 
+export const AI_APPLY_MESSAGES = {
+  NOT_AVAILABLE: "Hasil ini tidak tersedia lagi. Pilih hasil lain dari riwayat.",
+  INVALID: "Logo atau hasil yang dipilih tidak valid. Muat ulang halaman lalu coba lagi.",
+  LOCKED: AI_DENIAL_MESSAGES.LOCKED,
+  NEEDS_CONFIRM: "Desain ini akan menggantikan latar dan tata letak saat ini. Konfirmasi dulu untuk melanjutkan.",
+  FAILED: "Desain belum berhasil dipakai. Coba lagi sebentar lagi.",
+} as const;
+
+export type AiApplyDenial = keyof typeof AI_APPLY_MESSAGES;
+
+export const AI_LOGO_LIMIT = 5;
+export const AI_LOGO_LIMIT_MESSAGE = `Maksimal ${AI_LOGO_LIMIT} logo per acara. Hapus logo yang tidak dipakai dulu.`;
+export const AI_ORPHAN_UPLOAD_MS = 60 * 60 * 1000;
+
+export const AI_REJECTION_THROTTLE = { windowMs: 10 * 60 * 1000, max: 5 } as const;
+export const AI_REJECTION_THROTTLE_MESSAGE = "Terlalu banyak percobaan yang ditolak. Tunggu beberapa menit lalu coba lagi.";
+
 export type AiLimits = {
   monthlyCapUsd: number;
   trialCapUsd: number;
