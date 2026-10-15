@@ -6,6 +6,7 @@ export const POSTER_BUCKET = "posters";
 export const SIGNATURE_BUCKET = "signatures";
 export const CERTIFICATE_BACKGROUND_BUCKET = "certificate-backgrounds";
 export const AI_BUCKET = "ai-generations";
+export const EVENT_IMAGE_BUCKET = "event-images";
 
 function storageConfig() {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {

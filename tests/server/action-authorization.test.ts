@@ -129,7 +129,12 @@ const ownerActions: Call[] = [
   ["revokeEventCertificate", () => certificateActions.revokeEventCertificate("e1", "c1", "Nama salah ketik")],
 ];
 
-const organizerActions: Call[] = [["createEvent", () => eventActions.createEvent({}, form())], ...ownerActions];
+const organizerActions: Call[] = [
+  ["createEvent", () => eventActions.createEvent({}, form())],
+  ["createEventImageUpload", () => eventActions.createEventImageUpload({ contentType: "image/png", size: 10 })],
+  ["confirmEventImage", () => eventActions.confirmEventImage("u1/0123456789abcdef.png")],
+  ...ownerActions,
+];
 
 const adminOnlyActions: Call[] = [
   ["disableEventAction", () => adminActions.disableEventAction("e1", {}, form())],

@@ -8,24 +8,21 @@ import { Container } from "@/components/layout/container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { env } from "@/lib/env";
+import { descriptionExcerpt } from "@/lib/rich-text";
 import { eventStructuredData, serializeJsonLd } from "@/lib/structured-data";
 import { getSession } from "@/lib/session";
 import { formatEventDateTime } from "@/lib/timezone";
 import { getMeetingLinkForUser } from "@/server/meeting-link";
+import { sanitizeDescription } from "@/server/description";
 import { getPublicEvent } from "@/server/public-event";
 import { POSTER_BUCKET, publicObjectUrl } from "@/server/storage";
-
-function excerpt(text: string, length = 160) {
-  const flat = text.replace(/\s+/g, " ").trim();
-  return flat.length > length ? `${flat.slice(0, length - 1)}…` : flat;
-}
 
 export async function generateMetadata({ params }: PageProps<"/e/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const event = await getPublicEvent(slug);
   if (!event) return { title: "Acara tidak ditemukan" };
 
-  const description = excerpt(event.description);
+  const description = descriptionExcerpt(event.description);
   const images = event.posterPath ? [{ url: publicObjectUrl(POSTER_BUCKET, event.posterPath) }] : undefined;
   return {
     title: event.title,
@@ -93,7 +90,7 @@ export default async function PublicEventPage({ params }: PageProps<"/e/[slug]">
               />
             </dd>
           </dl>
-          <div className="text-pretty text-sm/relaxed whitespace-pre-line">{event.description}</div>
+          <div className="rich-text text-sm" dangerouslySetInnerHTML={{ __html: sanitizeDescription(event.description) }} />
         </article>
 
         <aside className="flex h-fit flex-col gap-4 rounded-lg border border-border p-4 lg:sticky lg:top-6">

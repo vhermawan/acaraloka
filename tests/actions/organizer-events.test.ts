@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   updateMany: vi.fn(),
   cancelEvent: vi.fn(),
   signedUpload: vi.fn(),
+  download: vi.fn(),
+  removeQuietly: vi.fn(async () => undefined),
   revalidatePath: vi.fn(),
   scheduleEmailDrain: vi.fn(),
 }));
@@ -34,11 +36,14 @@ vi.mock("@/server/db", () => ({
 }));
 vi.mock("@/server/storage", () => ({
   POSTER_BUCKET: "posters",
+  EVENT_IMAGE_BUCKET: "event-images",
   createSignedUploadUrl: mocks.signedUpload,
+  downloadObject: mocks.download,
+  publicObjectUrl: (bucket: string, path: string) => `https://s.test/storage/v1/object/public/${bucket}/${path}`,
   removeObjects: async () => undefined,
 }));
 vi.mock("@/server/storage-cleanup", () => ({
-  removeObjectsQuietly: async () => undefined,
+  removeObjectsQuietly: mocks.removeQuietly,
   reportCleanupFailure: mocks.reportCleanupFailure,
 }));
 vi.mock("@/server/cancellation", () => ({ cancelEvent: mocks.cancelEvent }));
@@ -47,7 +52,7 @@ vi.mock("@/server/certificate-config", () => ({ pruneCertificateBackgrounds: moc
 vi.mock("@/server/ai/artifacts", () => ({ removeAiEventArtifacts: mocks.removeAi }));
 
 const { ACTION_ERROR_MESSAGE } = await import("@/actions/_lib/handle-action-error");
-const { createEvent, updateEvent, deleteEvent, setEventPoster, createPosterUpload, publishEvent, cancelEventAction } = await import(
+const { createEvent, updateEvent, deleteEvent, setEventPoster, createPosterUpload, createEventImageUpload, confirmEventImage, publishEvent, cancelEventAction } = await import(
   "@/actions/organizer-events"
 );
 
@@ -74,6 +79,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   for (const mock of [mocks.update, mocks.remove, mocks.create, mocks.count, mocks.cancelEvent]) mock.mockReset();
   mocks.removeAi.mockReset();
+  mocks.download.mockReset();
   mocks.signedUpload.mockImplementation(async (_bucket: string, path: string) => `https://storage.test/${path}?token=t`);
 });
 
@@ -128,6 +134,82 @@ describe("event actions authorization", () => {
     mocks.requireEventOwner.mockResolvedValue({ event: { id: "e1", status: "DRAFT" } });
     const result = await createPosterUpload("e1", { contentType: "image/png", size: 1000 });
     expect(result).toMatchObject({ path: expect.stringMatching(/^events\/e1\/[0-9a-f]{16}\.png$/) });
+  });
+});
+
+describe("description sanitizing", () => {
+  const html = '<h2>Agenda</h2><p onclick="x()">Belajar <strong>App Router</strong> dari nol.</p><script>alert(1)</script>';
+
+  it("stores sanitized html on create", async () => {
+    mocks.requireOrganizer.mockResolvedValue({ user: { id: "u1" } });
+    mocks.create.mockResolvedValue({ id: "e9" });
+    await expect(createEvent({}, formData({ ...validForm, description: html }))).rejects.toThrow("REDIRECT");
+    expect(mocks.create.mock.calls[0][0].data.description).toBe(
+      "<h2>Agenda</h2><p>Belajar <strong>App Router</strong> dari nol.</p>",
+    );
+  });
+
+  it("stores sanitized html on update", async () => {
+    mocks.requireEventOwner.mockResolvedValue({ event: { id: "e1", status: "DRAFT" } });
+    await updateEvent("e1", {}, formData({ ...validForm, description: html }));
+    expect(mocks.update.mock.calls[0][0].data.description).not.toContain("script");
+  });
+
+  it("converts legacy plain text to paragraphs on update", async () => {
+    mocks.requireEventOwner.mockResolvedValue({ event: { id: "e1", status: "DRAFT" } });
+    await updateEvent("e1", {}, formData({ ...validForm, description: "Baris satu <b>x</b>\nBaris dua panjang" }));
+    expect(mocks.update.mock.calls[0][0].data.description).toBe("<p>Baris satu &lt;b&gt;x&lt;/b&gt;<br />Baris dua panjang</p>");
+  });
+
+  it("rejects descriptions whose text is too short after sanitizing", async () => {
+    mocks.requireOrganizer.mockResolvedValue({ user: { id: "u1" } });
+    const result = await createEvent({}, formData({ ...validForm, description: "<p>hi</p><script>alert(1)</script>" }));
+    expect(result.errors?.description?.[0]).toBe("Deskripsi minimal 10 karakter.");
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("event image actions", () => {
+  const path = "u1/0123456789abcdef.png";
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2]);
+
+  it("signs uploads under the organizer folder", async () => {
+    mocks.requireOrganizer.mockResolvedValue({ user: { id: "u1" } });
+    const result = await createEventImageUpload({ contentType: "image/webp", size: 1000 });
+    expect(result).toMatchObject({ path: expect.stringMatching(/^u1\/[0-9a-f]{16}\.webp$/) });
+    expect(mocks.signedUpload.mock.calls[0][0]).toBe("event-images");
+  });
+
+  it("rejects invalid image files before signing", async () => {
+    mocks.requireOrganizer.mockResolvedValue({ user: { id: "u1" } });
+    expect(await createEventImageUpload({ contentType: "image/gif", size: 1000 })).toHaveProperty("error");
+    expect(await createEventImageUpload({ contentType: "image/png", size: 3 * 1024 * 1024 })).toHaveProperty("error");
+    expect(mocks.signedUpload).not.toHaveBeenCalled();
+  });
+
+  it("confirms a valid upload and returns its public url", async () => {
+    mocks.requireOrganizer.mockResolvedValue({ user: { id: "u1" } });
+    mocks.download.mockResolvedValue(png);
+    expect(await confirmEventImage(path)).toEqual({ url: `https://s.test/storage/v1/object/public/event-images/${path}` });
+  });
+
+  it("rejects paths of another organizer without downloading", async () => {
+    mocks.requireOrganizer.mockResolvedValue({ user: { id: "u2" } });
+    expect(await confirmEventImage(path)).toHaveProperty("error");
+    expect(mocks.download).not.toHaveBeenCalled();
+  });
+
+  it("removes uploads whose content is not an image", async () => {
+    mocks.requireOrganizer.mockResolvedValue({ user: { id: "u1" } });
+    mocks.download.mockResolvedValue(new Uint8Array([0x3c, 0x73, 0x76, 0x67]));
+    expect(await confirmEventImage(path)).toHaveProperty("error");
+    expect(mocks.removeQuietly).toHaveBeenCalledWith("event.image.invalid", "event-images", [path]);
+  });
+
+  it("reports a missing upload", async () => {
+    mocks.requireOrganizer.mockResolvedValue({ user: { id: "u1" } });
+    mocks.download.mockRejectedValue(new Error("404"));
+    expect(await confirmEventImage(path)).toEqual({ error: "Gambar belum terunggah. Coba unggah lagi." });
   });
 });
 
