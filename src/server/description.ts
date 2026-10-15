@@ -2,11 +2,11 @@ import "server-only";
 
 import sanitizeHtml from "sanitize-html";
 
+import { isEventImagePath } from "@/lib/event-image";
 import { descriptionToHtml } from "@/lib/rich-text";
 import { EVENT_IMAGE_BUCKET, publicObjectUrl } from "@/server/storage";
 
 const LINK_SCHEME = /^(?:https?:|mailto:)/i;
-const IMAGE_TAIL = /^[A-Za-z0-9_\-./%]+$/;
 const ALIGNABLE = ["p", "h2", "h3", "blockquote", "li"];
 
 export function eventImagePrefix(): string | null {
@@ -19,8 +19,7 @@ export function eventImagePrefix(): string | null {
 
 function isAllowedImage(src: string, prefix: string | null): boolean {
   if (!prefix || !src.startsWith(prefix)) return false;
-  const tail = src.slice(prefix.length);
-  return IMAGE_TAIL.test(tail) && !tail.includes("..");
+  return isEventImagePath(src.slice(prefix.length));
 }
 
 export function sanitizeDescription(raw: string, imagePrefix: string | null = eventImagePrefix()): string {

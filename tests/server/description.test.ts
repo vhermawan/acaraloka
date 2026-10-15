@@ -23,11 +23,11 @@ describe("sanitizeDescription", () => {
   });
 
   it("strips event handlers and unknown attributes", () => {
-    const out = clean('<p onclick="x()" class="a" id="b">Halo</p><img src="' + PREFIX + 'u/a.png" onerror="alert(1)">');
+    const out = clean('<p onclick="x()" class="a" id="b">Halo</p><img src="' + PREFIX + 'u/0123456789abcdef.png" onerror="alert(1)">');
     expect(out).not.toContain("onclick");
     expect(out).not.toContain("onerror");
     expect(out).not.toContain("class=");
-    expect(out).toContain(`<img src="${PREFIX}u/a.png" alt="" />`);
+    expect(out).toContain(`<img src="${PREFIX}u/0123456789abcdef.png" alt="" />`);
   });
 
   it("drops javascript and data links", () => {
@@ -50,11 +50,17 @@ describe("sanitizeDescription", () => {
     expect(clean('<img src="data:image/png;base64,AAAA">')).toBe("");
     expect(clean(`<img src="${PREFIX}../secret.png">`)).toBe("");
     expect(clean(`<img src="${PREFIX}u/a.png?x=1">`)).toBe("");
+    expect(clean(`<img src="${PREFIX}u/0123456789abcdef.png?x=1">`)).toBe("");
+    expect(clean(`<img src="${PREFIX}u/0123456789abcdef.png#f">`)).toBe("");
+    expect(clean(`<img src="${PREFIX}%2e%2e/posters/0123456789abcdef.png">`)).toBe("");
+    expect(clean(`<img src="${PREFIX}u%2F0123456789abcdef.png">`)).toBe("");
+    expect(clean(`<img src="${PREFIX}u/0123456789abcdef.svg">`)).toBe("");
+    expect(clean(`<img src="${PREFIX}u/./0123456789abcdef.png">`)).toBe("");
     expect(clean('<img src="https://proj.supabase.co.evil.test/storage/v1/object/public/event-images/a.png">')).toBe("");
   });
 
   it("drops all images when storage is not configured", () => {
-    expect(sanitizeDescription(`<img src="${PREFIX}u/a.png">`, null)).toBe("");
+    expect(sanitizeDescription(`<img src="${PREFIX}u/0123456789abcdef.png">`, null)).toBe("");
   });
 
   it("keeps images from our bucket", () => {

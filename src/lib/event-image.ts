@@ -16,6 +16,10 @@ export function validateEventImageFile(contentType: string, size: number): strin
 
 const EVENT_IMAGE_PATH = /^([A-Za-z0-9_-]+)\/[0-9a-f]{16}\.(jpg|png|webp)$/;
 
+export function isEventImagePath(path: string): boolean {
+  return EVENT_IMAGE_PATH.test(path);
+}
+
 export function isEventImagePathFor(organizerId: string, path: string): boolean {
   const match = EVENT_IMAGE_PATH.exec(path);
   return match !== null && match[1] === organizerId;
