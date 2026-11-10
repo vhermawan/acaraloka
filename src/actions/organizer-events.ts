@@ -7,6 +7,15 @@ import { redirect } from "next/navigation";
 import { ACTION_ERROR_MESSAGE, ACTION_FAILED, runAction } from "@/actions/_lib/handle-action-error";
 import { getPublishIssues } from "@/lib/event-publish";
 import { createEventSlug } from "@/lib/slug";
+import {
+  EVENT_IMAGE_CONTENT_TYPES,
+  EVENT_IMAGE_MAX_BYTES,
+  eventImageExtension,
+  hasImageSignature,
+  isEventImagePathFor,
+  validateEventImageFile,
+  type EventImageContentType,
+} from "@/lib/event-image";
 import { cancelEventSchema } from "@/lib/validation/cancellation";
 import {
   POSTER_CONTENT_TYPES,
@@ -19,7 +28,14 @@ import { cancelEvent } from "@/server/cancellation";
 import { setFlash } from "@/server/flash";
 import { scheduleEmailDrain } from "@/server/email-schedule";
 import { prisma } from "@/server/db";
-import { POSTER_BUCKET, createSignedUploadUrl } from "@/server/storage";
+import { sanitizeDescription } from "@/server/description";
+import {
+  EVENT_IMAGE_BUCKET,
+  POSTER_BUCKET,
+  createSignedUploadUrl,
+  downloadObject,
+  publicObjectUrl,
+} from "@/server/storage";
 import { removeObjectsQuietly, reportCleanupFailure } from "@/server/storage-cleanup";
 import { removeAiEventArtifacts } from "@/server/ai/artifacts";
 import { pruneCertificateBackgrounds } from "@/server/certificate-config";
@@ -56,7 +72,7 @@ export async function createEvent(_prev: EventFormState, formData: FormData): Pr
   const values = readEventForm(formData);
   return runAction("action.createEvent", { message: ACTION_ERROR_MESSAGE, values }, async () => {
     const { user } = await requireOrganizer();
-    const parsed = eventFormSchema.safeParse(values);
+    const parsed = eventFormSchema.safeParse({ ...values, description: sanitizeDescription(values.description) });
     if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors, values };
 
     const event = await prisma.event.create({
@@ -81,7 +97,7 @@ export async function updateEvent(
       return { message: "Acara yang sudah dibatalkan atau dinonaktifkan tidak bisa diubah.", values };
     }
 
-    const parsed = eventFormSchema.safeParse(values);
+    const parsed = eventFormSchema.safeParse({ ...values, description: sanitizeDescription(values.description) });
     if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors, values };
 
     await prisma.event.update({ where: { id: event.id }, data: parsed.data });
@@ -139,6 +155,46 @@ export async function setEventPoster(eventId: string, path: string): Promise<{ e
     }
     revalidatePath(`/organizer/events/${event.id}`);
     return {};
+  });
+}
+
+export async function createEventImageUpload(file: {
+  contentType: string;
+  size: number;
+}): Promise<{ uploadUrl: string; path: string } | { error: string }> {
+  return runAction("action.createEventImageUpload", ACTION_FAILED, async () => {
+    const { user } = await requireOrganizer();
+    const invalid = validateEventImageFile(file.contentType, file.size);
+    if (invalid) return { error: invalid };
+
+    const extension = EVENT_IMAGE_CONTENT_TYPES[file.contentType as EventImageContentType];
+    const path = `${user.id}/${randomBytes(8).toString("hex")}.${extension}`;
+    const uploadUrl = await createSignedUploadUrl(EVENT_IMAGE_BUCKET, path);
+    return { uploadUrl, path };
+  });
+}
+
+export async function confirmEventImage(path: string): Promise<{ url: string } | { error: string }> {
+  return runAction("action.confirmEventImage", ACTION_FAILED, async () => {
+    const { user } = await requireOrganizer();
+    const extension = eventImageExtension(path);
+    if (!extension || !isEventImagePathFor(user.id, path)) return { error: "Berkas gambar tidak valid." };
+
+    let bytes: Uint8Array;
+    try {
+      bytes = await downloadObject(EVENT_IMAGE_BUCKET, path);
+    } catch {
+      return { error: "Gambar belum terunggah. Coba unggah lagi." };
+    }
+    if (bytes.byteLength === 0 || bytes.byteLength > EVENT_IMAGE_MAX_BYTES) {
+      await removeObjectsQuietly("event.image.invalid", EVENT_IMAGE_BUCKET, [path]);
+      return { error: "Ukuran gambar maksimal 2 MB." };
+    }
+    if (!hasImageSignature(bytes, extension)) {
+      await removeObjectsQuietly("event.image.invalid", EVENT_IMAGE_BUCKET, [path]);
+      return { error: "Isi berkas bukan gambar JPG, PNG, atau WebP yang valid." };
+    }
+    return { url: publicObjectUrl(EVENT_IMAGE_BUCKET, path) };
   });
 }
 

@@ -24,6 +24,17 @@ const baseEvent = {
   ],
 };
 
+describe("eventStructuredData description", () => {
+  it("uses plain text for html descriptions", () => {
+    const data = eventStructuredData(
+      { ...baseEvent, description: "<h2>Agenda</h2><p>Belajar &amp; <strong>praktik</strong></p>" },
+      "https://acaraloka.com",
+      null,
+    );
+    expect(data.description).toBe("Agenda Belajar & praktik");
+  });
+});
+
 describe("eventStructuredData", () => {
   it("builds a schema.org Event with absolute URLs", () => {
     const data = eventStructuredData(baseEvent, "https://acaraloka.com", "https://cdn.example/poster.png");

@@ -18,6 +18,13 @@ const buckets = [
     allowed_mime_types: ["image/jpeg", "image/png", "image/webp"],
   },
   {
+    id: "event-images",
+    name: "event-images",
+    public: true,
+    file_size_limit: 2 * 1024 * 1024,
+    allowed_mime_types: ["image/jpeg", "image/png", "image/webp"],
+  },
+  {
     id: "signatures",
     name: "signatures",
     public: false,

@@ -1,3 +1,4 @@
+import { descriptionToText } from "@/lib/rich-text";
 import type { LocationType, PublicEventLocation } from "@/lib/event-location";
 
 type StructuredDataEvent = {
@@ -37,7 +38,7 @@ export function eventStructuredData(event: StructuredDataEvent, baseUrl: string,
     "@context": "https://schema.org",
     "@type": "Event",
     name: event.title,
-    description: event.description.replace(/\s+/g, " ").trim(),
+    description: descriptionToText(event.description),
     url: pageUrl,
     startDate: event.startAt.toISOString(),
     endDate: event.endAt.toISOString(),

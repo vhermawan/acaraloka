@@ -101,6 +101,29 @@ describe("eventFormSchema", () => {
   });
 });
 
+describe("eventFormSchema description", () => {
+  const descriptionError = (description: string) =>
+    eventFormSchema.safeParse({ ...valid, description }).error?.flatten().fieldErrors.description;
+
+  it("measures text length without tags", () => {
+    expect(descriptionError("<p><strong>pendek</strong></p>")).toEqual(["Deskripsi minimal 10 karakter."]);
+    expect(descriptionError(`<p>${"a".repeat(5001)}</p>`)).toEqual(["Deskripsi maksimal 5000 karakter."]);
+    expect(descriptionError(`<p>${"a".repeat(5000)}</p>`)).toBeUndefined();
+    expect(descriptionError("<p></p>")).toEqual(["Deskripsi minimal 10 karakter."]);
+  });
+
+  it("limits html length", () => {
+    const heavy = `<p>${"<strong>a</strong>".repeat(2000)}</p>`;
+    expect(descriptionError(heavy)).toEqual(["Deskripsi terlalu panjang. Kurangi teks atau gambar."]);
+  });
+
+  it("limits the number of images", () => {
+    const image = '<img src="https://s.test/a.png">';
+    expect(descriptionError(`<p>Teks cukup panjang</p>${image.repeat(10)}`)).toBeUndefined();
+    expect(descriptionError(`<p>Teks cukup panjang</p>${image.repeat(11)}`)).toEqual(["Maksimal 10 gambar di deskripsi."]);
+  });
+});
+
 describe("validatePosterFile", () => {
   it("accepts allowed images up to 2 MB", () => {
     expect(validatePosterFile("image/webp", 2 * 1024 * 1024)).toBeNull();

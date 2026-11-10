@@ -17,8 +17,8 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
-import { Textarea } from "@/components/ui/textarea";
 import { useActionForm } from "@/hooks/use-action-form";
+import { RichTextEditor } from "@/components/events/rich-text-editor";
 import { PlaceSearch } from "@/components/events/place-search";
 import { LOCATION_TYPE_LABELS, LOCATION_TYPES, hasOnlineMeeting, hasPhysicalVenue, type LocationType } from "@/lib/event-location";
 import { EVENT_TIMEZONES, timezoneLabel, type EventTimezone } from "@/lib/timezone";
@@ -111,12 +111,23 @@ function EventForm({ action, defaultValues = EMPTY, submitLabel, disabled, cance
           </Field>
           <Field data-invalid={!!errors.description}>
             <FieldLabel htmlFor="description">Deskripsi</FieldLabel>
-            <Textarea
-              id="description"
-              rows={6}
-              placeholder="Tulis tujuan acara, susunan acara, dan siapa pembicaranya."
-              aria-invalid={!!errors.description}
-              {...register("description")}
+            <Controller
+              control={control}
+              name="description"
+              render={({ field }) => (
+                <>
+                  <RichTextEditor
+                    id="description"
+                    label="Deskripsi acara"
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    invalid={!!errors.description}
+                    disabled={disabled || pending}
+                  />
+                  <input type="hidden" name={field.name} value={field.value} />
+                </>
+              )}
             />
             <FieldDescription>Jelaskan isi acara, pembicara, dan siapa yang cocok ikut.</FieldDescription>
             <FieldError errors={[errors.description]} />
