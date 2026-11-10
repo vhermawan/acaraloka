@@ -16,13 +16,14 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useActionForm } from "@/hooks/use-action-form";
 import { RichTextEditor } from "@/components/events/rich-text-editor";
 import { PlaceSearch } from "@/components/events/place-search";
 import { LOCATION_TYPE_LABELS, LOCATION_TYPES, hasOnlineMeeting, hasPhysicalVenue, type LocationType } from "@/lib/event-location";
 import { EVENT_TIMEZONES, timezoneLabel, type EventTimezone } from "@/lib/timezone";
-import { eventFormSchema } from "@/lib/validation/event";
+import { PAYMENT_INSTRUCTIONS_MAX, PAYMENT_WINDOW_DEFAULT_HOURS, PAYMENT_WINDOW_MAX_HOURS, PAYMENT_WINDOW_MIN_HOURS, eventFormSchema } from "@/lib/validation/event";
 
 type EventFormValues = {
   title: string;
@@ -35,6 +36,8 @@ type EventFormValues = {
   venueAddress: string;
   placeId: string;
   onlineUrl: string;
+  paymentInstructions: string;
+  paymentWindowHours: string;
 };
 
 type EventFormProps = {
@@ -44,6 +47,7 @@ type EventFormProps = {
   disabled?: boolean;
   cancelHref?: string;
   placesEnabled?: boolean;
+  showPayment?: boolean;
 };
 
 const EMPTY: EventFormValues = {
@@ -57,9 +61,11 @@ const EMPTY: EventFormValues = {
   venueAddress: "",
   placeId: "",
   onlineUrl: "",
+  paymentInstructions: "",
+  paymentWindowHours: String(PAYMENT_WINDOW_DEFAULT_HOURS),
 };
 
-function EventForm({ action, defaultValues = EMPTY, submitLabel, disabled, cancelHref, placesEnabled = false }: EventFormProps) {
+function EventForm({ action, defaultValues = EMPTY, submitLabel, disabled, cancelHref, placesEnabled = false, showPayment = false }: EventFormProps) {
   const [state, formAction, pending] = useActionState(action, {});
   const {
     form: {
@@ -273,6 +279,48 @@ function EventForm({ action, defaultValues = EMPTY, submitLabel, disabled, cance
               <FieldError errors={[errors.onlineUrl]} />
             </Field>
           ) : null}
+          {showPayment ? (
+            <fieldset className="flex flex-col gap-4 rounded-lg border border-border p-4">
+              <legend className="px-1 text-sm font-medium">Pembayaran</legend>
+              <Field data-invalid={!!errors.paymentInstructions}>
+                <FieldLabel htmlFor="paymentInstructions">Instruksi pembayaran</FieldLabel>
+                <Textarea
+                  id="paymentInstructions"
+                  rows={4}
+                  maxLength={PAYMENT_INSTRUCTIONS_MAX}
+                  placeholder={"Contoh: Transfer ke BCA 1234567890 a.n. Panitia Workshop, atau QRIS di bio Instagram @panitia."}
+                  aria-invalid={!!errors.paymentInstructions}
+                  {...register("paymentInstructions")}
+                />
+                <FieldDescription>
+                  Rekening, e-wallet, atau QRIS beserta nama penerima. Ditampilkan ke peserta tiket berbayar. Wajib diisi sebelum acara terbit.
+                </FieldDescription>
+                <FieldError errors={[errors.paymentInstructions]} />
+              </Field>
+              <Field data-invalid={!!errors.paymentWindowHours}>
+                <FieldLabel htmlFor="paymentWindowHours">Batas waktu bayar (jam)</FieldLabel>
+                <Input
+                  id="paymentWindowHours"
+                  type="number"
+                  inputMode="numeric"
+                  min={PAYMENT_WINDOW_MIN_HOURS}
+                  max={PAYMENT_WINDOW_MAX_HOURS}
+                  aria-invalid={!!errors.paymentWindowHours}
+                  className="h-10 w-32 tabular-nums"
+                  {...register("paymentWindowHours")}
+                />
+                <FieldDescription>
+                  Lama peserta punya waktu membayar setelah mendaftar, {PAYMENT_WINDOW_MIN_HOURS} sampai {PAYMENT_WINDOW_MAX_HOURS} jam.
+                </FieldDescription>
+                <FieldError errors={[errors.paymentWindowHours]} />
+              </Field>
+            </fieldset>
+          ) : (
+            <>
+              <input type="hidden" {...register("paymentInstructions")} />
+              <input type="hidden" {...register("paymentWindowHours")} />
+            </>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <Button type="submit" className="h-10 px-4">
               {pending ? "Menyimpan..." : submitLabel}

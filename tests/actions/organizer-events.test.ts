@@ -137,6 +137,40 @@ describe("event actions authorization", () => {
   });
 });
 
+describe("updateEvent payment guard", () => {
+  const published = { id: "e1", status: "PUBLISHED" };
+
+  it("stores payment fields on update", async () => {
+    mocks.requireEventOwner.mockResolvedValue({ event: published });
+    mocks.count.mockResolvedValue(1);
+    const result = await updateEvent("e1", {}, formData({ ...validForm, paymentInstructions: "BCA 123", paymentWindowHours: "48" }));
+    expect(result.savedAt).toBeDefined();
+    expect(mocks.update.mock.calls[0][0].data).toMatchObject({ paymentInstructions: "BCA 123", paymentWindowHours: 48 });
+  });
+
+  it("refuses to clear payment setup while a published event has paid tickets", async () => {
+    mocks.requireEventOwner.mockResolvedValue({ event: published });
+    mocks.count.mockResolvedValue(1);
+    const result = await updateEvent("e1", {}, formData({ ...validForm, paymentInstructions: "", paymentWindowHours: "24" }));
+    expect(result.errors?.paymentInstructions).toBeDefined();
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it("allows an empty payment setup for a published free event", async () => {
+    mocks.requireEventOwner.mockResolvedValue({ event: published });
+    mocks.count.mockResolvedValue(0);
+    const result = await updateEvent("e1", {}, formData(validForm));
+    expect(result.savedAt).toBeDefined();
+  });
+
+  it("rejects an invalid payment window", async () => {
+    mocks.requireEventOwner.mockResolvedValue({ event: { id: "e1", status: "DRAFT" } });
+    const result = await updateEvent("e1", {}, formData({ ...validForm, paymentWindowHours: "500" }));
+    expect(result.errors?.paymentWindowHours).toBeDefined();
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+});
+
 describe("description sanitizing", () => {
   const html = '<h2>Agenda</h2><p onclick="x()">Belajar <strong>App Router</strong> dari nol.</p><script>alert(1)</script>';
 
@@ -350,6 +384,41 @@ describe("publishEvent", () => {
     const result = await publishEvent("e1");
     expect(result.error).toBeTruthy();
     expect(mocks.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects paid tickets without payment instructions or window", async () => {
+    const future = new Date(Date.now() + 86_400_000);
+    const ready = { ...draft, startAt: future, endAt: new Date(future.getTime() + 3_600_000), paymentInstructions: null, paymentWindowHours: null };
+    mocks.requireEventOwner.mockResolvedValue({ event: ready });
+    mocks.count.mockResolvedValueOnce(2).mockResolvedValueOnce(1);
+    const result = await publishEvent("e1");
+    expect(result.error).toMatch(/instruksi pembayaran dan batas waktu bayar/);
+    expect(mocks.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("publishes paid tickets once instructions and window are set", async () => {
+    const future = new Date(Date.now() + 86_400_000);
+    const ready = {
+      ...draft,
+      startAt: future,
+      endAt: new Date(future.getTime() + 3_600_000),
+      paymentInstructions: "BCA 123 a.n. Panitia",
+      paymentWindowHours: 24,
+    };
+    mocks.requireEventOwner.mockResolvedValue({ event: ready });
+    mocks.count.mockResolvedValueOnce(2).mockResolvedValueOnce(1);
+    mocks.updateMany.mockResolvedValue({ count: 1 });
+    expect(await publishEvent("e1")).toEqual({});
+    expect(mocks.count).toHaveBeenNthCalledWith(2, { where: { eventId: "e1", price: { gt: 0 } } });
+  });
+
+  it("publishes a free event without payment setup", async () => {
+    const future = new Date(Date.now() + 86_400_000);
+    const ready = { ...draft, startAt: future, endAt: new Date(future.getTime() + 3_600_000), paymentInstructions: null, paymentWindowHours: null };
+    mocks.requireEventOwner.mockResolvedValue({ event: ready });
+    mocks.count.mockResolvedValue(0).mockResolvedValueOnce(1);
+    mocks.updateMany.mockResolvedValue({ count: 1 });
+    expect(await publishEvent("e1")).toEqual({});
   });
 
   it("returns a friendly error and records an unexpected failure", async () => {

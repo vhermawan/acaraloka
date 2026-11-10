@@ -4,12 +4,24 @@ import { formFieldSchema } from "@/lib/validation/form-field";
 import { ticketTypeSchema } from "@/lib/validation/ticket";
 
 describe("ticketTypeSchema", () => {
-  it("coerces quota", () => {
-    expect(ticketTypeSchema.parse({ name: "Umum", quota: "50" })).toEqual({ name: "Umum", quota: 50 });
+  it("coerces quota and price", () => {
+    expect(ticketTypeSchema.parse({ name: "Umum", quota: "50", price: "25000" })).toEqual({ name: "Umum", quota: 50, price: 25000 });
+  });
+
+  it("treats an empty price as free", () => {
+    expect(ticketTypeSchema.parse({ name: "Umum", quota: "50", price: "" }).price).toBe(0);
+  });
+
+  it.each(["-1", "1.5", "abc", "100000001"])("rejects price %j", (price) => {
+    expect(ticketTypeSchema.safeParse({ name: "Umum", quota: "50", price }).success).toBe(false);
+  });
+
+  it("accepts the maximum price", () => {
+    expect(ticketTypeSchema.safeParse({ name: "Umum", quota: "50", price: "100000000" }).success).toBe(true);
   });
 
   it.each(["0", "-1", "1.5", "abc", ""])("rejects quota %j", (quota) => {
-    expect(ticketTypeSchema.safeParse({ name: "Umum", quota }).success).toBe(false);
+    expect(ticketTypeSchema.safeParse({ name: "Umum", quota, price: "0" }).success).toBe(false);
   });
 });
 

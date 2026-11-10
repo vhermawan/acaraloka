@@ -35,18 +35,18 @@ Singkatan kolom test (berlaku untuk semua tabel): A = `tests/server/action-autho
 | No | Action | Berkas | Guard | Cek tambahan | Test |
 | --- | --- | --- | --- | --- | --- |
 | 1 | `createEvent` | `src/actions/organizer-events.ts` | `requireOrganizer` | `organizerId` diisi dari sesi, bukan input | A |
-| 2 | `updateEvent` | `src/actions/organizer-events.ts` | `requireEventOwner` | status DRAFT/PUBLISHED saja | A, `tests/actions/organizer-events.test.ts` |
+| 2 | `updateEvent` | `src/actions/organizer-events.ts` | `requireEventOwner` | status DRAFT/PUBLISHED saja; acara PUBLISHED dengan tiket berbayar tidak boleh mengosongkan instruksi atau batas waktu bayar | A, `tests/actions/organizer-events.test.ts` |
 | 3 | `deleteEvent` | `src/actions/organizer-events.ts` | `requireEventOwner` | status DRAFT saja; setelah event dihapus, berkas latar sertifikat dan seluruh prefix `ai-generations/events/<id>/` (hasil, thumbnail, logo, unggahan mentah) ikut dihapus, kegagalan hanya dicatat | A, I, `tests/actions/organizer-events.test.ts` |
 | 4 | `createPosterUpload` | `src/actions/organizer-events.ts` | `requireEventOwner` | status DRAFT/PUBLISHED, path di bawah `events/<id>/` | A, `tests/actions/organizer-events.test.ts` |
 | 5 | `setEventPoster` | `src/actions/organizer-events.ts` | `requireEventOwner` | status DRAFT/PUBLISHED, path harus di `events/<id>/` tanpa `..` | A, `tests/actions/organizer-events.test.ts` |
-| 6 | `publishEvent` | `src/actions/organizer-events.ts` | `requireEventOwner` | update hanya bila status masih DRAFT | A, I |
+| 6 | `publishEvent` | `src/actions/organizer-events.ts` | `requireEventOwner` | update hanya bila status masih DRAFT; ditolak bila ada tiket berbayar tanpa instruksi pembayaran atau batas waktu bayar | A, I, `tests/actions/organizer-events.test.ts` |
 | 6a | `createEventImageUpload` | `src/actions/organizer-events.ts` | `requireOrganizer` | JPG/PNG/WebP, maksimal 2 MB; path `<id panitia>/<16 hex>.<ext>` di bucket publik `event-images` | A, `tests/actions/organizer-events.test.ts` |
 | 6b | `confirmEventImage` | `src/actions/organizer-events.ts` | `requireOrganizer` | path harus berawalan id panitia sesi; server memverifikasi ukuran dan magic bytes, berkas dihapus bila ditolak | A, `tests/actions/organizer-events.test.ts` |
 | 7 | `cancelEventAction` | `src/actions/organizer-events.ts` | `requireEventOwner` | hanya PUBLISHED sebelum mulai; judul harus diketik ulang | A, `tests/integration/cancellation.test.ts` |
 | 7a | `searchPlaces` | `src/actions/places.ts` | `requireOrganizer` | proxy Places Autocomplete: key server tidak keluar ke klien; minimal 3 karakter, token sesi divalidasi, batas 30 permintaan per menit per akun (in-memory); tanpa `GOOGLE_PLACES_API_KEY` mengembalikan DISABLED | `tests/actions/places.test.ts`, `tests/server/places.test.ts` |
 | 7b | `getPlaceAddress` | `src/actions/places.ts` | `requireOrganizer` | proxy Place Details dengan field mask `formattedAddress` saja; `placeId` dan token divalidasi, batas 15 permintaan per menit per akun | `tests/actions/places.test.ts`, `tests/server/places.test.ts` |
-| 8 | `createTicketType` | `src/actions/event-tickets.ts` | `requireEventOwner` | status DRAFT/PUBLISHED; `eventId` dari guard | A |
-| 9 | `updateTicketType` | `src/actions/event-tickets.ts` | `requireEventOwner` | status DRAFT/PUBLISHED; tiket dicari dengan `{id, eventId}` | A, I |
+| 8 | `createTicketType` | `src/actions/event-tickets.ts` | `requireEventOwner` | status DRAFT/PUBLISHED; `eventId` dari guard; harga 0 sampai 100.000.000; tiket berbayar di acara PUBLISHED butuh instruksi dan batas waktu bayar | A, `tests/actions/event-tickets.test.ts` |
+| 9 | `updateTicketType` | `src/actions/event-tickets.ts` | `requireEventOwner` | status DRAFT/PUBLISHED; tiket dicari dengan `{id, eventId}`; harga terkunci bila `reservedCount > 0` atau ada pendaftaran (ditegakkan juga di `updateMany` dengan `reservedCount: 0`) | A, I, `tests/actions/event-tickets.test.ts` |
 | 10 | `deleteTicketType` | `src/actions/event-tickets.ts` | `requireEventOwner` | status DRAFT/PUBLISHED; hitung pendaftar dan hapus dibatasi `eventId` | A, I |
 | 11 | `createFormField` | `src/actions/event-form.ts` | `requireEventOwner` | status DRAFT/PUBLISHED | A |
 | 12 | `updateFormField` | `src/actions/event-form.ts` | `requireEventOwner` | status DRAFT/PUBLISHED; `updateMany` dengan `{id, eventId}` | A, I |

@@ -6,15 +6,16 @@ import { cn } from "cn";
 
 import type { TicketFormState } from "@/actions/event-tickets";
 import { Button } from "@/components/ui/button";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useActionForm } from "@/hooks/use-action-form";
-import { ticketTypeSchema } from "@/lib/validation/ticket";
+import { TICKET_PRICE_MAX, ticketTypeSchema } from "@/lib/validation/ticket";
 
 type TicketTypeFormProps = {
   action: (state: TicketFormState, formData: FormData) => Promise<TicketFormState>;
   idPrefix: string;
-  defaultValues?: { name: string; quota: string };
+  defaultValues?: { name: string; quota: string; price: string };
+  priceLocked?: boolean;
   submitLabel: string;
   successMessage: string;
   resetOnSuccess?: boolean;
@@ -27,7 +28,8 @@ type TicketTypeFormProps = {
 function TicketTypeForm({
   action,
   idPrefix,
-  defaultValues = { name: "", quota: "" },
+  defaultValues = { name: "", quota: "", price: "" },
+  priceLocked,
   submitLabel,
   successMessage,
   resetOnSuccess,
@@ -68,8 +70,8 @@ function TicketTypeForm({
         className={cn(
           "grid gap-3",
           hideLabelsOnDesktop
-            ? "sm:grid-cols-[minmax(0,1fr)_7rem_9rem] sm:items-start"
-            : "sm:grid-cols-[minmax(0,1fr)_7rem_auto] sm:items-end",
+            ? "sm:grid-cols-[minmax(0,1fr)_7rem_9rem_9rem] sm:items-start"
+            : "sm:grid-cols-[minmax(0,1fr)_7rem_9rem_auto] sm:items-end",
         )}
       >
         <Field data-invalid={!!errors.name}>
@@ -103,6 +105,37 @@ function TicketTypeForm({
           />
           <FieldError errors={[errors.quota]} />
         </Field>
+        <Field data-invalid={!!errors.price}>
+          <FieldLabel htmlFor={`${idPrefix}-price`} className={labelClass}>
+            Harga (Rp)
+          </FieldLabel>
+          {priceLocked ? (
+            <>
+              <Input
+                id={`${idPrefix}-price`}
+                value={defaultValues.price}
+                disabled
+                aria-describedby={`${idPrefix}-price-note`}
+                className="h-10 tabular-nums"
+              />
+              <input type="hidden" {...register("price")} />
+            </>
+          ) : (
+            <Input
+              id={`${idPrefix}-price`}
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={TICKET_PRICE_MAX}
+              placeholder="0 = gratis"
+              disabled={disabled}
+              aria-invalid={!!errors.price}
+              className="h-10 tabular-nums"
+              {...register("price")}
+            />
+          )}
+          <FieldError errors={[errors.price]} />
+        </Field>
         <div className="flex items-center gap-1">
           <Button type="submit" variant={submitVariant} disabled={disabled || pending} className="h-10 px-4">
             {pending ? "Menyimpan..." : submitLabel}
@@ -110,6 +143,11 @@ function TicketTypeForm({
           {children}
         </div>
       </div>
+      {priceLocked ? (
+        <FieldDescription id={`${idPrefix}-price-note`}>
+          Harga terkunci karena tiket ini sudah punya pendaftar. Buat jenis tiket baru bila perlu harga lain.
+        </FieldDescription>
+      ) : null}
     </form>
   );
 }

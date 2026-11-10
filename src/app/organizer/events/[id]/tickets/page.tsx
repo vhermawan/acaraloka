@@ -4,6 +4,7 @@ import { Tickets } from "lucide-react";
 import { ConfirmActionButton } from "@/components/events/confirm-action-button";
 import { ReadOnlyNotice } from "@/components/events/read-only-notice";
 import { TicketTypeForm } from "@/components/events/ticket-type-form";
+import { formatRupiah } from "@/lib/format";
 import { requireEventOwner } from "@/server/authz";
 import { prisma } from "@/server/db";
 
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
   title: "Tiket acara",
 };
 
-function QuotaBar({ reserved, quota }: { reserved: number; quota: number }) {
+function QuotaBar({ reserved, quota, price }: { reserved: number; quota: number; price: number }) {
   const percent = quota > 0 ? Math.min(100, Math.round((reserved / quota) * 100)) : 0;
   const full = reserved >= quota;
 
@@ -23,7 +24,7 @@ function QuotaBar({ reserved, quota }: { reserved: number; quota: number }) {
         <div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
       </div>
       <p className="shrink-0 text-sm text-muted-foreground tabular-nums">
-        {reserved} dari {quota} terpesan · Gratis
+        {reserved} dari {quota} terpesan · {price > 0 ? formatRupiah(price) : "Gratis"}
         {full ? <span className="font-medium text-foreground"> · Habis</span> : null}
       </p>
     </div>
@@ -39,6 +40,12 @@ export default async function EventTicketsPage({ params }: PageProps<"/organizer
     orderBy: { createdAt: "asc" },
   });
 
+  const registrationGroups = await prisma.registration.groupBy({
+    by: ["ticketTypeId"],
+    where: { eventId: event.id },
+  });
+  const withRegistrations = new Set(registrationGroups.map((group) => group.ticketTypeId));
+
   return (
     <div className="flex max-w-3xl flex-col gap-8">
       <section aria-labelledby="tickets-heading" className="flex flex-col gap-4">
@@ -47,7 +54,7 @@ export default async function EventTicketsPage({ params }: PageProps<"/organizer
             Jenis tiket
           </h2>
           <p className="text-sm text-muted-foreground">
-            Semua tiket gratis. Kuota tidak bisa dikurangi di bawah jumlah yang sudah dipesan.
+            Isi harga 0 untuk tiket gratis. Kuota tidak bisa dikurangi di bawah jumlah yang sudah dipesan, dan harga terkunci setelah ada pendaftar.
           </p>
         </div>
         {editable ? null : <ReadOnlyNotice>Tiket acara yang sudah dibatalkan atau dinonaktifkan tidak bisa diubah.</ReadOnlyNotice>}
@@ -62,10 +69,11 @@ export default async function EventTicketsPage({ params }: PageProps<"/organizer
           <div className="flex flex-col rounded-xl border border-border">
             <div
               aria-hidden="true"
-              className="hidden grid-cols-[minmax(0,1fr)_7rem_9rem] gap-3 border-b border-border px-4 py-2.5 text-xs font-medium text-muted-foreground sm:grid"
+              className="hidden grid-cols-[minmax(0,1fr)_7rem_9rem_9rem] gap-3 border-b border-border px-4 py-2.5 text-xs font-medium text-muted-foreground sm:grid"
             >
               <span>Nama tiket</span>
               <span>Kuota</span>
+              <span>Harga (Rp)</span>
             </div>
             <ul className="flex flex-col divide-y divide-border">
               {ticketTypes.map((ticket) => (
@@ -74,7 +82,8 @@ export default async function EventTicketsPage({ params }: PageProps<"/organizer
                     key={ticket.updatedAt.toISOString()}
                     action={updateTicketType.bind(null, event.id, ticket.id)}
                     idPrefix={`ticket-${ticket.id}`}
-                    defaultValues={{ name: ticket.name, quota: String(ticket.quota) }}
+                    defaultValues={{ name: ticket.name, quota: String(ticket.quota), price: String(ticket.price) }}
+                    priceLocked={ticket.reservedCount > 0 || withRegistrations.has(ticket.id)}
                     submitLabel="Simpan"
                     successMessage="Tiket diperbarui."
                     disabled={!editable}
@@ -92,7 +101,7 @@ export default async function EventTicketsPage({ params }: PageProps<"/organizer
                       action={deleteTicketType.bind(null, event.id, ticket.id)}
                     />
                   </TicketTypeForm>
-                  <QuotaBar reserved={ticket.reservedCount} quota={ticket.quota} />
+                  <QuotaBar reserved={ticket.reservedCount} quota={ticket.quota} price={ticket.price} />
                 </li>
               ))}
             </ul>
