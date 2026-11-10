@@ -10,6 +10,12 @@ export function formatBytes(bytes: number): string {
   return `${unit === 0 ? value : value.toFixed(1)} ${BYTE_UNITS[unit]}`;
 }
 
+const rupiahFormatter = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 });
+
+export function formatRupiah(amount: number): string {
+  return `Rp${rupiahFormatter.format(amount)}`;
+}
+
 const dateTimeFormatter = new Intl.DateTimeFormat("id-ID", {
   dateStyle: "medium",
   timeStyle: "short",

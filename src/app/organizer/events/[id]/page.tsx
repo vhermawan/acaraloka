@@ -9,6 +9,7 @@ import { PublicLinkRow } from "@/components/events/public-link-row";
 import { PublishEventPanel } from "@/components/events/publish-event-panel";
 import { ReadOnlyNotice } from "@/components/events/read-only-notice";
 import { getPublishChecklist, isPubliclyVisible } from "@/lib/event-publish";
+import { PAYMENT_WINDOW_DEFAULT_HOURS } from "@/lib/validation/event";
 import { dateToLocalInput } from "@/lib/timezone";
 import { requireEventOwner } from "@/server/authz";
 import { prisma } from "@/server/db";
@@ -51,12 +52,13 @@ export default async function EditEventPage({ params }: PageProps<"/organizer/ev
   const { event } = await requireEventOwner(id);
   const editable = event.status === "DRAFT" || event.status === "PUBLISHED";
   const ticketTypeCount = await prisma.ticketType.count({ where: { eventId: event.id } });
+  const paidTicketCount = await prisma.ticketType.count({ where: { eventId: event.id, price: { gt: 0 } } });
   const cancellable = event.status === "PUBLISHED" && event.startAt > new Date();
 
   return (
     <div className="flex flex-col gap-8">
       {event.status === "DRAFT" ? (
-        <PublishEventPanel eventId={event.id} checklist={getPublishChecklist({ ...event, ticketTypeCount })} />
+        <PublishEventPanel eventId={event.id} checklist={getPublishChecklist({ ...event, ticketTypeCount, paidTicketCount })} />
       ) : null}
       {isPubliclyVisible(event.status) ? <PublicLinkRow path={`/e/${event.slug}`} /> : null}
 
@@ -73,6 +75,7 @@ export default async function EditEventPage({ params }: PageProps<"/organizer/ev
             submitLabel="Simpan perubahan"
             disabled={!editable}
             placesEnabled={placesEnabled()}
+            showPayment={paidTicketCount > 0}
             defaultValues={{
               title: event.title,
               description: event.description,
@@ -84,6 +87,8 @@ export default async function EditEventPage({ params }: PageProps<"/organizer/ev
               venueAddress: event.venueAddress ?? "",
               placeId: event.placeId ?? "",
               onlineUrl: event.onlineUrl ?? "",
+              paymentInstructions: event.paymentInstructions ?? "",
+              paymentWindowHours: String(event.paymentWindowHours ?? PAYMENT_WINDOW_DEFAULT_HOURS),
             }}
           />
         </section>

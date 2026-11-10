@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { ACTION_ERROR_MESSAGE, ACTION_FAILED, runAction } from "@/actions/_lib/handle-action-error";
-import { getPublishIssues } from "@/lib/event-publish";
+import { getPublishIssues, hasPaymentSetup } from "@/lib/event-publish";
 import { createEventSlug } from "@/lib/slug";
 import {
   EVENT_IMAGE_CONTENT_TYPES,
@@ -51,6 +51,8 @@ const EVENT_FIELDS = [
   "venueAddress",
   "placeId",
   "onlineUrl",
+  "paymentInstructions",
+  "paymentWindowHours",
 ] as const;
 
 type EventField = (typeof EVENT_FIELDS)[number];
@@ -61,6 +63,8 @@ export type EventFormState = {
   values?: Record<string, string>;
   savedAt?: number;
 };
+
+const PAYMENT_SETUP_REQUIRED = "Isi instruksi pembayaran dan batas waktu bayar.";
 
 const EDITABLE_STATUSES = new Set(["DRAFT", "PUBLISHED"]);
 
@@ -99,6 +103,17 @@ export async function updateEvent(
 
     const parsed = eventFormSchema.safeParse({ ...values, description: sanitizeDescription(values.description) });
     if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors, values };
+
+    if (event.status === "PUBLISHED" && !hasPaymentSetup(parsed.data)) {
+      const paidTicketCount = await prisma.ticketType.count({ where: { eventId: event.id, price: { gt: 0 } } });
+      if (paidTicketCount > 0) {
+        return {
+          errors: { paymentInstructions: [PAYMENT_SETUP_REQUIRED] },
+          message: "Acara ini punya tiket berbayar, jadi instruksi pembayaran dan batas waktu bayar wajib diisi.",
+          values,
+        };
+      }
+    }
 
     await prisma.event.update({ where: { id: event.id }, data: parsed.data });
     revalidatePath("/organizer", "layout");
@@ -202,7 +217,8 @@ export async function publishEvent(eventId: string): Promise<{ error?: string }>
   return runAction("action.publishEvent", ACTION_FAILED, async () => {
     const { event } = await requireEventOwner(eventId);
     const ticketTypeCount = await prisma.ticketType.count({ where: { eventId: event.id } });
-    const issues = getPublishIssues({ ...event, ticketTypeCount });
+    const paidTicketCount = await prisma.ticketType.count({ where: { eventId: event.id, price: { gt: 0 } } });
+    const issues = getPublishIssues({ ...event, ticketTypeCount, paidTicketCount });
     if (issues.length > 0) return { error: issues.join(" ") };
 
     const updated = await prisma.event.updateMany({

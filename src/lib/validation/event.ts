@@ -39,6 +39,21 @@ const descriptionSchema = z
     }
   });
 
+export const PAYMENT_INSTRUCTIONS_MAX = 2000;
+export const PAYMENT_WINDOW_MIN_HOURS = 1;
+export const PAYMENT_WINDOW_MAX_HOURS = 168;
+export const PAYMENT_WINDOW_DEFAULT_HOURS = 24;
+
+const paymentWindowSchema = z
+  .string()
+  .trim()
+  .refine(
+    (value) =>
+      value === "" ||
+      (/^\d+$/.test(value) && Number(value) >= PAYMENT_WINDOW_MIN_HOURS && Number(value) <= PAYMENT_WINDOW_MAX_HOURS),
+    `Batas waktu bayar harus bilangan bulat ${PAYMENT_WINDOW_MIN_HOURS} sampai ${PAYMENT_WINDOW_MAX_HOURS} jam.`,
+  );
+
 export const eventFormSchema = z
   .object({
     title: z.string().trim().min(3, "Judul minimal 3 karakter.").max(120, "Judul maksimal 120 karakter."),
@@ -51,6 +66,11 @@ export const eventFormSchema = z
     venueAddress: z.string().trim().max(300, "Alamat maksimal 300 karakter."),
     placeId: z.string().trim().max(300).regex(/^[A-Za-z0-9_-]*$/, "Tempat tidak valid."),
     onlineUrl: z.string().trim().max(500, "Tautan maksimal 500 karakter."),
+    paymentInstructions: z
+      .string()
+      .trim()
+      .max(PAYMENT_INSTRUCTIONS_MAX, `Instruksi pembayaran maksimal ${PAYMENT_INSTRUCTIONS_MAX} karakter.`),
+    paymentWindowHours: paymentWindowSchema,
   })
   .transform((data, ctx) => {
     const startAt = localInputToDate(data.startAt, data.timezone);
@@ -71,7 +91,7 @@ export const eventFormSchema = z
       ctx.addIssue({ code: "custom", path: ["onlineUrl"], message: "Tautan harus diawali https:// dan valid." });
     }
     if (!startAt || !endAt) return z.NEVER;
-    const { venueName, venueAddress, placeId, onlineUrl, ...rest } = data;
+    const { venueName, venueAddress, placeId, onlineUrl, paymentInstructions, paymentWindowHours, ...rest } = data;
     return {
       ...rest,
       startAt,
@@ -80,6 +100,8 @@ export const eventFormSchema = z
       venueAddress: physical ? venueAddress || null : null,
       placeId: physical ? placeId || null : null,
       onlineUrl: online ? onlineUrl : null,
+      paymentInstructions: paymentInstructions || null,
+      paymentWindowHours: paymentWindowHours ? Number(paymentWindowHours) : null,
     };
   });
 

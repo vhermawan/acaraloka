@@ -31,7 +31,7 @@ function form(fields: Record<string, string>) {
   return data;
 }
 
-const valid = { name: "Reguler", quota: "50" };
+const valid = { name: "Reguler", quota: "50", price: "0" };
 const draft = { event: { id: "e1", status: "DRAFT" } };
 
 beforeEach(() => {
@@ -61,6 +61,35 @@ describe("createTicketType", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/organizer/events/e1/tickets");
   });
 
+  it("creates a paid ticket with the given price", async () => {
+    const result = await createTicketType("e1", {}, form({ ...valid, price: "50000" }));
+    expect(result.savedAt).toBeDefined();
+    expect(mocks.create).toHaveBeenCalledWith({ data: { name: "Reguler", quota: 50, price: 50000, eventId: "e1" } });
+  });
+
+  it.each(["-1", "1.5", "100000001", "abc"])("rejects price %j", async (price) => {
+    const result = await createTicketType("e1", {}, form({ ...valid, price }));
+    expect(result.errors?.price?.length).toBeGreaterThan(0);
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("refuses a paid ticket on a published event without payment setup", async () => {
+    mocks.requireEventOwner.mockResolvedValue({
+      event: { id: "e1", status: "PUBLISHED", paymentInstructions: null, paymentWindowHours: null },
+    });
+    const result = await createTicketType("e1", {}, form({ ...valid, price: "50000" }));
+    expect(result.errors?.price?.[0]).toMatch(/instruksi pembayaran/);
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("allows a paid ticket on a published event with payment setup", async () => {
+    mocks.requireEventOwner.mockResolvedValue({
+      event: { id: "e1", status: "PUBLISHED", paymentInstructions: "BCA 123", paymentWindowHours: 24 },
+    });
+    const result = await createTicketType("e1", {}, form({ ...valid, price: "50000" }));
+    expect(result.savedAt).toBeDefined();
+  });
+
   it("refuses closed events", async () => {
     mocks.requireEventOwner.mockResolvedValue({ event: { id: "e1", status: "CANCELLED" } });
     const result = await createTicketType("e1", {}, form(valid));
@@ -72,7 +101,7 @@ describe("createTicketType", () => {
     const result = await createTicketType("e1", {}, form({ name: "R", quota: "0" }));
     expect(result.errors?.name?.length).toBeGreaterThan(0);
     expect(result.errors?.quota?.length).toBeGreaterThan(0);
-    expect(result.values).toEqual({ name: "R", quota: "0" });
+    expect(result.values).toEqual({ name: "R", quota: "0", price: "" });
     expect(mocks.create).not.toHaveBeenCalled();
   });
 
@@ -86,11 +115,65 @@ describe("createTicketType", () => {
 
 describe("updateTicketType", () => {
   it("updates a ticket of the guarded event", async () => {
-    mocks.findFirst.mockResolvedValue({ id: "t1", reservedCount: 2 });
+    mocks.findFirst.mockResolvedValue({ id: "t1", reservedCount: 2, price: 0 });
     mocks.updateMany.mockResolvedValue({ count: 1 });
     const result = await updateTicketType("e1", "t1", {}, form(valid));
     expect(result.savedAt).toBeDefined();
     expect(mocks.findFirst).toHaveBeenCalledWith({ where: { id: "t1", eventId: "e1" } });
+  });
+
+  it("changes the price of a ticket without registrations", async () => {
+    mocks.findFirst.mockResolvedValue({ id: "t1", reservedCount: 0, price: 0 });
+    mocks.countRegistrations.mockResolvedValue(0);
+    mocks.updateMany.mockResolvedValue({ count: 1 });
+    const result = await updateTicketType("e1", "t1", {}, form({ ...valid, price: "75000" }));
+    expect(result.savedAt).toBeDefined();
+    expect(mocks.updateMany).toHaveBeenCalledWith({
+      where: { id: "t1", reservedCount: 0 },
+      data: { name: "Reguler", quota: 50, price: 75000 },
+    });
+  });
+
+  it("locks the price once tickets are reserved", async () => {
+    mocks.findFirst.mockResolvedValue({ id: "t1", reservedCount: 3, price: 0 });
+    const result = await updateTicketType("e1", "t1", {}, form({ ...valid, price: "75000" }));
+    expect(result.errors?.price?.[0]).toMatch(/sudah punya pendaftar/);
+    expect(mocks.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("locks the price when only cancelled registrations remain", async () => {
+    mocks.findFirst.mockResolvedValue({ id: "t1", reservedCount: 0, price: 10000 });
+    mocks.countRegistrations.mockResolvedValue(1);
+    const result = await updateTicketType("e1", "t1", {}, form({ ...valid, price: "0" }));
+    expect(result.errors?.price?.[0]).toMatch(/sudah punya pendaftar/);
+    expect(mocks.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("reports a price lock when a registration lands during the update", async () => {
+    mocks.findFirst.mockResolvedValue({ id: "t1", reservedCount: 0, price: 0 });
+    mocks.countRegistrations.mockResolvedValue(0);
+    mocks.updateMany.mockResolvedValue({ count: 0 });
+    const result = await updateTicketType("e1", "t1", {}, form({ ...valid, price: "75000" }));
+    expect(result.errors?.price?.[0]).toMatch(/sudah punya pendaftar/);
+  });
+
+  it("keeps a locked price when it is unchanged", async () => {
+    mocks.findFirst.mockResolvedValue({ id: "t1", reservedCount: 5, price: 50000 });
+    mocks.updateMany.mockResolvedValue({ count: 1 });
+    const result = await updateTicketType("e1", "t1", {}, form({ ...valid, quota: "60", price: "50000" }));
+    expect(result.savedAt).toBeDefined();
+    expect(mocks.countRegistrations).not.toHaveBeenCalled();
+  });
+
+  it("refuses a new price above zero on a published event without payment setup", async () => {
+    mocks.requireEventOwner.mockResolvedValue({
+      event: { id: "e1", status: "PUBLISHED", paymentInstructions: null, paymentWindowHours: null },
+    });
+    mocks.findFirst.mockResolvedValue({ id: "t1", reservedCount: 0, price: 0 });
+    mocks.countRegistrations.mockResolvedValue(0);
+    const result = await updateTicketType("e1", "t1", {}, form({ ...valid, price: "75000" }));
+    expect(result.errors?.price?.[0]).toMatch(/instruksi pembayaran/);
+    expect(mocks.updateMany).not.toHaveBeenCalled();
   });
 
   it("reports an unknown ticket", async () => {
@@ -100,9 +183,9 @@ describe("updateTicketType", () => {
   });
 
   it("refuses a quota below the reserved count", async () => {
-    mocks.findFirst.mockResolvedValue({ id: "t1", reservedCount: 30 });
+    mocks.findFirst.mockResolvedValue({ id: "t1", reservedCount: 30, price: 0 });
     mocks.updateMany.mockResolvedValue({ count: 0 });
-    const result = await updateTicketType("e1", "t1", {}, form({ name: "Reguler", quota: "10" }));
+    const result = await updateTicketType("e1", "t1", {}, form({ name: "Reguler", quota: "10", price: "0" }));
     expect(result.errors?.quota?.[0]).toMatch(/30 tiket/);
   });
 

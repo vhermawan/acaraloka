@@ -31,6 +31,17 @@ enum RegistrationStatus {
   CANCELLED
 }
 
+enum PaymentStatus {
+  NOT_REQUIRED
+  PENDING
+  PAID
+}
+
+enum PaymentMethod {
+  MANUAL
+  GATEWAY
+}
+
 enum CertificateTemplateSource {
   BUILTIN
   UPLOAD
@@ -83,27 +94,29 @@ model OrganizerProfile {
 }
 
 model Event {
-  id             String            @id @default(cuid())
-  organizerId    String            @map("organizer_id")
-  slug           String            @unique
-  title          String
-  description    String
-  startAt        DateTime          @map("start_at") @db.Timestamptz(3)
-  endAt          DateTime          @map("end_at") @db.Timestamptz(3)
-  timezone       String            @default("Asia/Jakarta")
-  locationType   EventLocationType @default(OFFLINE) @map("location_type")
-  venueName      String?           @map("venue_name")
-  venueAddress   String?           @map("venue_address")
-  placeId        String?           @map("place_id")
-  onlineUrl      String?           @map("online_url")
-  posterPath     String?           @map("poster_path")
-  status         EventStatus       @default(DRAFT)
-  publishedAt    DateTime?         @map("published_at") @db.Timestamptz(3)
-  cancelledAt    DateTime?         @map("cancelled_at") @db.Timestamptz(3)
-  cancelReason   String?           @map("cancel_reason")
-  disabledReason String?           @map("disabled_reason")
-  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                  String            @id @default(cuid())
+  organizerId         String            @map("organizer_id")
+  slug                String            @unique
+  title               String
+  description         String
+  startAt             DateTime          @map("start_at") @db.Timestamptz(3)
+  endAt               DateTime          @map("end_at") @db.Timestamptz(3)
+  timezone            String            @default("Asia/Jakarta")
+  locationType        EventLocationType @default(OFFLINE) @map("location_type")
+  venueName           String?           @map("venue_name")
+  venueAddress        String?           @map("venue_address")
+  placeId             String?           @map("place_id")
+  onlineUrl           String?           @map("online_url")
+  posterPath          String?           @map("poster_path")
+  status              EventStatus       @default(DRAFT)
+  publishedAt         DateTime?         @map("published_at") @db.Timestamptz(3)
+  cancelledAt         DateTime?         @map("cancelled_at") @db.Timestamptz(3)
+  cancelReason        String?           @map("cancel_reason")
+  disabledReason      String?           @map("disabled_reason")
+  paymentInstructions String?           @map("payment_instructions")
+  paymentWindowHours  Int?              @map("payment_window_hours")
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   organizer         OrganizerProfile   @relation(fields: [organizerId], references: [userId])
   ticketTypes       TicketType[]
@@ -171,6 +184,12 @@ model Registration {
   cancelledById String?            @map("cancelled_by_id")
   checkedInAt   DateTime?          @map("checked_in_at") @db.Timestamptz(3)
   checkedInById String?            @map("checked_in_by_id")
+  paymentStatus PaymentStatus      @default(NOT_REQUIRED) @map("payment_status")
+  amount        Int                @default(0)
+  paymentDueAt  DateTime?          @map("payment_due_at") @db.Timestamptz(3)
+  paidAt        DateTime?          @map("paid_at") @db.Timestamptz(3)
+  paidById      String?            @map("paid_by_id")
+  paymentMethod PaymentMethod?     @map("payment_method")
   createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -184,6 +203,7 @@ model Registration {
   @@index([userId])
   @@index([eventId, status])
   @@index([eventId, checkedInAt])
+  @@index([eventId, paymentStatus])
   @@index([createdAt])
   @@map("registrations")
 }

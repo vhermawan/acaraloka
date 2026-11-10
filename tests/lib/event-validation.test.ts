@@ -15,6 +15,8 @@ const valid = {
   venueAddress: "",
   placeId: "",
   onlineUrl: "",
+  paymentInstructions: "",
+  paymentWindowHours: "24",
 };
 
 describe("timezone conversion", () => {
@@ -40,6 +42,29 @@ describe("eventFormSchema", () => {
     const result = eventFormSchema.parse(valid);
     expect(result.startAt.toISOString()).toBe("2026-11-01T02:00:00.000Z");
     expect(result.endAt.toISOString()).toBe("2026-11-01T05:00:00.000Z");
+  });
+
+  it("normalizes payment fields", () => {
+    expect(eventFormSchema.parse(valid)).toMatchObject({ paymentInstructions: null, paymentWindowHours: 24 });
+    expect(eventFormSchema.parse({ ...valid, paymentInstructions: "  BCA 123 a.n. Panitia ", paymentWindowHours: "" })).toMatchObject({
+      paymentInstructions: "BCA 123 a.n. Panitia",
+      paymentWindowHours: null,
+    });
+  });
+
+  it.each(["0", "169", "1.5", "abc", "-2"])("rejects payment window %j", (paymentWindowHours) => {
+    const result = eventFormSchema.safeParse({ ...valid, paymentWindowHours });
+    expect(result.error?.flatten().fieldErrors.paymentWindowHours).toBeDefined();
+  });
+
+  it.each(["1", "168"])("accepts payment window %j", (paymentWindowHours) => {
+    expect(eventFormSchema.safeParse({ ...valid, paymentWindowHours }).success).toBe(true);
+  });
+
+  it("limits payment instructions to 2000 characters", () => {
+    expect(eventFormSchema.safeParse({ ...valid, paymentInstructions: "a".repeat(2000) }).success).toBe(true);
+    const result = eventFormSchema.safeParse({ ...valid, paymentInstructions: "a".repeat(2001) });
+    expect(result.error?.flatten().fieldErrors.paymentInstructions).toBeDefined();
   });
 
   it("keeps venue fields and drops the meeting link for OFFLINE", () => {
